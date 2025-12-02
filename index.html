@@ -1,0 +1,101 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RadioPlan AI - Radiothérapie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @media print {
+        @page {
+          margin: 0.5cm;
+          size: landscape;
+        }
+        
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          background-color: white !important;
+        }
+
+        /* 
+           CRITICAL PRINT FIXES:
+           The main app container uses flex and h-screen which breaks printing (clips content).
+           We must reset these to block/auto for print.
+        */
+        #root, .flex.h-screen {
+            display: block !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        /* Hide Sidebar and non-print elements */
+        aside, .print\:hidden {
+          display: none !important;
+        }
+
+        /* Unwrap the main content area */
+        main {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          max-width: none !important;
+          height: auto !important;
+          overflow: visible !important;
+          display: block !important;
+        }
+
+        /* Ensure Tables Expand */
+        table {
+          width: 100% !important;
+          table-layout: fixed !important;
+        }
+        
+        thead {
+            display: table-header-group;
+        }
+        
+        tr {
+            break-inside: avoid;
+        }
+
+        /* Reset Scrolling containers */
+        .overflow-auto, .overflow-y-auto, .overflow-x-hidden {
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+        }
+        
+        /* Remove sticky headers in print to avoid overlap/cut-off */
+        .sticky {
+            position: static !important;
+        }
+
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
+          display: none;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "html2canvas": "https://esm.sh/html2canvas@1.4.1",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.86.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50 text-slate-900 font-sans antialiased">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

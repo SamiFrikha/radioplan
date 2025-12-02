@@ -1,0 +1,5 @@
+{
+  "name": "Backend RadioPlan AI",
+  "description": "Intelligent radiotherapy planning system managing consultations, RCPs, machine referents, and on-call rotations with AI-assisted conflict resolution.",
+  "requestFramePermissions": []
+}
