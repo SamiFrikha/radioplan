@@ -354,17 +354,36 @@ const App: React.FC = () => {
     };
 
     const addUnavailability = async (u: Unavailability) => {
+        // Optimistic update - add immediately for instant UI feedback
+        setUnavailabilities(prev => [...prev, u]);
+
         try {
             const newU = await unavailabilityService.create(u);
-            setUnavailabilities([...unavailabilities, newU]);
-        } catch (e) { console.error(e); }
+            // Replace with server-returned object (might have different ID from DB)
+            setUnavailabilities(prev => prev.map(item => item.id === u.id ? newU : item));
+        } catch (e) {
+            console.error(e);
+            // Rollback on error
+            setUnavailabilities(prev => prev.filter(item => item.id !== u.id));
+        }
     };
 
     const removeUnavailability = async (id: string) => {
+        // Store for potential rollback
+        const removedItem = unavailabilities.find(u => u.id === id);
+
+        // Optimistic update - remove immediately for instant UI feedback
+        setUnavailabilities(prev => prev.filter(u => u.id !== id));
+
         try {
             await unavailabilityService.delete(id);
-            setUnavailabilities(unavailabilities.filter(u => u.id !== id));
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+            // Rollback on error - restore the removed item
+            if (removedItem) {
+                setUnavailabilities(prev => [...prev, removedItem]);
+            }
+        }
     }
 
     const addRcpType = async (name: string) => {

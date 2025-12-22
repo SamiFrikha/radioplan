@@ -2,11 +2,12 @@ import React, { useContext, useState, useRef, useMemo } from 'react';
 import { AppContext } from '../App';
 import { DayOfWeek, Period, SlotType } from '../types';
 import SlotDetailsModal from '../components/SlotDetailsModal';
-import { AlertCircle, ChevronLeft, ChevronRight, Calendar, UserCheck, Users, LayoutGrid, Printer, Loader2, ImageIcon, Lock, Ban, Settings, Palette, Eye } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, Calendar, UserCheck, Users, LayoutGrid, Printer, Loader2, ImageIcon, Lock, Ban, Settings, Palette, Eye, ShieldAlert } from 'lucide-react';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { getDoctorHexColor } from '../components/DoctorBadge';
+import { useAuth } from '../context/AuthContext';
 
 const Planning: React.FC = () => {
     const {
@@ -22,6 +23,36 @@ const Planning: React.FC = () => {
         rcpAttendance,
         rcpExceptions
     } = useContext(AppContext);
+
+    // --- AUTH & ACCESS CONTROL ---
+    const { profile, isAdmin, isDoctor } = useAuth();
+    const [accessDeniedMessage, setAccessDeniedMessage] = useState<string | null>(null);
+
+    // Get the current user's doctor ID from their profile
+    const currentDoctorId = profile?.doctor_id;
+
+    // Check if the current user can interact with a slot (click to edit)
+    // Admin: can interact with everything
+    // Doctor: can only interact with their own consultation slots (Box 1, 2, 3)
+    const canInteractWithSlot = (slot: { type: SlotType; location: string; assignedDoctorId: string | null; secondaryDoctorIds?: string[] }) => {
+        // Admin has full access
+        if (isAdmin) return true;
+
+        // For doctors, only allow interaction with their own consultation slots
+        if (isDoctor && currentDoctorId) {
+            // Check if slot type is consultation and location is a "Box" (consultation rooms)
+            const isConsultationBox = slot.type === SlotType.CONSULTATION && slot.location.toLowerCase().startsWith('box');
+
+            // Check if the doctor is assigned to this slot
+            const isAssigned = slot.assignedDoctorId === currentDoctorId ||
+                (slot.secondaryDoctorIds && slot.secondaryDoctorIds.includes(currentDoctorId));
+
+            return isConsultationBox && isAssigned;
+        }
+
+        // By default, no interaction allowed for other roles
+        return false;
+    };
 
     // Local Week State
     const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
@@ -295,11 +326,19 @@ const Planning: React.FC = () => {
         if (!slot) return <div className="h-full w-full bg-slate-50 min-h-[60px] flex items-center justify-center text-[10px] text-slate-300 border-l border-slate-100">--</div>;
 
         if (slot.isClosed) {
+            const canClick = canInteractWithSlot(slot);
             return (
                 <div
-                    className="relative h-full w-full bg-gray-100 border-l-4 border-gray-300 min-h-[60px] flex flex-col items-center justify-center cursor-pointer opacity-80 hover:opacity-100"
+                    className={`relative h-full w-full bg-gray-100 border-l-4 border-gray-300 min-h-[60px] flex flex-col items-center justify-center opacity-80 ${canClick ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
                     style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #e5e7eb 10px, #e5e7eb 20px)' }}
-                    onClick={() => setSelectedSlotId(slot.id)}
+                    onClick={() => {
+                        if (canClick) {
+                            setSelectedSlotId(slot.id);
+                        } else if (!isAdmin) {
+                            setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation.");
+                            setTimeout(() => setAccessDeniedMessage(null), 3000);
+                        }
+                    }}
                 >
                     <div className="bg-white/80 p-1 rounded shadow-sm flex items-center">
                         <Ban className="w-4 h-4 text-gray-500 mr-1" />
@@ -313,7 +352,10 @@ const Planning: React.FC = () => {
         const secondaryDocs = slot.secondaryDoctorIds?.map(id => doctors.find(d => d.id === id)).filter(Boolean);
         const conflict = conflicts.find(c => c.slotId === slot.id);
 
-        let baseClasses = "relative h-full w-full p-2 border-l-4 flex flex-col justify-center transition-all cursor-pointer hover:brightness-95";
+        // Access control check
+        const canClick = canInteractWithSlot(slot);
+
+        let baseClasses = `relative h-full w-full p-2 border-l-4 flex flex-col justify-center transition-all ${canClick ? 'cursor-pointer hover:brightness-95' : 'cursor-default'}`;
         let bgClass = "";
         let borderClass = "";
 
@@ -352,14 +394,31 @@ const Planning: React.FC = () => {
             borderClass = "border-red-500";
         }
 
+        // Handle click based on access control
+        const handleSlotClick = () => {
+            if (canClick) {
+                setSelectedSlotId(slot.id);
+            } else if (!isAdmin) {
+                setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation.");
+                setTimeout(() => setAccessDeniedMessage(null), 3000);
+            }
+        };
+
         return (
             <div
                 className={`${baseClasses} ${bgClass} ${borderClass}`}
-                onClick={() => setSelectedSlotId(slot.id)}
+                onClick={handleSlotClick}
             >
                 {conflict && (
                     <div className="absolute top-1 right-1 text-red-500 animate-pulse">
                         <AlertCircle className="w-4 h-4" />
+                    </div>
+                )}
+
+                {/* Show lock icon for non-editable slots (for doctors) */}
+                {!canClick && !isAdmin && (
+                    <div className="absolute top-1 left-1 text-slate-300">
+                        <Lock className="w-3 h-3" />
                     </div>
                 )}
 
@@ -442,6 +501,16 @@ const Planning: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col">
+            {/* Access Denied Toast */}
+            {accessDeniedMessage && (
+                <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-3 rounded-lg shadow-lg flex items-center">
+                        <ShieldAlert className="w-5 h-5 mr-2 text-orange-600" />
+                        <span className="font-medium text-sm">{accessDeniedMessage}</span>
+                    </div>
+                </div>
+            )}
+
             {/* Header controls */}
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
                 <div>

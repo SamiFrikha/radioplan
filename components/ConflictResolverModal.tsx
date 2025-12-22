@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { Conflict, Doctor, ScheduleSlot, ReplacementSuggestion, SlotType } from '../types';
 import { getAvailableDoctors, getAlgorithmicReplacementSuggestion, findConflictingSlot, getDoctorWorkRate } from '../services/scheduleService';
-import { X, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ArrowRight, Activity, Calendar } from 'lucide-react';
+import { X, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ArrowRight, Activity, Calendar, ShieldAlert } from 'lucide-react';
 import { AppContext } from '../App';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
     slot: ScheduleSlot;
@@ -18,6 +19,7 @@ interface Props {
 
 const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots, unavailabilities, onClose, onResolve, onCloseSlot }) => {
     const { effectiveHistory, activityDefinitions } = useContext(AppContext);
+    const { profile, isAdmin, isDoctor } = useAuth();
     const [loading, setLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<ReplacementSuggestion[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,20 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
     // Double Booking Logic
     const assignedDoctor = doctors.find(d => d.id === slot.assignedDoctorId);
+
+    // Get current user's doctor ID
+    const currentDoctorId = profile?.doctor_id;
+
+    // Check if this conflict concerns the current user (doctor)
+    // A conflict concerns a doctor if they are the assigned doctor or the conflict's doctorId matches
+    const concernsCurrentDoctor = currentDoctorId && (
+        slot.assignedDoctorId === currentDoctorId ||
+        (slot.secondaryDoctorIds && slot.secondaryDoctorIds.includes(currentDoctorId)) ||
+        (conflict && conflict.doctorId === currentDoctorId)
+    );
+
+    // Admin can always resolve, doctors can only resolve if it concerns them
+    const canResolve = isAdmin || (isDoctor && concernsCurrentDoctor);
     const otherSlot = useMemo(() => {
         if (conflict?.type === 'DOUBLE_BOOKING' && assignedDoctor) {
             return findConflictingSlot(slot, slots, assignedDoctor.id);
@@ -99,6 +115,63 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
         if (s.type === SlotType.ACTIVITY) return <Activity className="w-4 h-4 mr-2" />;
         return <Calendar className="w-4 h-4 mr-2" />;
     };
+
+    // If the user cannot resolve this conflict, show an access denied message
+    if (!canResolve) {
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                    {/* HEADER */}
+                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-orange-50">
+                        <div className="flex items-center space-x-2">
+                            <ShieldAlert className="w-5 h-5 text-orange-600" />
+                            <h2 className="font-bold text-lg text-orange-800">Accès Restreint</h2>
+                        </div>
+                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-black/5 p-2 transition-colors">
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    <div className="p-6">
+                        <div className="mb-4 text-center">
+                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <ShieldAlert className="w-8 h-8 text-orange-600" />
+                            </div>
+                            <h3 className="font-bold text-lg text-slate-800 mb-2">Ce conflit ne vous concerne pas</h3>
+                            <p className="text-slate-600 text-sm">
+                                Vous ne pouvez résoudre que les conflits qui concernent vos propres créneaux.<br />
+                                Seuls les administrateurs peuvent résoudre les conflits des autres médecins.
+                            </p>
+                        </div>
+
+                        {/* Show conflict info */}
+                        {conflict && (
+                            <div className="bg-red-50 p-3 rounded-lg border border-red-200 mb-4">
+                                <div className="text-xs font-bold text-red-500 uppercase mb-1">Conflit</div>
+                                <div className="text-sm text-red-700">{conflict.description}</div>
+                            </div>
+                        )}
+
+                        {/* Show slot info */}
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
+                            <div className="text-xs font-bold text-slate-500 uppercase">{slot.day} {slot.period === 'Matin' ? 'Matin' : 'Après-Midi'}</div>
+                            <div className="font-bold text-slate-800 text-sm">{slot.location}</div>
+                            {assignedDoctor && (
+                                <div className="text-sm text-slate-600 mt-1">Médecin concerné : {assignedDoctor.name}</div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={onClose}
+                            className="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors"
+                        >
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

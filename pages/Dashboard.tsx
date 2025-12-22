@@ -3,9 +3,10 @@ import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../App';
 import StatCard from '../components/StatCard';
 import ConflictResolverModal from '../components/ConflictResolverModal';
-import { Users, AlertTriangle, Calendar, Activity, Clock, ChevronLeft, ChevronRight, LayoutList, LayoutGrid, UserX, CalendarDays, UserMinus } from 'lucide-react';
-import { DayOfWeek, Period, SlotType, Doctor, ScheduleSlot, Conflict } from '../types';
-import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
+import RcpExceptionModal from '../components/RcpExceptionModal';
+import { Users, AlertTriangle, Calendar, Activity, Clock, ChevronLeft, ChevronRight, LayoutList, LayoutGrid, UserX, CalendarDays, UserMinus, CalendarX2, MapPin } from 'lucide-react';
+import { DayOfWeek, Period, SlotType, Doctor, ScheduleSlot, Conflict, RcpException } from '../types';
+import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConflicts, isFrenchHoliday, getFrenchHolidays } from '../services/scheduleService';
 import { getDoctorHexColor } from '../components/DoctorBadge';
 
 const Dashboard: React.FC = () => {
@@ -23,7 +24,8 @@ const Dashboard: React.FC = () => {
         dashboardViewMode,
         setDashboardViewMode,
         dashboardWeekOffset,
-        setDashboardWeekOffset
+        setDashboardWeekOffset,
+        addRcpException
     } = useContext(AppContext);
 
     // Compute week start from offset (stored in context to survive re-renders)
@@ -54,6 +56,9 @@ const Dashboard: React.FC = () => {
     // Resolver Modal State
     const [selectedConflict, setSelectedConflict] = useState<Conflict | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null);
+
+    // RCP Exception Modal (for moving RCPs from holidays)
+    const [rcpExceptionSlot, setRcpExceptionSlot] = useState<ScheduleSlot | null>(null);
 
     // Generate Local Schedule based on Local Week
     // Dashboard does NOT auto-fill activities - it uses manual overrides only
@@ -90,6 +95,93 @@ const Dashboard: React.FC = () => {
     const conflicts = useMemo(() => {
         return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions);
     }, [schedule, unavailabilities, doctors, activityDefinitions]);
+
+    // Detect RCPs falling on holidays in the current month AND next month (based on selected date)
+    const rcpsOnHolidays = useMemo(() => {
+        // Use the selected date as reference point
+        const referenceDate = selectedDate;
+        const currentMonth = referenceDate.getMonth();
+        const currentYear = referenceDate.getFullYear();
+
+        // Calculate next month
+        const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+        const nextMonthYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+
+        // Track unique RCPs by a unique key (to avoid duplicates)
+        const rcpMap = new Map<string, { slot: ScheduleSlot; holiday: { date: string; name: string }; weekStart: Date }>();
+
+        // Get start of current month (Monday of the first week)
+        let weekStart = new Date(currentYear, currentMonth, 1);
+        const weekDay = weekStart.getDay();
+        weekStart.setDate(weekStart.getDate() - weekDay + (weekDay === 0 ? -6 : 1)); // Get Monday of first week
+
+        // End of next month (last day)
+        const periodEnd = new Date(nextMonthYear, nextMonth + 1, 0); // Last day of next month
+
+        // Loop through all weeks that overlap with current and next month
+        let loops = 0;
+        const maxLoops = 10; // ~2.5 months max
+
+        while (loops < maxLoops && weekStart <= periodEnd) {
+            const weekSlots = generateScheduleForWeek(
+                new Date(weekStart), // Create new Date to avoid mutation issues
+                template,
+                unavailabilities,
+                doctors,
+                activityDefinitions,
+                rcpTypes,
+                false,
+                {},
+                rcpAttendance,
+                rcpExceptions
+            );
+
+            // Find RCP slots that fall on holidays and are in the target months
+            weekSlots
+                .filter(slot => slot.type === SlotType.RCP && !slot.isCancelled)
+                .forEach(slot => {
+                    const slotDate = new Date(slot.date);
+                    const slotMonth = slotDate.getMonth();
+                    const slotYear = slotDate.getFullYear();
+
+                    // Include slots in current month OR next month
+                    const isInCurrentMonth = slotMonth === currentMonth && slotYear === currentYear;
+                    const isInNextMonth = slotMonth === nextMonth && slotYear === nextMonthYear;
+
+                    if (isInCurrentMonth || isInNextMonth) {
+                        const holiday = isFrenchHoliday(slot.date);
+                        if (holiday) {
+                            // Check if there's already an exception that moves this RCP to a different date
+                            const hasMovedException = rcpExceptions.some(ex =>
+                                ex.originalDate === slot.date &&
+                                ex.newDate && ex.newDate !== slot.date
+                            );
+
+                            if (!hasMovedException) {
+                                // Use slot.id + date as unique key to avoid duplicates
+                                const uniqueKey = `${slot.id}`;
+                                if (!rcpMap.has(uniqueKey)) {
+                                    rcpMap.set(uniqueKey, {
+                                        slot,
+                                        holiday,
+                                        weekStart: new Date(weekStart)
+                                    });
+                                }
+                            }
+                        }
+                    }
+                });
+
+            weekStart.setDate(weekStart.getDate() + 7);
+            loops++;
+        }
+
+        // Convert Map to array and sort by date
+        const result = Array.from(rcpMap.values());
+        result.sort((a, b) => a.slot.date.localeCompare(b.slot.date));
+
+        return result;
+    }, [selectedDate, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
 
 
     // Helpers for navigation
@@ -731,6 +823,106 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* RCPs ON HOLIDAYS ALERT */}
+                    {rcpsOnHolidays.length > 0 && (
+                        <div className="bg-white rounded-xl shadow-sm border border-orange-200 flex flex-col shrink-0">
+                            <div className="p-4 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50">
+                                <h2 className="font-bold text-slate-800 flex items-center justify-between">
+                                    <span className="flex items-center">
+                                        <CalendarX2 className="w-5 h-5 mr-2 text-orange-500" />
+                                        RCP sur Jour Férié
+                                    </span>
+                                    <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold">
+                                        {rcpsOnHolidays.length}
+                                    </span>
+                                </h2>
+                                <p className="text-[10px] text-orange-600 mt-1">
+                                    Ces RCP tombent sur un jour férié ({selectedDate.toLocaleDateString('fr-FR', { month: 'long' })} & {new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1).toLocaleDateString('fr-FR', { month: 'long' })}). Cliquez pour les déplacer.
+                                </p>
+                            </div>
+                            <div className="p-3 max-h-80 overflow-y-auto space-y-2">
+                                {rcpsOnHolidays.map(({ slot, holiday, weekStart }) => {
+                                    const allDoctorIds = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean);
+                                    const formattedDate = new Date(slot.date).toLocaleDateString('fr-FR', {
+                                        weekday: 'long',
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                    });
+                                    const isConfirmed = !slot.isUnconfirmed;
+
+                                    return (
+                                        <div
+                                            key={slot.id}
+                                            onClick={() => setRcpExceptionSlot(slot)}
+                                            className="p-3 bg-gradient-to-r from-orange-50 to-white border border-orange-200 rounded-lg hover:border-orange-400 hover:shadow-md transition-all cursor-pointer relative group"
+                                        >
+                                            {/* Top row: Holiday badge + Status */}
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-200">
+                                                    ⚠️ {holiday.name}
+                                                </span>
+                                                {/* Status badge */}
+                                                {isConfirmed ? (
+                                                    <span className="text-[9px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded border border-green-200">
+                                                        ✓ Confirmée
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] font-bold text-yellow-700 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-200">
+                                                        ⚠ À confirmer
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* RCP Name & Date */}
+                                            <div className="flex items-center mb-1">
+                                                <MapPin className="w-4 h-4 text-purple-500 mr-2" />
+                                                <span className="font-bold text-sm text-slate-800">{slot.location}</span>
+                                                <span className="ml-2 text-[9px] text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
+                                                    RCP
+                                                </span>
+                                            </div>
+
+                                            <div className="text-xs text-slate-600 mb-2 pl-6 capitalize">
+                                                📅 {formattedDate} à {slot.time || '--:--'}
+                                            </div>
+
+                                            {/* Doctors */}
+                                            <div className="flex flex-wrap gap-1 pl-6">
+                                                {allDoctorIds.slice(0, 3).map(id => {
+                                                    const d = doctors.find(doc => doc.id === id);
+                                                    if (!d) return null;
+                                                    return (
+                                                        <div
+                                                            key={id}
+                                                            className="flex items-center bg-white px-1.5 py-0.5 rounded border border-slate-200"
+                                                        >
+                                                            <div
+                                                                className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold mr-1 text-white"
+                                                                style={{ backgroundColor: getDoctorHexColor(d.color) }}
+                                                            >
+                                                                {d.name.substring(0, 2)}
+                                                            </div>
+                                                            <span className="text-[9px] text-slate-700">{d.name}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {allDoctorIds.length > 3 && (
+                                                    <span className="text-[9px] text-slate-400">+{allDoctorIds.length - 3}</span>
+                                                )}
+                                            </div>
+
+                                            {/* Hover action hint */}
+                                            <div className="absolute right-2 bottom-2 text-xs text-orange-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                Déplacer →
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* NON-POSTED DOCTORS */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
                         <div className="p-3 border-b border-slate-100 bg-slate-50">
@@ -831,6 +1023,27 @@ const Dashboard: React.FC = () => {
                     onClose={() => { setSelectedSlot(null); setSelectedConflict(null); }}
                     onResolve={handleResolve}
                     onCloseSlot={handleCloseSlot}
+                />
+            )}
+
+            {/* RCP Exception Modal for moving RCPs from holidays */}
+            {rcpExceptionSlot && (
+                <RcpExceptionModal
+                    slot={rcpExceptionSlot}
+                    doctors={doctors}
+                    existingException={rcpExceptions.find(ex =>
+                        ex.rcpTemplateId === rcpExceptionSlot.id.split('-').slice(0, -3).join('-') &&
+                        ex.originalDate === rcpExceptionSlot.date
+                    )}
+                    onSave={(exception: RcpException) => {
+                        addRcpException(exception);
+                        setRcpExceptionSlot(null);
+                    }}
+                    onClose={() => setRcpExceptionSlot(null)}
+                    onRemoveException={() => {
+                        // Remove exception logic if needed
+                        setRcpExceptionSlot(null);
+                    }}
                 />
             )}
         </div>

@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { AppRole, Doctor, Specialty, DayOfWeek, SlotType } from '../../types';
+import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { AppContext } from '../../App';
+import { unavailabilityService } from '../../services/unavailabilityService';
 import { Users, UserPlus, Edit2, Trash2, X, Save, Key, UserCheck, Mail, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, Stethoscope, Link2, Unlink, Tag, Plus, Ban, Calendar } from 'lucide-react';
 
 interface UserData {
@@ -31,7 +32,7 @@ const NON_DOCTOR_ROLES = ['Secrétariat', 'Secretariat', 'Secretary'];
 
 const TeamManagement: React.FC = () => {
     const { hasPermission } = useAuth();
-    const { doctors, removeDoctor, activityDefinitions } = useContext(AppContext);
+    const { doctors, removeDoctor, activityDefinitions, unavailabilities, addUnavailability, removeUnavailability } = useContext(AppContext);
     const [users, setUsers] = useState<UserData[]>([]);
     const [roles, setRoles] = useState<AppRole[]>([]);
     const [allDoctors, setAllDoctors] = useState<DoctorWithUser[]>([]);
@@ -54,9 +55,35 @@ const TeamManagement: React.FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserData | null>(null);
 
-    // Doctor Edit Modal State
-    const [isEditDoctorModalOpen, setIsEditDoctorModalOpen] = useState(false);
+    // Doctor Edit Modal State - persist in sessionStorage to survive context re-renders
+    const [isEditDoctorModalOpen, setIsEditDoctorModalOpenState] = useState(() => {
+        return sessionStorage.getItem('teamMgmt_editDoctorModalOpen') === 'true';
+    });
+    const [editingDoctorId, setEditingDoctorIdState] = useState<string | null>(() => {
+        return sessionStorage.getItem('teamMgmt_editingDoctorId') || null;
+    });
     const [editingDoctor, setEditingDoctor] = useState<DoctorWithUser | null>(null);
+
+    // Wrapper functions to persist modal state
+    const setIsEditDoctorModalOpen = (isOpen: boolean) => {
+        if (isOpen) {
+            sessionStorage.setItem('teamMgmt_editDoctorModalOpen', 'true');
+        } else {
+            sessionStorage.removeItem('teamMgmt_editDoctorModalOpen');
+            sessionStorage.removeItem('teamMgmt_editingDoctorId');
+        }
+        setIsEditDoctorModalOpenState(isOpen);
+    };
+
+    const setEditingDoctorId = (id: string | null) => {
+        if (id) {
+            sessionStorage.setItem('teamMgmt_editingDoctorId', id);
+        } else {
+            sessionStorage.removeItem('teamMgmt_editingDoctorId');
+        }
+        setEditingDoctorIdState(id);
+    };
+
     const [doctorFormData, setDoctorFormData] = useState({
         name: '',
         color: '#3B82F6',
@@ -70,6 +97,18 @@ const TeamManagement: React.FC = () => {
     const [newSpecialtyName, setNewSpecialtyName] = useState('');
     const [newSpecialtyColor, setNewSpecialtyColor] = useState('#3b82f6');
     const [deleteSpecialtyConfirmId, setDeleteSpecialtyConfirmId] = useState<string | null>(null);
+
+    // Unavailability Form State (in doctor edit modal)
+    const [unavailStartDate, setUnavailStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [unavailEndDate, setUnavailEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [unavailPeriod, setUnavailPeriod] = useState<'ALL_DAY' | Period>('ALL_DAY');
+    const [unavailReason, setUnavailReason] = useState('CONGRES');
+    const [unavailCustomReason, setUnavailCustomReason] = useState('');
+    const [deleteUnavailConfirmId, setDeleteUnavailConfirmId] = useState<string | null>(null);
+
+    // Local copy of unavailabilities for the currently editing doctor
+    // This allows instant UI updates without triggering global recalculations
+    const [localDoctorUnavails, setLocalDoctorUnavails] = useState<Unavailability[]>([]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -87,6 +126,26 @@ const TeamManagement: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
     const [deleteDoctorConfirmId, setDeleteDoctorConfirmId] = useState<string | null>(null);
+
+    // Restore editing doctor from sessionStorage when allDoctors are loaded
+    useEffect(() => {
+        if (editingDoctorId && allDoctors.length > 0 && !editingDoctor) {
+            const doctor = allDoctors.find(d => d.id === editingDoctorId);
+            if (doctor) {
+                setEditingDoctor(doctor);
+                setDoctorFormData({
+                    name: doctor.name,
+                    color: doctor.color || '#3B82F6',
+                    selectedSpecialties: doctor.specialty || [],
+                    excludedDays: doctor.excludedDays || [],
+                    excludedActivities: doctor.excludedActivities || [],
+                    excludedSlotTypes: doctor.excludedSlotTypes || []
+                });
+                // Also restore local unavailabilities
+                setLocalDoctorUnavails(unavailabilities.filter(u => u.doctorId === doctor.id));
+            }
+        }
+    }, [editingDoctorId, allDoctors, editingDoctor, unavailabilities]);
 
     useEffect(() => {
         fetchData();
@@ -410,6 +469,7 @@ const TeamManagement: React.FC = () => {
     // === DOCTOR EDIT HANDLERS ===
     const openEditDoctorModal = (doctor: DoctorWithUser) => {
         setEditingDoctor(doctor);
+        setEditingDoctorId(doctor.id); // Persist to sessionStorage
         setDoctorFormData({
             name: doctor.name,
             color: doctor.color || '#3B82F6',
@@ -418,6 +478,8 @@ const TeamManagement: React.FC = () => {
             excludedActivities: doctor.excludedActivities || [],
             excludedSlotTypes: doctor.excludedSlotTypes || []
         });
+        // Initialize local unavailabilities from global context
+        setLocalDoctorUnavails(unavailabilities.filter(u => u.doctorId === doctor.id));
         setError('');
         setSuccess('');
         setIsEditDoctorModalOpen(true);
@@ -451,6 +513,7 @@ const TeamManagement: React.FC = () => {
             setTimeout(() => {
                 setIsEditDoctorModalOpen(false);
                 setEditingDoctor(null);
+                setEditingDoctorId(null);
                 setSuccess('');
                 fetchData();
             }, 1000);
@@ -565,6 +628,96 @@ const TeamManagement: React.FC = () => {
                 return { ...prev, excludedSlotTypes: [...current, slotType] };
             }
         });
+    };
+
+    // === UNAVAILABILITY HANDLERS (Admin only) ===
+    // These handlers use LOCAL state for instant UI feedback
+    // and sync with API in background WITHOUT updating global context
+    // This prevents heavy recalculations (schedule, history, etc.)
+
+    const handleAddUnavailabilityForDoctor = () => {
+        if (!editingDoctor) return;
+
+        const reasonText = unavailReason === 'AUTRE' ? unavailCustomReason : unavailReason;
+        if (unavailReason === 'AUTRE' && !unavailCustomReason.trim()) {
+            setError('Veuillez préciser le motif');
+            return;
+        }
+
+        const newUnavail: Unavailability = {
+            id: Date.now().toString(),
+            doctorId: editingDoctor.id,
+            startDate: unavailStartDate,
+            endDate: unavailEndDate,
+            period: unavailPeriod,
+            reason: reasonText,
+        };
+
+        // INSTANT: Update local state (no global re-renders)
+        setLocalDoctorUnavails(prev => [...prev, newUnavail]);
+
+        // BACKGROUND: Save to API and update global context silently
+        unavailabilityService.create(newUnavail).then(savedUnavail => {
+            // Update local with server ID
+            setLocalDoctorUnavails(prev =>
+                prev.map(u => u.id === newUnavail.id ? savedUnavail : u)
+            );
+            // Also update global context (for when modal closes)
+            addUnavailability(savedUnavail);
+        }).catch(err => {
+            console.error('Failed to save unavailability:', err);
+            // Rollback local state
+            setLocalDoctorUnavails(prev => prev.filter(u => u.id !== newUnavail.id));
+            setError('Erreur lors de la sauvegarde');
+        });
+
+        // Reset form
+        setUnavailStartDate(new Date().toISOString().split('T')[0]);
+        setUnavailEndDate(new Date().toISOString().split('T')[0]);
+        setUnavailPeriod('ALL_DAY');
+        setUnavailReason('CONGRES');
+        setUnavailCustomReason('');
+        setError('');
+        setSuccess('Indisponibilité ajoutée !');
+        setTimeout(() => setSuccess(''), 2000);
+    };
+
+    const handleDeleteUnavailability = (unavailId: string) => {
+        if (deleteUnavailConfirmId !== unavailId) {
+            setDeleteUnavailConfirmId(unavailId);
+            setTimeout(() => setDeleteUnavailConfirmId(null), 3000);
+            return;
+        }
+
+        setDeleteUnavailConfirmId(null);
+
+        // Store for potential rollback
+        const removedItem = localDoctorUnavails.find(u => u.id === unavailId);
+
+        // INSTANT: Update local state (no global re-renders)
+        setLocalDoctorUnavails(prev => prev.filter(u => u.id !== unavailId));
+
+        // BACKGROUND: Delete from API and update global context silently
+        unavailabilityService.delete(unavailId).then(() => {
+            // Also update global context (for when modal closes)
+            removeUnavailability(unavailId);
+        }).catch(err => {
+            console.error('Failed to delete unavailability:', err);
+            // Rollback local state
+            if (removedItem) {
+                setLocalDoctorUnavails(prev => [...prev, removedItem]);
+            }
+            setError('Erreur lors de la suppression');
+        });
+
+        setError('');
+        setSuccess('Indisponibilité supprimée');
+        setTimeout(() => setSuccess(''), 2000);
+    };
+
+    // Return LOCAL unavailabilities for instant display (no global context dependency)
+    const getDoctorUnavailabilities = () => {
+        return localDoctorUnavails;
     };
 
     if (!hasPermission('manage_users')) {
@@ -1317,7 +1470,7 @@ const TeamManagement: React.FC = () => {
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                                 <Stethoscope className="w-5 h-5 text-blue-600" /> Modifier le Profil Médecin
                             </h2>
-                            <button onClick={() => { setIsEditDoctorModalOpen(false); setEditingDoctor(null); }} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => { setIsEditDoctorModalOpen(false); setEditingDoctor(null); setEditingDoctorId(null); }} className="text-slate-400 hover:text-slate-600">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -1482,6 +1635,127 @@ const TeamManagement: React.FC = () => {
                                                 </button>
                                             ))}
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Unavailabilities Section (Admin Only) */}
+                            <div className="border-t border-slate-200 pt-4">
+                                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-blue-500" /> Indisponibilités
+                                </h3>
+
+                                {/* Existing Unavailabilities List */}
+                                {getDoctorUnavailabilities().length > 0 && (
+                                    <div className="mb-4">
+                                        <p className="text-xs text-slate-500 mb-2">Indisponibilités existantes :</p>
+                                        <div className="bg-slate-50 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
+                                            {getDoctorUnavailabilities().map(unavail => (
+                                                <div
+                                                    key={unavail.id}
+                                                    className="flex justify-between items-center bg-white p-2 rounded border border-slate-100 hover:border-slate-300"
+                                                >
+                                                    <div className="text-xs">
+                                                        <div className="font-medium text-slate-700">{unavail.reason}</div>
+                                                        <div className="text-slate-500">
+                                                            {unavail.startDate} → {unavail.endDate}
+                                                            {unavail.period && unavail.period !== 'ALL_DAY' && (
+                                                                <span className="ml-1 text-[10px] bg-slate-100 px-1 rounded">
+                                                                    {unavail.period === Period.MORNING ? 'AM' : 'PM'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteUnavailability(unavail.id)}
+                                                        className={`p-1.5 rounded transition-colors ${deleteUnavailConfirmId === unavail.id
+                                                            ? 'bg-red-600 text-white'
+                                                            : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                            }`}
+                                                        title={deleteUnavailConfirmId === unavail.id ? "Confirmer suppression" : "Supprimer"}
+                                                    >
+                                                        {deleteUnavailConfirmId === unavail.id ? (
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                        ) : (
+                                                            <Trash2 className="w-3 h-3" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Add Unavailability Form */}
+                                <div className="bg-blue-50 rounded-lg p-3 space-y-2">
+                                    <p className="text-[11px] font-medium text-blue-700 flex items-center gap-1">
+                                        <Plus className="w-3 h-3" /> Ajouter une indisponibilité
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 mb-0.5">Du</label>
+                                            <input
+                                                type="date"
+                                                value={unavailStartDate}
+                                                onChange={(e) => setUnavailStartDate(e.target.value)}
+                                                className="w-full border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 mb-0.5">Au</label>
+                                            <input
+                                                type="date"
+                                                value={unavailEndDate}
+                                                min={unavailStartDate}
+                                                onChange={(e) => setUnavailEndDate(e.target.value)}
+                                                className="w-full border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 mb-0.5">Période</label>
+                                            <select
+                                                value={unavailPeriod}
+                                                onChange={(e) => setUnavailPeriod(e.target.value as any)}
+                                                className="w-full border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                            >
+                                                <option value="ALL_DAY">Journée entière</option>
+                                                <option value={Period.MORNING}>Matin</option>
+                                                <option value={Period.AFTERNOON}>Après-midi</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] text-slate-500 mb-0.5">Motif</label>
+                                            <select
+                                                value={unavailReason}
+                                                onChange={(e) => setUnavailReason(e.target.value)}
+                                                className="w-full border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                            >
+                                                <option value="CONGRES">Congrès</option>
+                                                <option value="VACANCES">Vacances</option>
+                                                <option value="MALADIE">Maladie</option>
+                                                <option value="FORMATION">Formation</option>
+                                                <option value="AUTRE">Autre</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    {unavailReason === 'AUTRE' && (
+                                        <input
+                                            type="text"
+                                            placeholder="Précisez le motif..."
+                                            value={unavailCustomReason}
+                                            onChange={(e) => setUnavailCustomReason(e.target.value)}
+                                            className="w-full border rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 outline-none"
+                                        />
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={handleAddUnavailabilityForDoctor}
+                                        className="w-full bg-blue-500 text-white py-1.5 rounded text-xs font-medium hover:bg-blue-600 flex items-center justify-center gap-1 transition-colors"
+                                    >
+                                        <Plus className="w-3 h-3" /> Ajouter l'absence
+                                    </button>
                                 </div>
                             </div>
 

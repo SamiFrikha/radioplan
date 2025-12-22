@@ -325,6 +325,14 @@ const Profile: React.FC = () => {
     const handleAddUnavailability = (e: React.FormEvent) => {
         e.preventDefault();
         if (!currentDoctor) return;
+
+        // Confirmation dialog
+        const confirmMessage = `⚠️ ATTENTION\n\nVous êtes sur le point de déclarer une absence du ${startDate} au ${endDate}.\n\nCette action est définitive et ne peut pas être annulée par vous-même. Seul un administrateur peut modifier ou supprimer cette indisponibilité.\n\nÊtes-vous sûr de vouloir continuer ?`;
+
+        if (!window.confirm(confirmMessage)) {
+            return;
+        }
+
         addUnavailability({
             id: Date.now().toString(),
             doctorId: currentDoctor.id,
@@ -334,6 +342,12 @@ const Profile: React.FC = () => {
             reason: reason === 'AUTRE' ? customReason : reason,
         });
         setCustomReason("");
+
+        // Reset form after adding
+        setStartDate(new Date().toISOString().split('T')[0]);
+        setEndDate(new Date().toISOString().split('T')[0]);
+        setAbsencePeriod('ALL_DAY');
+        setReason('CONGRES');
     };
 
     const getNotificationWeekLabel = () => {
@@ -787,26 +801,40 @@ const Profile: React.FC = () => {
                         </button>
                     </form>
 
-                    <h3 className="text-sm font-bold text-slate-800 mb-2 pl-1">Historique des absences</h3>
+                    <h3 className="text-sm font-bold text-slate-800 mb-2 pl-1 flex items-center">
+                        Historique des absences
+                        <span className="ml-2 text-[10px] text-slate-400 font-normal">(lecture seule)</span>
+                    </h3>
                     <ul className="divide-y divide-slate-100 bg-white border border-slate-200 rounded-lg max-h-60 overflow-y-auto shadow-sm">
                         {myAbsences.length === 0 ? (
                             <li className="p-4 text-slate-500 italic text-sm text-center">Aucune absence déclarée.</li>
                         ) : (
                             myAbsences.map(abs => (
                                 <li key={abs.id} className="p-3 flex justify-between items-center hover:bg-slate-50">
-                                    <div className="text-sm">
+                                    <div className="text-sm flex-1">
                                         <div className="font-bold text-slate-700">{abs.reason}</div>
                                         <div className="text-xs text-slate-500 mt-0.5">
                                             {abs.startDate} → {abs.endDate}
+                                            {abs.period && abs.period !== 'ALL_DAY' && (
+                                                <span className="ml-2 text-[10px] bg-slate-100 text-slate-500 px-1 rounded">
+                                                    {abs.period === 'MORNING' ? 'Matin' : 'Après-midi'}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                    <button onClick={() => removeUnavailability(abs.id)} className="text-slate-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    {/* No delete button - only admin can delete */}
+                                    <div className="text-slate-300 p-2" title="Contactez un administrateur pour modifier">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                    </div>
                                 </li>
                             ))
                         )}
                     </ul>
+                    <p className="text-[10px] text-slate-400 mt-2 pl-1 italic">
+                        Pour modifier ou supprimer une absence, contactez un administrateur.
+                    </p>
                 </div>
 
                 {/* Preferences & Exclusions - Read Only Display */}

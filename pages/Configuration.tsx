@@ -479,7 +479,9 @@ const Configuration: React.FC = () => {
         const slot = calendarSlots.find(s => s.date === date && s.period === period && (s.location === location || s.subType === location));
 
         const holiday = isFrenchHoliday(date);
-        if (holiday) {
+
+        // If it's a holiday but there's no slot, show holiday indicator
+        if (holiday && !slot) {
             return (
                 <div className="h-full w-full bg-pink-50 flex items-center justify-center border border-pink-200 flex-col opacity-80 min-h-[70px]">
                     <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Férié</span>
@@ -489,6 +491,67 @@ const Configuration: React.FC = () => {
         }
 
         if (!slot) return <div className="text-xs text-slate-300 p-2 text-center h-full flex items-center justify-center bg-slate-50/50 min-h-[70px]">--</div>;
+
+        // If RCP falls on a holiday, show it with a warning indicator (allows admin to move it)
+        if (holiday && slot) {
+            const allDoctorIds = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean);
+            return (
+                <div
+                    onClick={() => setSelectedExceptionSlot(slot)}
+                    className="p-2 h-full border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg group relative flex flex-col bg-gradient-to-br from-orange-50 to-pink-50 border-orange-300 hover:border-orange-500 min-h-[70px] animate-pulse-subtle"
+                >
+                    {/* Holiday warning badge */}
+                    <div className="absolute -top-1 -right-1 z-10">
+                        <div className="bg-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                            ⚠️ FÉRIÉ
+                        </div>
+                    </div>
+
+                    <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-orange-600 font-bold">
+                        Déplacer →
+                    </div>
+
+                    {/* Holiday name */}
+                    <div className="text-[9px] font-bold text-orange-700 bg-orange-100 px-1 py-0.5 rounded self-start mb-1 border border-orange-200">
+                        📅 {holiday.name}
+                    </div>
+
+                    {/* Time badge */}
+                    <div className="text-[10px] font-bold text-purple-600 mb-1 flex items-center bg-purple-100 px-1.5 py-0.5 rounded self-start">
+                        <Clock className="w-3 h-3 mr-1" /> {slot.time || '--:--'}
+                    </div>
+
+                    {/* Doctors */}
+                    <div className="flex flex-col gap-0.5">
+                        {allDoctorIds.slice(0, 2).map((id, idx) => {
+                            const d = doctors.find(doc => doc.id === id);
+                            if (!d) return null;
+                            return (
+                                <div key={id} className="flex items-center gap-1">
+                                    <div
+                                        className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold text-white shadow-sm"
+                                        style={{ backgroundColor: getDoctorHexColor(d.color) }}
+                                    >
+                                        {d.name.substring(0, 2)}
+                                    </div>
+                                    <span className={`text-[9px] truncate ${idx === 0 ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
+                                        {d.name}
+                                    </span>
+                                </div>
+                            )
+                        })}
+                        {allDoctorIds.length > 2 && (
+                            <span className="text-[8px] text-slate-400">+{allDoctorIds.length - 2} autre(s)</span>
+                        )}
+                    </div>
+
+                    {/* Action hint */}
+                    <div className="mt-auto pt-1 border-t border-orange-200">
+                        <span className="text-[8px] text-orange-600 font-medium">Cliquer pour déplacer</span>
+                    </div>
+                </div>
+            );
+        }
 
         // Handle cancelled RCPs
         if (slot.isCancelled) {

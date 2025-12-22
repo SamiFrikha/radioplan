@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manuel d'Utilisation - RadioPlan</title>
+    <style>
+        @page { margin: 2cm; }
+        body {
+            font-family: 'Calibri', 'Segoe UI', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 2cm;
+        }
+        h1 {
+            color: #1e40af;
+            font-size: 24pt;
+            text-align: center;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 15px;
+            margin-top: 50px;
+        }
+        h2 {
+            color: #1e40af;
+            font-size: 16pt;
+            border-bottom: 2px solid #93c5fd;
+            padding-bottom: 8px;
+            margin-top: 30px;
+            page-break-after: avoid;
+        }
+        h3 {
+            color: #3b82f6;
+            font-size: 13pt;
+            margin-top: 20px;
+            page-break-after: avoid;
+        }
+        h4 {
+            color: #6366f1;
+            font-size: 11pt;
+            margin-top: 15px;
+        }
+        .cover-page {
+            text-align: center;
+            page-break-after: always;
+            padding-top: 200px;
+        }
+        .cover-page h1 {
+            font-size: 36pt;
+            border: none;
+            margin-bottom: 30px;
+        }
+        .cover-page .subtitle {
+            font-size: 18pt;
+            color: #64748b;
+            margin-bottom: 50px;
+        }
+        .cover-page .version {
+            font-size: 12pt;
+            color: #94a3b8;
+            margin-top: 100px;
+        }
+        .toc {
+            page-break-after: always;
+        }
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+            border-bottom: 1px dotted #ddd;
+            padding-bottom: 5px;
+        }
+        .toc a {
+            color: #1e40af;
+            text-decoration: none;
+        }
+        .info-box {
+            background-color: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning-box {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .tip-box {
+            background-color: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            color: #1e40af;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        code {
+            background-color: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 10pt;
+        }
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin: 10px 0;
+        }
+        .step-number {
+            background-color: #3b82f6;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        .icon {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            margin-right: 5px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+        .badge-admin {
+            background-color: #fae8ff;
+            color: #a855f7;
+        }
+        .badge-doctor {
+            background-color: #dbeafe;
+            color: #3b82f6;
+        }
+        .badge-all {
+            background-color: #f1f5f9;
+            color: #64748b;
+        }
+        @media print {
+            body { margin: 0; padding: 1cm; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PAGE DE COUVERTURE -->
+<div class="cover-page">
+    <h1>📊 RadioPlan</h1>
+    <div class="subtitle">Manuel d'Utilisation</div>
+    <p style="font-size: 14pt; color: #475569;">
+        Application de Gestion du Planning<br>
+        Service de Radiologie
+    </p>
+    <div class="version">
+        Version 1.0<br>
+        Décembre 2024
+    </div>
+</div>
+
+<!-- TABLE DES MATIÈRES -->
+<div class="toc">
+    <h2>📑 Table des Matières</h2>
+    <ul>
+        <li><a href="#introduction">1. Introduction</a></li>
+        <li><a href="#connexion">2. Connexion à l'Application</a></li>
+        <li><a href="#dashboard">3. Tableau de Bord (Dashboard)</a></li>
+        <li><a href="#planning">4. Planning Global</a></li>
+        <li><a href="#activities">5. Gestion des Activités</a></li>
+        <li><a href="#configuration">6. Règles & Postes</a></li>
+        <li><a href="#profile">7. Mon Profil</a></li>
+        <li><a href="#admin">8. Administration (Réservé Admins)</a></li>
+        <li><a href="#faq">9. FAQ et Résolution de Problèmes</a></li>
+    </ul>
+</div>
+
+<!-- CHAPITRE 1 : INTRODUCTION -->
+<h2 id="introduction">1. Introduction</h2>
+
+<h3>1.1 Présentation de RadioPlan</h3>
+<p>
+    <strong>RadioPlan</strong> est une application web conçue pour gérer le planning du service de radiologie. 
+    Elle permet d'organiser les consultations, les RCP (Réunions de Concertation Pluridisciplinaire), 
+    et les activités hebdomadaires des médecins.
+</p>
+
+<h3>1.2 Fonctionnalités Principales</h3>
+<table>
+    <tr>
+        <th>Module</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td><strong>Tableau de Bord</strong></td>
+        <td>Vue quotidienne ou hebdomadaire du planning, alertes de conflits</td>
+    </tr>
+    <tr>
+        <td><strong>Planning Global</strong></td>
+        <td>Vue complète du planning de tous les médecins, export PDF</td>
+    </tr>
+    <tr>
+        <td><strong>Activités</strong></td>
+        <td>Gestion des activités hebdomadaires (Unité, Astreinte, Workflow), calcul d'équité</td>
+    </tr>
+    <tr>
+        <td><strong>Règles & Postes</strong></td>
+        <td>Configuration des postes de consultation et des RCP</td>
+    </tr>
+    <tr>
+        <td><strong>Mon Profil</strong></td>
+        <td>Déclaration d'absences, confirmation de présence aux RCP</td>
+    </tr>
+    <tr>
+        <td><strong>Gestion d'Équipe</strong></td>
+        <td>Administration des utilisateurs et des médecins (Admin uniquement)</td>
+    </tr>
+</table>
+
+<h3>1.3 Rôles Utilisateurs</h3>
+<table>
+    <tr>
+        <th>Rôle</th>
+        <th>Permissions</th>
+    </tr>
+    <tr>
+        <td><span class="badge badge-admin">Admin</span></td>
+        <td>Accès complet : gestion des utilisateurs, configuration, planification</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-doctor">Médecin</span></td>
+        <td>Consultation du planning, déclaration d'absences, confirmation RCP</td>
+    </tr>
+    <tr>
+        <td><span class="badge badge-all">Secrétariat</span></td>
+        <td>Consultation du planning uniquement</td>
+    </tr>
+</table>
+
+<!-- CHAPITRE 2 : CONNEXION -->
+<h2 id="connexion">2. Connexion à l'Application</h2>
+
+<h3>2.1 Accès à l'Application</h3>
+<p>Accédez à RadioPlan via votre navigateur web à l'adresse fournie par votre administrateur.</p>
+
+<h3>2.2 Procédure de Connexion</h3>
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Ouvrez votre navigateur (Chrome, Firefox, Edge recommandés)</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Entrez l'URL de l'application</span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Saisissez votre <strong>email</strong> et votre <strong>mot de passe</strong></span>
+</div>
+<div class="step">
+    <span class="step-number">4</span>
+    <span>Cliquez sur <strong>« Se connecter »</strong></span>
+</div>
+
+<div class="info-box">
+    <strong>💡 Conseil :</strong> Si vous avez oublié votre mot de passe, contactez votre administrateur pour le réinitialiser.
+</div>
+
+<!-- CHAPITRE 3 : DASHBOARD -->
+<h2 id="dashboard">3. Tableau de Bord (Dashboard)</h2>
+
+<h3>3.1 Présentation</h3>
+<p>
+    Le <strong>Tableau de Bord</strong> est la page d'accueil de l'application. Il affiche le planning 
+    de la journée ou de la semaine en cours, avec les statistiques clés et les alertes.
+</p>
+
+<h3>3.2 Modes d'Affichage</h3>
+<table>
+    <tr>
+        <th>Mode</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td><strong>Vue Jour</strong></td>
+        <td>Affiche les créneaux du jour sélectionné (Matin + Après-midi)</td>
+    </tr>
+    <tr>
+        <td><strong>Vue Semaine</strong></td>
+        <td>Affiche la semaine complète avec tous les créneaux par jour</td>
+    </tr>
+</table>
+
+<h3>3.3 Navigation</h3>
+<ul>
+    <li><strong>◀ / ▶</strong> : Naviguer vers le jour/semaine précédent(e) ou suivant(e)</li>
+    <li><strong>Sélecteur de date</strong> : Cliquer sur la date pour choisir une date spécifique</li>
+    <li><strong>Toggle Jour/Semaine</strong> : Basculer entre les deux modes d'affichage</li>
+</ul>
+
+<h3>3.4 Statistiques Affichées</h3>
+<ul>
+    <li><strong>Créneaux Total</strong> : Nombre total de créneaux programmés</li>
+    <li><strong>Couverture %</strong> : Pourcentage de créneaux assignés à un médecin</li>
+    <li><strong>Conflits</strong> : Nombre de conflits détectés (médecin absent, double affectation, etc.)</li>
+</ul>
+
+<h3>3.5 Gestion des Conflits</h3>
+<p>Les conflits sont signalés par des badges rouges sur les créneaux concernés.</p>
+
+<table>
+    <tr>
+        <th>Type de Conflit</th>
+        <th>Description</th>
+        <th>Action</th>
+    </tr>
+    <tr>
+        <td>🔴 Vacance</td>
+        <td>Aucun médecin assigné</td>
+        <td>Assigner un médecin disponible</td>
+    </tr>
+    <tr>
+        <td>🟠 Absence</td>
+        <td>Le médecin assigné est absent</td>
+        <td>Remplacer par un autre médecin</td>
+    </tr>
+    <tr>
+        <td>🟡 Double Affectation</td>
+        <td>Médecin assigné ailleurs au même moment</td>
+        <td>Réassigner l'un des créneaux</td>
+    </tr>
+</table>
+
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Cliquez sur un créneau en conflit</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Une fenêtre de résolution s'ouvre</span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Sélectionnez un médecin disponible dans la liste</span>
+</div>
+<div class="step">
+    <span class="step-number">4</span>
+    <span>Cliquez sur <strong>« Confirmer »</strong> pour enregistrer</span>
+</div>
+
+<!-- CHAPITRE 4 : PLANNING -->
+<h2 id="planning">4. Planning Global</h2>
+
+<h3>4.1 Présentation</h3>
+<p>
+    Le <strong>Planning Global</strong> offre une vue d'ensemble du planning hebdomadaire, 
+    organisé par lieu/poste ou par médecin.
+</p>
+
+<h3>4.2 Modes d'Affichage</h3>
+<table>
+    <tr>
+        <th>Mode</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td><strong>Par Lieu</strong></td>
+        <td>Tableau avec les lieux en lignes, les jours en colonnes</td>
+    </tr>
+    <tr>
+        <td><strong>Par Médecin</strong></td>
+        <td>Tableau avec les médecins en lignes, leurs affectations par jour</td>
+    </tr>
+</table>
+
+<h3>4.3 Export PDF</h3>
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Sélectionnez la semaine souhaitée</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Cliquez sur le bouton <strong>📥 PDF</strong></span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Le fichier PDF est automatiquement téléchargé</span>
+</div>
+
+<div class="tip-box">
+    <strong>💡 Astuce :</strong> Le PDF inclut automatiquement la date de génération et le nom du fichier contient la plage de dates.
+</div>
+
+<!-- CHAPITRE 5 : ACTIVITÉS -->
+<h2 id="activities">5. Gestion des Activités</h2>
+
+<h3>5.1 Présentation</h3>
+<p>
+    La page <strong>Activités</strong> gère les activités hebdomadaires des médecins et le calcul de l'équité.
+</p>
+
+<h3>5.2 Types d'Activités</h3>
+<table>
+    <tr>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Points</th>
+    </tr>
+    <tr>
+        <td><strong>Unité</strong></td>
+        <td>Activités liées à l'unité (présences quotidiennes)</td>
+        <td>1 point par jour assigné</td>
+    </tr>
+    <tr>
+        <td><strong>Astreinte</strong></td>
+        <td>Gardes et astreintes (ex: nuits, week-ends)</td>
+        <td>1 point par jour assigné</td>
+    </tr>
+    <tr>
+        <td><strong>Supervision Workflow</strong></td>
+        <td>Supervision de workflow pour la semaine</td>
+        <td>1 point par semaine d'assignation</td>
+    </tr>
+    <tr>
+        <td><strong>Équité Indépendante</strong></td>
+        <td>Activités personnalisées avec leur propre calcul</td>
+        <td>Configurable par activité</td>
+    </tr>
+</table>
+
+<h3>5.3 Navigation par Onglets</h3>
+<p>Chaque groupe d'équité a son propre onglet. Les points sont calculés séparément pour chaque groupe.</p>
+
+<h3>5.4 Assigner une Activité</h3>
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Sélectionnez la semaine</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Cliquez sur une cellule vide</span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Sélectionnez un médecin dans la liste</span>
+</div>
+<div class="step">
+    <span class="step-number">4</span>
+    <span>L'assignation est sauvegardée automatiquement</span>
+</div>
+
+<h3>5.5 Calcul Automatique (Recalculer)</h3>
+<div class="info-box">
+    <strong>📊 Algorithme d'équité :</strong> Le bouton « Recalculer » assigne automatiquement les activités 
+    en privilégiant les médecins avec le moins de points cumulés, tout en respectant leurs préférences et disponibilités.
+</div>
+
+<h3>5.6 Validation d'une Semaine</h3>
+<p>Une fois les assignations terminées, validez la semaine pour les verrouiller :</p>
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Vérifiez toutes les assignations</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Cliquez sur <strong>« ✓ Valider Semaine »</strong></span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Le badge vert <strong>« Validée »</strong> apparaît</span>
+</div>
+
+<div class="warning-box">
+    <strong>⚠️ Important :</strong> Une semaine validée peut être « dé-validée » par un administrateur si des modifications sont nécessaires.
+</div>
+
+<h3>5.7 Tableau d'Équité</h3>
+<p>Le tableau à droite affiche les points par médecin :</p>
+<ul>
+    <li><strong>Sem./Mois</strong> : Points gagnés sur la période affichée</li>
+    <li><strong>Total</strong> : Points cumulés depuis le début de la période d'équité</li>
+</ul>
+
+<h3>5.8 Export de Rapport</h3>
+<ul>
+    <li><strong>📥 Rapport</strong> : Génère un PDF avec le détail des assignations et points par période</li>
+    <li><strong>📥 Vue Actuelle</strong> : Génère un PDF de la vue actuellement affichée</li>
+</ul>
+
+<!-- CHAPITRE 6 : CONFIGURATION -->
+<h2 id="configuration">6. Règles & Postes</h2>
+<p><span class="badge badge-admin">Admin</span> Cette section est principalement réservée aux administrateurs.</p>
+
+<h3>6.1 Onglet Consultations & Postes</h3>
+<p>Configure les postes de consultation récurrents.</p>
+
+<h4>Ajouter un Poste</h4>
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Cliquez sur <strong>« Modifier »</strong> pour passer en mode édition</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Entrez le nom du poste dans le champ</span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Cliquez sur <strong>« + »</strong></span>
+</div>
+<div class="step">
+    <span class="step-number">4</span>
+    <span>Configurez les jours et périodes dans le tableau</span>
+</div>
+<div class="step">
+    <span class="step-number">5</span>
+    <span>Cliquez sur <strong>« Sauvegarder »</strong></span>
+</div>
+
+<h4>Configurer les Assignations</h4>
+<p>Pour chaque cellule du tableau :</p>
+<ul>
+    <li><strong>Clic simple</strong> : Ouvre un sélecteur de médecin</li>
+    <li><strong>Sélectionner un médecin</strong> : Définit le médecin par défaut pour ce créneau récurrent</li>
+    <li><strong>Les règles s'appliquent automatiquement chaque semaine</strong></li>
+</ul>
+
+<h3>6.2 Onglet RCP (Gestion)</h3>
+<p>Gère les Réunions de Concertation Pluridisciplinaire.</p>
+
+<h4>Vue Règles</h4>
+<p>Configure les RCP récurrentes (ex: RCP Poumon tous les Mardis matin).</p>
+
+<h4>Vue Calendrier</h4>
+<p>Affiche les RCP réelles avec dates, permet de :</p>
+<ul>
+    <li>Voir les médecins assignés</li>
+    <li>Voir le statut de confirmation (Présent/Absent)</li>
+    <li>Créer des exceptions (annulation, remplacement)</li>
+</ul>
+
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Basculez sur <strong>« Vue Calendrier »</strong></span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Naviguez vers la semaine souhaitée</span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Cliquez sur une RCP pour voir les détails</span>
+</div>
+
+<h3>6.3 Mode Plein Écran</h3>
+<p>En vue Calendrier RCP, cliquez sur l'icône <strong>⛶</strong> pour passer en plein écran.</p>
+
+<!-- CHAPITRE 7 : PROFIL -->
+<h2 id="profile">7. Mon Profil</h2>
+
+<h3>7.1 Informations Personnelles</h3>
+<p>Affiche vos informations de profil :</p>
+<ul>
+    <li>Nom et spécialités</li>
+    <li>Email et rôle</li>
+    <li>Couleur de badge</li>
+</ul>
+
+<h3>7.2 RCP à Confirmer</h3>
+<p>Cette section liste les RCP à venir auxquelles vous êtes assigné. Vous devez confirmer votre présence.</p>
+
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Localisez la RCP dans la liste</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Cliquez sur <strong>✓ Présent</strong> si vous serez présent</span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Cliquez sur <strong>✗ Absent</strong> si vous ne pouvez pas y assister</span>
+</div>
+
+<div class="warning-box">
+    <strong>⚠️ Important :</strong> Si vous cliquez sur « Absent », l'algorithme ne vous proposera plus pour remplacements ce jour-là à ce créneau.
+</div>
+
+<h3>7.3 Déclaration d'Absences</h3>
+<p>Déclarez vos absences planifiées (congés, formations, etc.).</p>
+
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Remplissez les champs <strong>Date début</strong>, <strong>Date fin</strong></span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Sélectionnez ou saisissez le <strong>Motif</strong></span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Cliquez sur <strong>« + Déclarer Absence »</strong></span>
+</div>
+
+<p>L'absence apparaît dans l'historique et sera prise en compte par l'algorithme d'assignation.</p>
+
+<h3>7.4 Préférences & Exclusions</h3>
+<p>Cette section affiche vos préférences configurées par l'administrateur (lecture seule) :</p>
+<ul>
+    <li><strong>Jours non travaillés</strong> : Ex: temps partiel 80%, mercredi non travaillé</li>
+    <li><strong>Activités exclues</strong> : Activités auxquelles vous ne participez pas</li>
+    <li><strong>Types de créneaux exclus</strong> : Consultation, RCP, Activité</li>
+</ul>
+
+<div class="info-box">
+    <strong>💡 Note :</strong> Pour modifier vos préférences, contactez votre administrateur.
+</div>
+
+<!-- CHAPITRE 8 : ADMINISTRATION -->
+<h2 id="admin">8. Administration (Réservé Admins)</h2>
+<p><span class="badge badge-admin">Admin</span></p>
+
+<h3>8.1 Gestion d'Équipe</h3>
+<p>Accessible via le menu latéral → <strong>Gestion d'Équipe</strong></p>
+
+<h4>Onglet Utilisateurs</h4>
+<p>Gère les comptes utilisateurs :</p>
+<ul>
+    <li><strong>Créer un utilisateur</strong> : Email, mot de passe, rôle, profil médecin lié</li>
+    <li><strong>Modifier un utilisateur</strong> : Changer le rôle, réinitialiser le mot de passe</li>
+    <li><strong>Supprimer un utilisateur</strong> : Désactive le compte</li>
+</ul>
+
+<h4>Onglet Profils Médecins</h4>
+<p>Gère les profils de médecins :</p>
+<ul>
+    <li><strong>Nom et couleur</strong> : Identifiant visuel dans le planning</li>
+    <li><strong>Spécialités</strong> : Domaines de compétence</li>
+    <li><strong>Préférences & Exclusions</strong> :
+        <ul>
+            <li>Jours non travaillés (temps partiel)</li>
+            <li>Activités exclues</li>
+            <li>Types de créneaux exclus</li>
+        </ul>
+    </li>
+</ul>
+
+<div class="step">
+    <span class="step-number">1</span>
+    <span>Cliquez sur l'icône <strong>✏️</strong> à côté du médecin</span>
+</div>
+<div class="step">
+    <span class="step-number">2</span>
+    <span>Modifiez les informations dans le formulaire</span>
+</div>
+<div class="step">
+    <span class="step-number">3</span>
+    <span>Cliquez sur <strong>« Enregistrer »</strong></span>
+</div>
+
+<h4>Onglet Spécialités</h4>
+<p>Gère la liste des spécialités disponibles :</p>
+<ul>
+    <li>Créer une nouvelle spécialité avec nom et couleur</li>
+    <li>Supprimer une spécialité existante</li>
+</ul>
+
+<h3>8.2 Gestion des Données</h3>
+<p>Accessible via le menu latéral → <strong>Gestion Données</strong></p>
+<ul>
+    <li><strong>Export de configuration</strong> : Sauvegarder les règles et paramètres</li>
+    <li><strong>Import de configuration</strong> : Restaurer une configuration</li>
+</ul>
+
+<!-- CHAPITRE 9 : FAQ -->
+<h2 id="faq">9. FAQ et Résolution de Problèmes</h2>
+
+<h3>9.1 Questions Fréquentes</h3>
+
+<h4>Q: Je ne vois pas tout le menu latéral</h4>
+<p><strong>R:</strong> Certaines fonctionnalités sont réservées aux administrateurs. Si vous pensez que c'est une erreur, contactez votre admin.</p>
+
+<h4>Q: Le planning affiche des conflits mais tout semble correct</h4>
+<p><strong>R:</strong> Vérifiez les absences déclarées et les RCP confirmées. L'algorithme considère une RCP « Absent » comme une indisponibilité.</p>
+
+<h4>Q: Comment savoir si ma modification a été enregistrée ?</h4>
+<p><strong>R:</strong> Les modifications sont sauvegardées automatiquement. Un message de confirmation apparaît brièvement en haut de l'écran.</p>
+
+<h4>Q: Je ne peux pas modifier mes préférences</h4>
+<p><strong>R:</strong> Les préférences (jours non travaillés, exclusions) sont gérées par l'administrateur. Contactez-le pour toute modification.</p>
+
+<h4>Q: L'algorithme m'assigne toujours les mêmes activités</h4>
+<p><strong>R:</strong> L'algorithme équilibre les points sur la durée. Si vous avez moins de points, vous serez plus souvent assigné jusqu'à ce que l'équilibre soit rétabli.</p>
+
+<h3>9.2 Problèmes Techniques</h3>
+
+<table>
+    <tr>
+        <th>Problème</th>
+        <th>Solution</th>
+    </tr>
+    <tr>
+        <td>Page blanche ou erreur de chargement</td>
+        <td>Rafraîchissez la page (F5) ou videz le cache (Ctrl+F5)</td>
+    </tr>
+    <tr>
+        <td>Connexion impossible</td>
+        <td>Vérifiez votre email/mot de passe. Contactez l'admin si le problème persiste.</td>
+    </tr>
+    <tr>
+        <td>Données non à jour</td>
+        <td>Rafraîchissez la page. Les données sont synchronisées en temps réel.</td>
+    </tr>
+    <tr>
+        <td>PDF ne se télécharge pas</td>
+        <td>Vérifiez que les pop-ups ne sont pas bloqués par votre navigateur.</td>
+    </tr>
+</table>
+
+<h3>9.3 Contact Support</h3>
+<p>Pour toute question ou problème non résolu, contactez votre administrateur système.</p>
+
+<hr style="margin-top: 50px;">
+<p style="text-align: center; color: #94a3b8; font-size: 10pt;">
+    RadioPlan - Manuel d'utilisation v1.0<br>
+    © 2024 - Service de Radiologie
+</p>
+
+</body>
+</html>
