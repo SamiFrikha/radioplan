@@ -16,9 +16,10 @@ export const doctorService = {
             name: d.name,
             specialty: d.specialty,
             color: d.color,
-            excludedDays: d.excluded_days,
-            excludedActivities: d.excluded_activities,
-            excludedSlotTypes: d.excluded_slot_types
+            excludedDays: d.excluded_days || [],
+            excludedHalfDays: d.excluded_half_days || [],
+            excludedActivities: d.excluded_activities || [],
+            excludedSlotTypes: d.excluded_slot_types || []
         }));
     },
 
@@ -29,9 +30,10 @@ export const doctorService = {
                 name: doctor.name,
                 specialty: doctor.specialty,
                 color: doctor.color,
-                excluded_days: doctor.excludedDays,
-                excluded_activities: doctor.excludedActivities,
-                excluded_slot_types: doctor.excludedSlotTypes
+                excluded_days: doctor.excludedDays || [],
+                excluded_half_days: doctor.excludedHalfDays || [],
+                excluded_activities: doctor.excludedActivities || [],
+                excluded_slot_types: doctor.excludedSlotTypes || []
             })
             .select()
             .single();
@@ -43,9 +45,10 @@ export const doctorService = {
             name: data.name,
             specialty: data.specialty,
             color: data.color,
-            excludedDays: data.excluded_days,
-            excludedActivities: data.excluded_activities,
-            excludedSlotTypes: data.excluded_slot_types
+            excludedDays: data.excluded_days || [],
+            excludedHalfDays: data.excluded_half_days || [],
+            excludedActivities: data.excluded_activities || [],
+            excludedSlotTypes: data.excluded_slot_types || []
         };
     },
 
@@ -56,9 +59,10 @@ export const doctorService = {
                 name: doctor.name,
                 specialty: doctor.specialty,
                 color: doctor.color,
-                excluded_days: doctor.excludedDays,
-                excluded_activities: doctor.excludedActivities,
-                excluded_slot_types: doctor.excludedSlotTypes
+                excluded_days: doctor.excludedDays || [],
+                excluded_half_days: doctor.excludedHalfDays || [],
+                excluded_activities: doctor.excludedActivities || [],
+                excluded_slot_types: doctor.excludedSlotTypes || []
             })
             .eq('id', doctor.id)
             .select()
@@ -71,9 +75,10 @@ export const doctorService = {
             name: data.name,
             specialty: data.specialty,
             color: data.color,
-            excludedDays: data.excluded_days,
-            excludedActivities: data.excluded_activities,
-            excludedSlotTypes: data.excluded_slot_types
+            excludedDays: data.excluded_days || [],
+            excludedHalfDays: data.excluded_half_days || [],
+            excludedActivities: data.excluded_activities || [],
+            excludedSlotTypes: data.excluded_slot_types || []
         };
     },
 

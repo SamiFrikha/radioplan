@@ -21,6 +21,52 @@ export const isAbsent = (doctor: Doctor, dateStr: string, period: Period, unavai
     });
 };
 
+// NEW: Check if doctor has a recurring WEEKLY exclusion for a specific day/period
+// Priority: excludedHalfDays (granular) > excludedDays (legacy full-day)
+export const isExcludedHalfDay = (doctor: Doctor, day: DayOfWeek, period: Period): boolean => {
+    if (!doctor) return false;
+
+    // 1. First check granular half-day exclusions (takes priority)
+    if (doctor.excludedHalfDays && doctor.excludedHalfDays.length > 0) {
+        return doctor.excludedHalfDays.some(
+            excl => excl.day === day && excl.period === period
+        );
+    }
+
+    // 2. Fallback to legacy excludedDays (full day = both periods excluded)
+    if (doctor.excludedDays && doctor.excludedDays.includes(day)) {
+        return true;
+    }
+
+    return false;
+};
+
+
+
+// Helper: Check if doctor is NOT WORKING at all on a specific day (both periods excluded)
+export const isFullDayExcluded = (doctor: Doctor, day: DayOfWeek): boolean => {
+    if (!doctor) return false;
+
+    // If using legacy excludedDays
+    if (doctor.excludedDays && doctor.excludedDays.includes(day)) {
+        return true;
+    }
+
+    // If using granular half-days, both periods must be excluded
+    if (doctor.excludedHalfDays && doctor.excludedHalfDays.length > 0) {
+        const morningExcluded = doctor.excludedHalfDays.some(
+            excl => excl.day === day && excl.period === Period.MORNING
+        );
+        const afternoonExcluded = doctor.excludedHalfDays.some(
+            excl => excl.day === day && excl.period === Period.AFTERNOON
+        );
+        return morningExcluded && afternoonExcluded;
+    }
+
+    return false;
+};
+
+
 // --- DYNAMIC FRENCH HOLIDAYS ALGORITHM ---
 const getEasterDate = (year: number): Date => {
     const a = year % 19;
@@ -116,16 +162,33 @@ export const getNthDayOfMonth = (date: Date): number => {
 };
 
 // --- WORK RATE CALCULATOR ---
-// Calculates percentage (0.0 - 1.0) based on days worked (Mon-Fri)
+// Calculates percentage (0.0 - 1.0) based on half-days worked (Mon-Fri = 10 half-days)
 export const getDoctorWorkRate = (doctor: Doctor): number => {
-    if (!doctor || !doctor.excludedDays) return 1; // Safety check
+    if (!doctor) return 1; // Safety check
+
     const standardDays = [DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY];
-    // Count how many standard days are excluded
-    const excludedCount = doctor.excludedDays.filter(d => standardDays.includes(d)).length;
-    // Base 5 days. If 1 day excluded -> 4/5 = 80%.
-    const rate = (5 - excludedCount) / 5;
-    return rate > 0.1 ? rate : 0.1; // Minimum floor to avoid division by zero
+    const totalHalfDays = 10; // 5 days * 2 half-days
+
+    // NEW: Count excluded half-days from granular system
+    if (doctor.excludedHalfDays && doctor.excludedHalfDays.length > 0) {
+        // Count only standard workday half-days
+        const excludedCount = doctor.excludedHalfDays.filter(
+            excl => standardDays.includes(excl.day)
+        ).length;
+        const rate = (totalHalfDays - excludedCount) / totalHalfDays;
+        return rate > 0.1 ? rate : 0.1; // Minimum floor
+    }
+
+    // LEGACY: Fall back to excludedDays (full day = 2 half-days)
+    if (doctor.excludedDays && doctor.excludedDays.length > 0) {
+        const excludedCount = doctor.excludedDays.filter(d => standardDays.includes(d)).length;
+        const rate = (totalHalfDays - (excludedCount * 2)) / totalHalfDays;
+        return rate > 0.1 ? rate : 0.1;
+    }
+
+    return 1; // Full time
 };
+
 
 // --- SMART SCRIPT: REPLACEMENT ALGORITHM ---
 export const getAlgorithmicReplacementSuggestion = (
@@ -234,9 +297,11 @@ const isDoctorEligible = (
 
     // 1. Profile Exclusions
     if (doc.excludedActivities && doc.excludedActivities.includes(activityId)) return false;
-    if (doc.excludedDays && doc.excludedDays.includes(day)) return false;
 
-    // 2. Absences (Granular)
+    // 1.5 NEW: Check granular half-day exclusions (takes priority over legacy excludedDays)
+    if (isExcludedHalfDay(doc, day, period)) return false;
+
+    // 2. Absences (Granular - temporary/dated unavailabilities)
     if (isAbsent(doc, dateStr, period, unavailabilities)) return false;
 
     // 3. Strict Blocking (Double Booking)
@@ -252,6 +317,7 @@ const isDoctorEligible = (
 
     return true;
 };
+
 
 // Helper: Check strict full week availability for Workflow
 const isDoctorAvailableForFullWeek = (
@@ -968,16 +1034,40 @@ export const detectConflicts = (
         const mySlots = doctorSlots[doctorId];
 
         mySlots.forEach(slot => {
-            if (doc.excludedDays && doc.excludedDays.includes(slot.day)) {
-                conflicts.push({
-                    id: `conflict-day-excl-${slot.id}-${doctorId}`,
-                    slotId: slot.id,
-                    doctorId,
-                    type: 'UNAVAILABLE',
-                    description: `Ne travaille pas le ${slot.day}`,
-                    severity: 'MEDIUM'
-                });
+            // NEW: Check for granular half-day exclusions (recurring weekly)
+            if (isExcludedHalfDay(doc, slot.day, slot.period)) {
+                // For RCPs, only show conflict if doctor has confirmed PRESENT
+                // (if they haven't responded or are ABSENT, no conflict - they won't be there anyway)
+                if (slot.type === SlotType.RCP) {
+                    // RCP: Only conflict if doctor confirmed presence AND it's on a non-working half-day
+                    // The isUnconfirmed flag indicates the doctor has confirmed (false = confirmed)
+                    if (!slot.isUnconfirmed) {
+                        // Doctor confirmed they will attend this RCP on a non-working day - this is a real conflict
+                        const periodLabel = slot.period === Period.MORNING ? 'matin' : 'après-midi';
+                        conflicts.push({
+                            id: `conflict-halfday-excl-${slot.id}-${doctorId}`,
+                            slotId: slot.id,
+                            doctorId,
+                            type: 'UNAVAILABLE',
+                            description: `⚠️ ${doc.name} a confirmé sa présence à la RCP mais ne travaille pas le ${slot.day} ${periodLabel}`,
+                            severity: 'HIGH'
+                        });
+                    }
+                    // If unconfirmed or ABSENT, no conflict - doctor won't be attending
+                } else {
+                    // Non-RCP slots: Always show conflict for half-day exclusions
+                    const periodLabel = slot.period === Period.MORNING ? 'matin' : 'après-midi';
+                    conflicts.push({
+                        id: `conflict-halfday-excl-${slot.id}-${doctorId}`,
+                        slotId: slot.id,
+                        doctorId,
+                        type: 'UNAVAILABLE',
+                        description: `Ne travaille pas le ${slot.day} ${periodLabel} (absence récurrente)`,
+                        severity: 'HIGH'
+                    });
+                }
             }
+
             if (slot.activityId && doc.excludedActivities && doc.excludedActivities.includes(slot.activityId)) {
                 conflicts.push({
                     id: `conflict-act-excl-${slot.id}-${doctorId}`,
@@ -989,6 +1079,7 @@ export const detectConflicts = (
                 });
             }
         });
+
 
         for (let i = 0; i < mySlots.length; i++) {
             for (let j = i + 1; j < mySlots.length; j++) {
@@ -1061,9 +1152,12 @@ export const getAvailableDoctors = (
 ): Doctor[] => {
     if (!allDoctors) return [];
     return allDoctors.filter(doc => {
+        // NEW: Check granular half-day exclusions (recurring weekly)
+        if (isExcludedHalfDay(doc, targetDay, targetPeriod)) return false;
+
         if (targetDate) {
+            // Check temporary unavailabilities (congés, maladie, etc.)
             if (isAbsent(doc, targetDate, targetPeriod, unavailabilities)) return false;
-            if (doc.excludedDays && doc.excludedDays.includes(targetDay)) return false;
             if (targetSlotType && doc.excludedSlotTypes?.includes(targetSlotType)) return false;
 
             const isBusy = slots.some(s =>
@@ -1077,3 +1171,4 @@ export const getAvailableDoctors = (
         return true;
     });
 };
+

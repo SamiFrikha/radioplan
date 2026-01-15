@@ -39,9 +39,10 @@ export const backupService = {
                     name: d.name,
                     specialty: d.specialty,
                     color: d.color,
-                    excludedDays: d.excluded_days,
-                    excludedActivities: d.excluded_activities,
-                    excludedSlotTypes: d.excluded_slot_types
+                    excludedDays: d.excluded_days || [],
+                    excludedHalfDays: d.excluded_half_days || [], // NEW: Granular half-day exclusions
+                    excludedActivities: d.excluded_activities || [],
+                    excludedSlotTypes: d.excluded_slot_types || []
                 })),
                 activityDefinitions: (activities || []).map((a: any) => ({
                     id: a.id,
@@ -129,9 +130,10 @@ export const backupService = {
                 name: doc.name,
                 specialty: doc.specialty,
                 color: doc.color,
-                excluded_days: doc.excludedDays,
-                excluded_activities: doc.excludedActivities,
-                excluded_slot_types: doc.excludedSlotTypes
+                excluded_days: doc.excludedDays || [],
+                excluded_half_days: doc.excludedHalfDays || [], // NEW: Granular half-day exclusions
+                excluded_activities: doc.excludedActivities || [],
+                excluded_slot_types: doc.excludedSlotTypes || []
             }));
             await supabase.from('doctors').upsert(dbDoctors);
         }

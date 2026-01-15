@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability } from '../../types';
+import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability, ExcludedHalfDay } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { AppContext } from '../../App';
 import { unavailabilityService } from '../../services/unavailabilityService';
@@ -22,6 +22,7 @@ interface DoctorWithUser {
     color: string;
     specialty: string[];
     excludedDays: DayOfWeek[];
+    excludedHalfDays?: ExcludedHalfDay[]; // NEW: Granular half-day exclusions
     excludedActivities: string[];
     excludedSlotTypes: SlotType[];
     linkedUser?: { id: string; email: string } | null;
@@ -32,7 +33,7 @@ const NON_DOCTOR_ROLES = ['Secrétariat', 'Secretariat', 'Secretary'];
 
 const TeamManagement: React.FC = () => {
     const { hasPermission } = useAuth();
-    const { doctors, removeDoctor, activityDefinitions, unavailabilities, addUnavailability, removeUnavailability } = useContext(AppContext);
+    const { doctors, removeDoctor, updateDoctor, activityDefinitions, unavailabilities, addUnavailability, removeUnavailability } = useContext(AppContext);
     const [users, setUsers] = useState<UserData[]>([]);
     const [roles, setRoles] = useState<AppRole[]>([]);
     const [allDoctors, setAllDoctors] = useState<DoctorWithUser[]>([]);
@@ -89,9 +90,11 @@ const TeamManagement: React.FC = () => {
         color: '#3B82F6',
         selectedSpecialties: [] as string[],
         excludedDays: [] as DayOfWeek[],
+        excludedHalfDays: [] as ExcludedHalfDay[], // NEW: Granular half-day exclusions
         excludedActivities: [] as string[],
         excludedSlotTypes: [] as SlotType[]
     });
+
 
     // Specialty Management State
     const [newSpecialtyName, setNewSpecialtyName] = useState('');
@@ -133,11 +136,22 @@ const TeamManagement: React.FC = () => {
             const doctor = allDoctors.find(d => d.id === editingDoctorId);
             if (doctor) {
                 setEditingDoctor(doctor);
+
+                // AUTO-MIGRATION: Convert legacy excludedDays to excludedHalfDays
+                let migratedHalfDays: ExcludedHalfDay[] = doctor.excludedHalfDays || [];
+                if ((!migratedHalfDays || migratedHalfDays.length === 0) && doctor.excludedDays && doctor.excludedDays.length > 0) {
+                    migratedHalfDays = doctor.excludedDays.flatMap(day => [
+                        { day, period: Period.MORNING },
+                        { day, period: Period.AFTERNOON }
+                    ]);
+                }
+
                 setDoctorFormData({
                     name: doctor.name,
                     color: doctor.color || '#3B82F6',
                     selectedSpecialties: doctor.specialty || [],
                     excludedDays: doctor.excludedDays || [],
+                    excludedHalfDays: migratedHalfDays,
                     excludedActivities: doctor.excludedActivities || [],
                     excludedSlotTypes: doctor.excludedSlotTypes || []
                 });
@@ -146,6 +160,7 @@ const TeamManagement: React.FC = () => {
             }
         }
     }, [editingDoctorId, allDoctors, editingDoctor, unavailabilities]);
+
 
     useEffect(() => {
         fetchData();
@@ -172,7 +187,7 @@ const TeamManagement: React.FC = () => {
             // Fetch all doctors with their linked users and exclusions
             const { data: doctorsData, error: doctorsError } = await supabase
                 .from('doctors')
-                .select('id, name, color, specialty, excluded_days, excluded_activities, excluded_slot_types')
+                .select('id, name, color, specialty, excluded_days, excluded_half_days, excluded_activities, excluded_slot_types')
                 .order('name');
 
             if (doctorsError) console.error('Error fetching doctors:', doctorsError);
@@ -194,11 +209,13 @@ const TeamManagement: React.FC = () => {
                     color: doc.color,
                     specialty: doc.specialty || [],
                     excludedDays: doc.excluded_days || [],
+                    excludedHalfDays: doc.excluded_half_days || [], // NEW: Granular half-day exclusions
                     excludedActivities: doc.excluded_activities || [],
                     excludedSlotTypes: doc.excluded_slot_types || [],
                     linkedUser: linkedUser ? { id: linkedUser.id, email: linkedUser.email } : null
                 };
             });
+
 
             setUsers(usersData || []);
             setRoles(rolesData || []);
@@ -470,11 +487,26 @@ const TeamManagement: React.FC = () => {
     const openEditDoctorModal = (doctor: DoctorWithUser) => {
         setEditingDoctor(doctor);
         setEditingDoctorId(doctor.id); // Persist to sessionStorage
+
+        // AUTO-MIGRATION: Convert legacy excludedDays to excludedHalfDays
+        // If doctor has excludedDays but no excludedHalfDays, auto-convert
+        let migratedHalfDays: ExcludedHalfDay[] = doctor.excludedHalfDays || [];
+
+        if ((!migratedHalfDays || migratedHalfDays.length === 0) && doctor.excludedDays && doctor.excludedDays.length > 0) {
+            // Convert each full day to 2 half-days (morning + afternoon)
+            migratedHalfDays = doctor.excludedDays.flatMap(day => [
+                { day, period: Period.MORNING },
+                { day, period: Period.AFTERNOON }
+            ]);
+            console.log('🔄 Auto-migrating excludedDays to excludedHalfDays:', migratedHalfDays);
+        }
+
         setDoctorFormData({
             name: doctor.name,
             color: doctor.color || '#3B82F6',
             selectedSpecialties: doctor.specialty || [],
             excludedDays: doctor.excludedDays || [],
+            excludedHalfDays: migratedHalfDays,
             excludedActivities: doctor.excludedActivities || [],
             excludedSlotTypes: doctor.excludedSlotTypes || []
         });
@@ -485,6 +517,7 @@ const TeamManagement: React.FC = () => {
         setIsEditDoctorModalOpen(true);
     };
 
+
     const handleEditDoctor = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingDoctor) return;
@@ -494,19 +527,40 @@ const TeamManagement: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            const { error: updateError } = await supabase
+            const updateData = {
+                name: doctorFormData.name,
+                color: doctorFormData.color,
+                specialty: doctorFormData.selectedSpecialties,
+                excluded_days: doctorFormData.excludedDays,
+                excluded_half_days: doctorFormData.excludedHalfDays,
+                excluded_activities: doctorFormData.excludedActivities,
+                excluded_slot_types: doctorFormData.excludedSlotTypes
+            };
+
+
+            const { error: updateError, data: updateResult } = await supabase
                 .from('doctors')
-                .update({
-                    name: doctorFormData.name,
-                    color: doctorFormData.color,
-                    specialty: doctorFormData.selectedSpecialties,
-                    excluded_days: doctorFormData.excludedDays,
-                    excluded_activities: doctorFormData.excludedActivities,
-                    excluded_slot_types: doctorFormData.excludedSlotTypes
-                })
-                .eq('id', editingDoctor.id);
+                .update(updateData)
+                .eq('id', editingDoctor.id)
+                .select();
 
             if (updateError) throw new Error(updateError.message);
+
+
+            // Update global AppContext so planning immediately reflects changes
+            if (updateResult && updateResult.length > 0) {
+                const savedDoc = updateResult[0];
+                updateDoctor({
+                    id: savedDoc.id,
+                    name: savedDoc.name,
+                    specialty: savedDoc.specialty || [],
+                    color: savedDoc.color,
+                    excludedDays: savedDoc.excluded_days || [],
+                    excludedHalfDays: savedDoc.excluded_half_days || [],
+                    excludedActivities: savedDoc.excluded_activities || [],
+                    excludedSlotTypes: savedDoc.excluded_slot_types || []
+                });
+            }
 
             setSuccess('Profil médecin mis à jour !');
 
@@ -517,6 +571,7 @@ const TeamManagement: React.FC = () => {
                 setSuccess('');
                 fetchData();
             }, 1000);
+
 
         } catch (err: any) {
             console.error('Update doctor error:', err);
@@ -597,16 +652,70 @@ const TeamManagement: React.FC = () => {
         });
     };
 
-    const toggleExcludedDay = (day: DayOfWeek) => {
+    // NEW: Toggle a specific half-day exclusion (granular)
+    const toggleExcludedHalfDay = (day: DayOfWeek, period: Period) => {
         setDoctorFormData(prev => {
-            const current = prev.excludedDays;
-            if (current.includes(day)) {
-                return { ...prev, excludedDays: current.filter(d => d !== day) };
+            const current = prev.excludedHalfDays || [];
+            const exists = current.some(excl => excl.day === day && excl.period === period);
+
+            if (exists) {
+                // Remove this half-day exclusion
+                return {
+                    ...prev,
+                    excludedHalfDays: current.filter(excl => !(excl.day === day && excl.period === period))
+                };
             } else {
-                return { ...prev, excludedDays: [...current, day] };
+                // Add this half-day exclusion
+                return {
+                    ...prev,
+                    excludedHalfDays: [...current, { day, period }]
+                };
             }
         });
     };
+
+    // Helper: Check if a specific half-day is excluded
+    const isHalfDayExcluded = (day: DayOfWeek, period: Period): boolean => {
+        const halfDays = doctorFormData.excludedHalfDays || [];
+        return halfDays.some(excl => excl.day === day && excl.period === period);
+    };
+
+    // Toggle full day (both morning and afternoon)
+    const toggleFullDay = (day: DayOfWeek) => {
+        const morningExcluded = isHalfDayExcluded(day, Period.MORNING);
+        const afternoonExcluded = isHalfDayExcluded(day, Period.AFTERNOON);
+        const fullyExcluded = morningExcluded && afternoonExcluded;
+
+        setDoctorFormData(prev => {
+            const current = prev.excludedHalfDays || [];
+
+            if (fullyExcluded) {
+                // Remove both half-days
+                return {
+                    ...prev,
+                    excludedHalfDays: current.filter(excl => excl.day !== day)
+                };
+            } else {
+                // Add both half-days (remove existing first to avoid duplicates)
+                const filtered = current.filter(excl => excl.day !== day);
+                return {
+                    ...prev,
+                    excludedHalfDays: [
+                        ...filtered,
+                        { day, period: Period.MORNING },
+                        { day, period: Period.AFTERNOON }
+                    ]
+                };
+            }
+        });
+    };
+
+    // LEGACY: Keep for backward compatibility during transition
+    const toggleExcludedDay = (day: DayOfWeek) => {
+        // Now delegates to toggleFullDay for the new system
+        toggleFullDay(day);
+    };
+
 
     const toggleExcludedActivity = (activityId: string) => {
         setDoctorFormData(prev => {
@@ -1554,27 +1663,88 @@ const TeamManagement: React.FC = () => {
                                     <Ban className="w-4 h-4 text-red-500" /> Préférences & Exclusions
                                 </h3>
 
-                                {/* Excluded Days */}
+                                {/* Excluded Half-Days (Recurring Weekly Absences) */}
                                 <div className="mb-4">
                                     <label className="block text-sm font-medium text-slate-600 mb-2">
-                                        <Calendar className="w-4 h-4 inline mr-1 text-red-500" /> Jours non travaillés
+                                        <Calendar className="w-4 h-4 inline mr-1 text-red-500" /> Demi-journées non travaillées (récurrentes)
                                     </label>
-                                    <div className="flex flex-wrap gap-1">
-                                        {Object.values(DayOfWeek).map(day => (
-                                            <button
-                                                key={day}
-                                                type="button"
-                                                onClick={() => toggleExcludedDay(day)}
-                                                className={`px-2 py-1 text-xs rounded-lg border transition-all ${doctorFormData.excludedDays.includes(day)
-                                                    ? 'bg-red-100 text-red-800 border-red-200 font-bold'
-                                                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                                                    }`}
-                                            >
-                                                {day}
-                                            </button>
-                                        ))}
+                                    <p className="text-xs text-slate-400 mb-3">
+                                        Cliquez sur une demi-journée pour l'exclure, ou cliquez sur le nom du jour pour exclure la journée entière.
+                                    </p>
+                                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                        {/* Header row */}
+                                        <div className="grid grid-cols-3 gap-1 mb-2 text-center">
+                                            <div className="text-xs font-medium text-slate-400">Jour</div>
+                                            <div className="text-xs font-medium text-orange-600">Matin</div>
+                                            <div className="text-xs font-medium text-blue-600">Après-midi</div>
+                                        </div>
+                                        {/* Day rows */}
+                                        {Object.values(DayOfWeek).map(day => {
+                                            const morningExcluded = isHalfDayExcluded(day, Period.MORNING);
+                                            const afternoonExcluded = isHalfDayExcluded(day, Period.AFTERNOON);
+                                            const fullyExcluded = morningExcluded && afternoonExcluded;
+
+                                            return (
+                                                <div key={day} className="grid grid-cols-3 gap-1 mb-1.5">
+                                                    {/* Day name - click to toggle full day */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleFullDay(day)}
+                                                        className={`px-2 py-1.5 text-xs rounded-lg border transition-all font-medium ${fullyExcluded
+                                                            ? 'bg-red-500 text-white border-red-500'
+                                                            : (morningExcluded || afternoonExcluded)
+                                                                ? 'bg-red-100 text-red-700 border-red-200'
+                                                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                            }`}
+                                                        title={fullyExcluded ? 'Cliquez pour rétablir' : 'Cliquez pour exclure la journée entière'}
+                                                    >
+                                                        {day.substring(0, 3)}
+                                                    </button>
+                                                    {/* Morning toggle */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleExcludedHalfDay(day, Period.MORNING)}
+                                                        className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${morningExcluded
+                                                            ? 'bg-orange-500 text-white border-orange-500 font-bold'
+                                                            : 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50'
+                                                            }`}
+                                                        title={morningExcluded ? `${day} matin : EXCLU` : `Exclure ${day} matin`}
+                                                    >
+                                                        {morningExcluded ? '✕ Matin' : 'Matin'}
+                                                    </button>
+                                                    {/* Afternoon toggle */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleExcludedHalfDay(day, Period.AFTERNOON)}
+                                                        className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${afternoonExcluded
+                                                            ? 'bg-blue-500 text-white border-blue-500 font-bold'
+                                                            : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'
+                                                            }`}
+                                                        title={afternoonExcluded ? `${day} après-midi : EXCLU` : `Exclure ${day} après-midi`}
+                                                    >
+                                                        {afternoonExcluded ? '✕ Ap-midi' : 'Ap-midi'}
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
+                                    {/* Summary of exclusions */}
+                                    {(doctorFormData.excludedHalfDays || []).length > 0 && (
+                                        <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-100">
+                                            <p className="text-xs text-red-700 font-medium">
+                                                Demi-journées exclues :
+                                            </p>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {(doctorFormData.excludedHalfDays || []).map((excl, idx) => (
+                                                    <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-red-100 text-red-800">
+                                                        {excl.day.substring(0, 3)} {excl.period === Period.MORNING ? 'mat.' : 'ap-m.'}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
 
                                 {/* Excluded Activities */}
                                 <div className="mb-4">

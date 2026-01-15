@@ -842,7 +842,7 @@ const Profile: React.FC = () => {
                                             {abs.startDate} → {abs.endDate}
                                             {abs.period && abs.period !== 'ALL_DAY' && (
                                                 <span className="ml-2 text-[10px] bg-slate-100 text-slate-500 px-1 rounded">
-                                                    {abs.period === 'MORNING' ? 'Matin' : 'Après-midi'}
+                                                    {abs.period === Period.MORNING ? 'Matin' : 'Après-midi'}
                                                 </span>
                                             )}
                                         </div>
@@ -870,24 +870,37 @@ const Profile: React.FC = () => {
                     </h2>
 
                     <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                        {/* Jours non travaillés */}
+                        {/* Demi-journées non travaillées (récurrentes) */}
                         <div>
                             <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
                                 <Calendar className="w-4 h-4 mr-2 text-red-500" />
-                                Jours non travaillés
+                                Demi-journées non travaillées (récurrentes)
                             </h3>
-                            {currentDoctor.excludedDays && currentDoctor.excludedDays.length > 0 ? (
+                            {/* Show excludedHalfDays if present, otherwise fallback to excludedDays */}
+                            {(currentDoctor as any).excludedHalfDays && (currentDoctor as any).excludedHalfDays.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                    {(currentDoctor as any).excludedHalfDays.map((excl: any, idx: number) => (
+                                        <span key={idx} className={`px-2 py-1 text-xs rounded font-medium ${excl.period === Period.MORNING
+                                                ? 'bg-orange-100 text-orange-800'
+                                                : 'bg-blue-100 text-blue-800'
+                                            }`}>
+                                            {excl.day.substring(0, 3)} {excl.period === Period.MORNING ? 'matin' : 'ap-m.'}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : currentDoctor.excludedDays && currentDoctor.excludedDays.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
                                     {currentDoctor.excludedDays.map(day => (
                                         <span key={day} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 font-medium">
-                                            {day}
+                                            {day} (journée entière)
                                         </span>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-slate-400 italic">Aucun jour exclu</p>
+                                <p className="text-sm text-slate-400 italic">Aucune demi-journée exclue</p>
                             )}
                         </div>
+
 
                         {/* Activités exclues */}
                         <div>

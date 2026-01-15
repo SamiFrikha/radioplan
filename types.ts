@@ -34,15 +34,22 @@ export enum DayOfWeek {
   FRIDAY = 'Vendredi'
 }
 
+// NEW: Half-day exclusion for recurring weekly absences
+export interface ExcludedHalfDay {
+  day: DayOfWeek;
+  period: Period;
+}
+
 export interface Doctor {
   id: string;
   name: string;
   specialty: string[];
   color: string;
   // Exclusions
-  excludedDays: DayOfWeek[]; // Days they don't work (e.g. 80%)
+  excludedDays: DayOfWeek[]; // Days they don't work (e.g. 80%) - LEGACY, kept for backward compat
+  excludedHalfDays?: ExcludedHalfDay[]; // NEW: Granular half-day exclusions (takes precedence if set)
   excludedActivities: string[]; // Activity IDs they don't do
-  excludedSlotTypes?: SlotType[]; // NEW: Specific exclusions (Consult, RCP...) - affect suggestions only, not existing rules
+  excludedSlotTypes?: SlotType[]; // Specific exclusions (Consult, RCP...) - affect suggestions only, not existing rules
 }
 
 export interface Specialty {
