@@ -1251,18 +1251,18 @@ const Activities: React.FC = () => {
         return (
             <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative ${borderColor}`}>
                 {hasConflict && (
-                    <div className="absolute top-1 right-1 text-red-500 animate-pulse">
-                        <AlertTriangle className="w-3 h-3" />
+                    <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1 text-red-500 animate-pulse">
+                        <AlertTriangle className="w-2.5 h-2.5 md:w-3 md:h-3" />
                     </div>
                 )}
 
                 {/* Show auto/manual badge */}
                 {slot.isLocked && doc && (
-                    <div className="absolute top-1 left-1">
+                    <div className="mb-0.5 md:mb-0 md:absolute md:top-1 md:left-1">
                         {isAuto ? (
-                            <span className="text-[8px] bg-green-200 text-green-700 px-1 rounded font-bold">AUTO</span>
+                            <span className="text-[6px] md:text-[8px] bg-green-200 text-green-700 px-0.5 md:px-1 rounded font-bold">AUTO</span>
                         ) : (
-                            <span className="text-[8px] bg-blue-200 text-blue-700 px-1 rounded font-bold">MANUEL</span>
+                            <span className="text-[6px] md:text-[8px] bg-blue-200 text-blue-700 px-0.5 md:px-1 rounded font-bold">MAN.</span>
                         )}
                     </div>
                 )}
@@ -1270,20 +1270,21 @@ const Activities: React.FC = () => {
                 {/* Admin can change assignments, others just see the result */}
                 {isAdmin && !isCurrentWeekValidated ? (
                     <select
-                        className={`w-full text-[10px] md:text-xs bg-transparent outline-none font-medium cursor-pointer ${textColor}`}
+                        className={`w-full text-[9px] md:text-xs bg-transparent outline-none font-medium cursor-pointer whitespace-normal break-words leading-tight ${textColor}`}
                         value={slot.isLocked ? slot.assignedDoctorId || "" : ""}
                         onChange={(e) => handleManualAssign(slot.id, e.target.value)}
+                        style={{ WebkitAppearance: 'none', textOverflow: 'clip' }}
                     >
-                        <option value="">-- Choisir --</option>
+                        <option value="">Choisir</option>
                         {doctors.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                         ))}
                     </select>
                 ) : (
                     /* Non-admin or validated week: show assignment as read-only */
-                    <div className={`text-[10px] md:text-xs font-medium text-center break-words ${textColor}`}>
-                        {doc ? doc.name : <span className="text-slate-400 italic">Non assigné</span>}
-                        {isCurrentWeekValidated && <Lock className="w-3 h-3 inline ml-1 text-green-600" />}
+                    <div className={`text-[9px] md:text-xs font-medium text-center leading-tight ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                        {doc ? doc.name : <span className="text-slate-400 italic text-[8px] md:text-xs">Non assigné</span>}
+                        {isCurrentWeekValidated && <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 inline ml-0.5 text-green-600" />}
                     </div>
                 )}
             </div>
