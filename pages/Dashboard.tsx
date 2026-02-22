@@ -769,14 +769,14 @@ const Dashboard: React.FC = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 flex-1 min-h-0">
                 {/* Left: Alerts, Absences & UNASSIGNED */}
-                <div className="lg:col-span-1 flex flex-col gap-4 overflow-hidden max-h-[600px] overflow-y-auto">
+                <div className="lg:col-span-1 flex flex-col gap-3 md:gap-4 overflow-hidden max-h-[250px] md:max-h-[600px] overflow-y-auto">
 
                     {/* ALERTES */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
-                        <div className="p-4 border-b border-slate-100 bg-red-50/50">
-                            <h2 className="font-bold text-slate-800 flex items-center justify-between">
+                        <div className="p-3 md:p-4 border-b border-slate-100 bg-red-50/50">
+                            <h2 className="font-bold text-slate-800 flex items-center justify-between text-sm md:text-base">
                                 <span className="flex items-center">
                                     <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
                                     Alertes {viewMode === 'DAY' ? 'du jour' : 'de la semaine'}
@@ -784,7 +784,7 @@ const Dashboard: React.FC = () => {
                                 <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">{stats.filteredConflicts.length}</span>
                             </h2>
                         </div>
-                        <div className="p-4 max-h-80 overflow-y-auto space-y-3">
+                        <div className="p-3 md:p-4 max-h-48 md:max-h-80 overflow-y-auto space-y-2 md:space-y-3">
                             {stats.filteredConflicts.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-20 text-slate-400">
                                     <span className="text-sm">Aucun conflit détecté.</span>

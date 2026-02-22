@@ -1481,13 +1481,13 @@ const Activities: React.FC = () => {
             </div>
 
             {showSettings && (
-                <div className="bg-white p-4 rounded-lg shadow border border-slate-200 mb-4 animate-in fade-in slide-in-from-top-2 space-y-4">
+                <div className="bg-white p-3 md:p-4 rounded-lg shadow border border-slate-200 mb-3 md:mb-4 animate-in fade-in slide-in-from-top-2 space-y-3 md:space-y-4">
                     {/* Create New Activity */}
                     <div>
-                        <h3 className="font-bold text-sm mb-3 flex items-center">
+                        <h3 className="font-bold text-xs md:text-sm mb-2 md:mb-3 flex items-center">
                             <Plus className="w-4 h-4 mr-2 text-blue-600" /> Créer une nouvelle activité
                         </h3>
-                        <form onSubmit={handleCreateActivity} className="flex flex-wrap gap-4 items-end">
+                        <form onSubmit={handleCreateActivity} className="flex flex-col sm:flex-row flex-wrap gap-2 md:gap-4 sm:items-end">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Nom</label>
                                 <input
@@ -1623,21 +1623,21 @@ const Activities: React.FC = () => {
             )}
 
             {/* TABS */}
-            <div className="flex space-x-2 border-b border-slate-200 pb-1 overflow-x-auto shrink-0">
+            <div className="flex gap-1 md:gap-2 border-b border-slate-200 pb-1 overflow-x-auto shrink-0 -mx-0.5 px-0.5">
                 {activityDefinitions.map(act => {
                     const equityGrp = EQUITY_GROUPS.find(g => g.id === (act.equityGroup || 'custom'));
                     return (
                         <button
                             key={act.id}
                             onClick={() => setActiveTabId(act.id)}
-                            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors border-t border-l border-r whitespace-nowrap ${activeTabId === act.id
+                            className={`px-2 md:px-4 py-1.5 md:py-2 text-[11px] md:text-sm font-medium rounded-t-lg transition-colors border-t border-l border-r whitespace-nowrap flex-shrink-0 ${activeTabId === act.id
                                 ? 'bg-white border-slate-300 text-blue-700 -mb-px'
                                 : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'
                                 }`}
                         >
                             <span>{act.name}</span>
                             {equityGrp && equityGrp.id !== 'custom' && (
-                                <span className={`ml-2 text-[9px] px-1 py-0.5 rounded ${equityGrp.color}`}>
+                                <span className={`ml-1 md:ml-2 text-[9px] px-1 py-0.5 rounded ${equityGrp.color}`}>
                                     {equityGrp.id === 'unity_astreinte' ? '⚡' : '🔄'}
                                 </span>
                             )}
@@ -1647,7 +1647,7 @@ const Activities: React.FC = () => {
             </div>
 
             {/* CONTENT */}
-            <div className="flex-1 bg-white border border-slate-300 rounded-b-lg p-4 shadow-sm overflow-auto min-h-0">
+            <div className="flex-1 bg-white border border-slate-300 rounded-b-lg p-2 md:p-4 shadow-sm overflow-auto min-h-0">
                 {viewMode === 'MONTH' ? (
                     renderMonthGrid()
                 ) : currentActivity?.granularity === 'WEEKLY' ? (
@@ -1660,7 +1660,7 @@ const Activities: React.FC = () => {
                         </div>
 
                         {choiceSectionExpanded && (
-                            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center max-w-md w-full transition-all">
+                            <div className="bg-slate-50 p-3 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center max-w-md w-full transition-all">
 
                                 <div className="flex items-center space-x-4 mb-6 bg-white p-2 rounded-lg border border-slate-200">
                                     <button
@@ -1851,7 +1851,7 @@ const Activities: React.FC = () => {
             </div>
 
             {/* STATS TABLE with Global Equity */}
-            <div className="bg-white rounded-lg shadow border border-slate-200 p-4 mt-4 shrink-0 transition-all">
+            <div className="bg-white rounded-lg shadow border border-slate-200 p-2 md:p-4 mt-3 md:mt-4 shrink-0 transition-all overflow-x-auto">
                 <div className="flex justify-between items-center mb-3">
                     <h3 className="font-bold text-slate-800 text-sm flex items-center cursor-pointer" onClick={() => setStatsSectionExpanded(!statsSectionExpanded)}>
                         <span className="flex items-center">
