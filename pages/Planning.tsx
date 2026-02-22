@@ -443,14 +443,14 @@ const Planning: React.FC = () => {
 
                 {doc ? (
                     <>
-                        <div className="flex items-center space-x-1 md:space-x-2">
+                        <div className="flex items-center space-x-2">
                             <div
-                                className="w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center text-[7px] md:text-[8px] font-bold text-white shadow-sm border border-black/5 flex-shrink-0"
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm border border-black/5"
                                 style={{ backgroundColor: getDoctorHexColor(doc.color) }}
                             >
                                 {doc.name.substring(0, 2)}
                             </div>
-                            <div className="font-bold text-[10px] md:text-sm text-slate-800 leading-tight truncate">{doc.name}</div>
+                            <div className="font-bold text-sm text-slate-800 leading-tight truncate">{doc.name}</div>
                         </div>
 
                         {secondaryDocs && secondaryDocs.length > 0 && (
@@ -648,13 +648,14 @@ const Planning: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-white rounded-xl shadow border border-slate-200 table-scroll-wrapper" ref={tableContainerRef}>
-                <div className="bg-white p-1 md:p-4">
-                    <table className="mobile-table w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+            <div className="flex-1 overflow-auto bg-white rounded-xl shadow border border-slate-200" ref={tableContainerRef}>
+                <div className="bg-white p-1 md:p-4 min-w-[600px] md:min-w-[1000px]">
+                    <table className="w-full border-collapse table-fixed">
                         <thead>
                             <tr>
-                                <th className="p-1 md:p-3 border-b border-r bg-slate-100 text-left text-[10px] md:text-xs font-bold text-slate-500 uppercase" style={{ width: '70px' }}>
-                                    {viewMode === 'ROOM' ? 'Poste' : 'Médecin'}
+                                <th className="p-1 md:p-3 border-b border-r bg-slate-100 w-16 md:w-28 text-left text-[9px] md:text-xs font-bold text-slate-500 uppercase">
+                                    <span className="hidden md:inline">{viewMode === 'ROOM' ? 'Lieu / Créneau' : 'Médecin'}</span>
+                                    <span className="md:hidden">{viewMode === 'ROOM' ? 'Lieu' : 'Dr'}</span>
                                 </th>
                                 {days.map(day => {
                                     const date = getDateForDayOfWeek(currentWeekStart, day);
@@ -663,10 +664,9 @@ const Planning: React.FC = () => {
                                     const displayDate = `${dDay}/${dMonth}`;
 
                                     return (
-                                        <th key={day} className={`p-1 md:p-3 border-b border-r text-slate-700 font-bold uppercase text-[10px] md:text-sm ${holiday ? 'bg-pink-50' : 'bg-slate-50'}`}>
-                                            <span className="hidden sm:inline">{day}</span>
-                                            <span className="sm:hidden">{day.substring(0, 2)}</span>
-                                            <div className="text-[8px] md:text-[10px] text-slate-400 font-normal mt-0.5">
+                                        <th key={day} className={`p-1 md:p-3 border-b border-r text-slate-700 font-bold uppercase text-[10px] md:text-sm w-1/5 ${holiday ? 'bg-pink-50' : 'bg-slate-50'}`}>
+                                            {day.substring(0, 3)}
+                                            <div className="text-[8px] md:text-[10px] text-slate-400 font-normal mt-0.5 md:mt-1 flex justify-center items-center">
                                                 {displayDate}
                                             </div>
                                         </th>
@@ -680,14 +680,15 @@ const Planning: React.FC = () => {
                                 displayRows.map((loc, index) => (
                                     <React.Fragment key={loc}>
                                         <tr>
-                                            <td rowSpan={2} className={`p-1 md:p-2 border-r border-b text-[10px] md:text-xs text-center font-bold
+                                            <td rowSpan={2} className={`p-1 md:p-3 border-r border-b text-[9px] md:text-xs text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] font-bold
                                     ${postes.includes(loc) ? 'bg-slate-50 text-slate-700' : 'bg-orange-50 text-orange-800'}
-                                `} style={{ wordBreak: 'break-word', lineHeight: '1.2' }}>
-                                                {loc}
+                                `}>
+                                                <span className="md:hidden">{loc.substring(0, 6)}</span>
+                                                <span className="hidden md:inline">{loc}</span>
                                             </td>
                                             {days.map(day => (
                                                 <td key={`${day}-matin`} className={`border-r border-b border-slate-100 relative ${rowHeightClass} align-top p-0`}>
-                                                    <div className="period-label absolute top-0 left-0 right-0 bg-yellow-50/80 text-[8px] px-0.5 text-yellow-700 uppercase font-bold z-0 border-b border-yellow-100">AM</div>
+                                                    <div className="absolute top-0 left-0 right-0 bg-yellow-50/80 text-[9px] px-1 text-yellow-700 uppercase font-bold tracking-wider z-0 border-b border-yellow-100">Matin</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.MORNING, loc)}
                                                     </div>
@@ -697,7 +698,7 @@ const Planning: React.FC = () => {
                                         <tr>
                                             {days.map(day => (
                                                 <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-slate-200 relative ${rowHeightClass} align-top p-0`}>
-                                                    <div className="period-label absolute top-0 left-0 right-0 bg-indigo-50/80 text-[8px] px-0.5 text-indigo-700 uppercase font-bold z-0 border-b border-indigo-100">PM</div>
+                                                    <div className="absolute top-0 left-0 right-0 bg-indigo-50/80 text-[9px] px-1 text-indigo-700 uppercase font-bold tracking-wider z-0 border-b border-indigo-100">A.Midi</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.AFTERNOON, loc)}
                                                     </div>
@@ -711,14 +712,14 @@ const Planning: React.FC = () => {
                                 doctors.map(doc => (
                                     <React.Fragment key={doc.id}>
                                         <tr>
-                                            <td rowSpan={2} className="p-1 md:p-2 border-r border-b bg-slate-50 text-center" style={{ wordBreak: 'break-word', lineHeight: '1.2' }}>
+                                            <td rowSpan={2} className="p-1 md:p-3 border-r border-b bg-slate-50 text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                                 <div
-                                                    className="w-5 h-5 md:w-7 md:h-7 rounded-full mx-auto flex items-center justify-center text-[7px] md:text-[10px] font-bold text-white"
+                                                    className="w-8 h-8 rounded-full mx-auto flex items-center justify-center text-xs font-bold text-white"
                                                     style={{ backgroundColor: getDoctorHexColor(doc.color) }}
                                                 >
                                                     {doc.name.substring(0, 2)}
                                                 </div>
-                                                <div className="text-[9px] md:text-[11px] font-bold text-slate-700 mt-0.5 leading-tight">{doc.name}</div>
+                                                <div className="text-[10px] font-bold text-slate-700 mt-1 truncate max-w-[80px] mx-auto">{doc.name}</div>
                                             </td>
                                             {days.map(day => (
                                                 <td key={`${day}-matin`} className="border-r border-b border-slate-100 relative h-20 align-top p-0">

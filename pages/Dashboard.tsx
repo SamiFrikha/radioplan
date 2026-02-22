@@ -408,7 +408,7 @@ const Dashboard: React.FC = () => {
                         }
 
                         return (
-                            <div key={s.id} className="flex items-center justify-between p-1.5 md:p-2 bg-slate-50 rounded-lg border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
+                            <div key={s.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
                                 <div className="flex items-center flex-1 min-w-0">
                                     {isRcpUnconfirmed ? (
                                         <div className="flex flex-col">
@@ -469,22 +469,20 @@ const Dashboard: React.FC = () => {
         );
 
         return (
-            <div className="mobile-carousel flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6 h-full overflow-y-auto">
-                <div className="bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
-                    <div className="p-1.5 md:p-3 bg-yellow-50 border-b border-yellow-100 text-yellow-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Matin
-                        <span className="ml-auto text-[9px] font-normal text-yellow-600">{morningSlots.length}</span>
+            <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6 h-full overflow-auto">
+                <div className="bg-white rounded-xl border border-slate-200 flex flex-col">
+                    <div className="p-2 md:p-3 bg-yellow-50 border-b border-yellow-100 text-yellow-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Matin
                     </div>
-                    <div className="p-1.5 md:p-4 overflow-y-auto flex-1">
+                    <div className="p-2 md:p-4 overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
                         {renderSlotList(morningSlots)}
                     </div>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
-                    <div className="p-1.5 md:p-3 bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Après-midi
-                        <span className="ml-auto text-[9px] font-normal text-indigo-600">{afternoonSlots.length}</span>
+                <div className="bg-white rounded-xl border border-slate-200 flex flex-col">
+                    <div className="p-2 md:p-3 bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Après-midi
                     </div>
-                    <div className="p-1.5 md:p-4 overflow-y-auto flex-1">
+                    <div className="p-2 md:p-4 overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
                         {renderSlotList(afternoonSlots)}
                     </div>
                 </div>
@@ -495,8 +493,8 @@ const Dashboard: React.FC = () => {
     const renderWeekView = () => {
         const days = Object.values(DayOfWeek);
         return (
-            <div className="overflow-x-auto pb-2 table-scroll-wrapper">
-                <div className="grid grid-cols-5 gap-1 md:gap-3">
+            <div className="overflow-x-auto pb-2">
+                <div className="grid grid-cols-5 gap-1 md:gap-3 min-w-[420px] md:min-w-[700px]">
                     {days.map(day => {
                         const date = getDateForDayOfWeek(currentWeekStart, day);
                         const isToday = date === new Date().toISOString().split('T')[0];
@@ -520,29 +518,29 @@ const Dashboard: React.FC = () => {
 
                         return (
                             <div key={day} className={`flex flex-col border rounded-lg overflow-hidden ${isToday ? 'ring-2 ring-blue-400 border-blue-400' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className={`text-xs font-bold text-center py-2 uppercase ${isToday ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'}`}>
-                                    {day} <span className="block text-[9px] font-normal opacity-80">{date.split('-').slice(1).reverse().join('/')}</span>
+                                <div className={`text-[9px] md:text-xs font-bold text-center py-1 md:py-2 uppercase ${isToday ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                                    {day.substring(0, 3)} <span className="block text-[8px] md:text-[9px] font-normal opacity-80">{date.split('-').slice(1).reverse().join('/')}</span>
                                 </div>
-                                <div className="p-2 space-y-2 flex-1 bg-white">
+                                <div className="p-1 md:p-2 space-y-1 md:space-y-2 flex-1 bg-white">
                                     {/* Key Roles Summary - Only show activities that have assignments */}
                                     {(docAstreinte || docUnity) && (
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Clés</div>
+                                        <div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">Clés</div>
                                     )}
 
                                     {astreinte?.assignedDoctorId && docAstreinte && (
-                                        <div className="flex items-center justify-between bg-red-50 p-1.5 rounded border border-red-200 border-l-4 border-l-red-500">
-                                            <span className="text-[9px] text-red-700 font-bold">Astreinte</span>
-                                            <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docAstreinte.name}</span>
+                                        <div className="flex items-center justify-between bg-red-50 p-1 md:p-1.5 rounded border border-red-200 border-l-4 border-l-red-500">
+                                            <span className="text-[8px] md:text-[9px] text-red-700 font-bold">Astr.</span>
+                                            <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
                                         </div>
                                     )}
                                     {unity?.assignedDoctorId && docUnity && (
-                                        <div className="flex items-center justify-between bg-orange-50 p-1.5 rounded border border-orange-200 border-l-4 border-l-orange-500">
-                                            <span className="text-[9px] text-orange-700 font-bold">UNITY</span>
-                                            <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docUnity.name}</span>
+                                        <div className="flex items-center justify-between bg-orange-50 p-1 md:p-1.5 rounded border border-orange-200 border-l-4 border-l-orange-500">
+                                            <span className="text-[8px] md:text-[9px] text-orange-700 font-bold">UNITY</span>
+                                            <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
                                         </div>
                                     )}
 
-                                    {(docAstreinte || docUnity) && <div className="h-px bg-slate-100 my-2"></div>}
+                                    {(docAstreinte || docUnity) && <div className="h-px bg-slate-100 my-1 md:my-2"></div>}
 
                                     {/* Workflow if applicable */}
                                     {(() => {
@@ -554,17 +552,17 @@ const Dashboard: React.FC = () => {
                                         const docWorkflow = doctors.find(d => d.id === workflow?.assignedDoctorId);
                                         return workflow?.assignedDoctorId && docWorkflow ? (
                                             <>
-                                                <div className="flex items-center justify-between bg-emerald-50 p-1.5 rounded border border-emerald-200 border-l-4 border-l-emerald-500">
-                                                    <span className="text-[9px] text-emerald-700 font-bold">Workflow</span>
-                                                    <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docWorkflow.name}</span>
+                                                <div className="flex items-center justify-between bg-emerald-50 p-1 md:p-1.5 rounded border border-emerald-200 border-l-4 border-l-emerald-500">
+                                                    <span className="text-[8px] md:text-[9px] text-emerald-700 font-bold">Wrkflw</span>
+                                                    <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
                                                 </div>
-                                                <div className="h-px bg-slate-100 my-2"></div>
+                                                <div className="h-px bg-slate-100 my-1 md:my-2"></div>
                                             </>
                                         ) : null;
                                     })()}
 
                                     {/* RCPs Summary */}
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">RCPs</div>
+                                    <div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">RCPs</div>
                                     {rcps.length === 0 ? <span className="text-[9px] text-slate-300 italic">Aucune</span> : (
                                         <div className="space-y-1">
                                             {rcps.map(rcp => {
@@ -688,7 +686,7 @@ const Dashboard: React.FC = () => {
 
 
     return (
-        <div className="dashboard-section-gap space-y-4 md:space-y-6 h-full flex flex-col">
+        <div className="space-y-4 md:space-y-6 h-full flex flex-col">
             {/* Header Controls */}
             <div className="flex flex-col gap-3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -740,7 +738,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Dynamic Stats */}
-            <div className="stat-cards-mobile grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <StatCard
                     title={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
                     value={stats.presentDoctorsCount}
@@ -771,9 +769,9 @@ const Dashboard: React.FC = () => {
                 />
             </div>
 
-            <div className="dashboard-section-gap grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 flex-1 min-h-0">
                 {/* Left: Alerts, Absences & UNASSIGNED */}
-                <div className="dashboard-left-panel lg:col-span-1 flex flex-col gap-3 md:gap-4 overflow-hidden max-h-[250px] md:max-h-[600px] overflow-y-auto">
+                <div className="lg:col-span-1 flex flex-col gap-3 md:gap-4 overflow-hidden max-h-[250px] md:max-h-[600px] overflow-y-auto">
 
                     {/* ALERTES */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">

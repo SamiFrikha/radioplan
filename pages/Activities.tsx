@@ -1249,7 +1249,7 @@ const Activities: React.FC = () => {
             slot.isLocked ? (isAuto ? 'text-green-800' : 'text-blue-800') : 'text-slate-700';
 
         return (
-            <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative ${borderColor}`}>
+            <div className={`p-2 rounded border h-full flex flex-col justify-center min-h-[60px] relative ${borderColor}`}>
                 {hasConflict && (
                     <div className="absolute top-1 right-1 text-red-500 animate-pulse">
                         <AlertTriangle className="w-3 h-3" />
@@ -1623,7 +1623,7 @@ const Activities: React.FC = () => {
             )}
 
             {/* TABS */}
-            <div className="activity-tabs flex gap-1 md:gap-2 border-b border-slate-200 pb-1 overflow-x-auto shrink-0 -mx-0.5 px-0.5">
+            <div className="flex gap-1 md:gap-2 border-b border-slate-200 pb-1 overflow-x-auto shrink-0 -mx-0.5 px-0.5">
                 {activityDefinitions.map(act => {
                     const equityGrp = EQUITY_GROUPS.find(g => g.id === (act.equityGroup || 'custom'));
                     return (
@@ -1647,7 +1647,7 @@ const Activities: React.FC = () => {
             </div>
 
             {/* CONTENT */}
-            <div className="flex-1 bg-white border border-slate-300 rounded-b-lg p-1.5 md:p-4 shadow-sm overflow-auto min-h-0 table-scroll-wrapper">
+            <div className="flex-1 bg-white border border-slate-300 rounded-b-lg p-2 md:p-4 shadow-sm overflow-auto min-h-0">
                 {viewMode === 'MONTH' ? (
                     renderMonthGrid()
                 ) : currentActivity?.granularity === 'WEEKLY' ? (
@@ -1748,18 +1748,21 @@ const Activities: React.FC = () => {
                     </div>
                 ) : (
                     // Standard Weekly Grid
-                    <div className="table-scroll-wrapper">
-                        <table className="mobile-table w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+                    <div className="min-w-[450px] md:min-w-[700px]">
+                        <table className="w-full border-collapse table-fixed">
                             <thead>
                                 <tr>
-                                    <th className="p-1 md:p-2 border bg-slate-100 text-[10px] md:text-xs font-bold text-slate-500 uppercase" style={{ width: '60px' }}>Période</th>
+                                    <th className="p-1 md:p-2 border bg-slate-100 text-[9px] md:text-xs font-bold text-slate-500 uppercase w-12 md:w-24">
+                                        <span className="hidden md:inline">P&eacute;riode</span>
+                                        <span className="md:hidden">P&eacute;r.</span>
+                                    </th>
                                     {days.map(d => {
                                         const date = getDateForDayOfWeek(currentWeekStart, d);
                                         const [year, month, day] = date.split('-');
                                         return (
                                             <th key={d} className="p-1 md:p-2 border bg-slate-50 text-[10px] md:text-sm font-bold text-slate-700">
-                                                <span className="hidden sm:inline">{d}</span>
-                                                <span className="sm:hidden">{d.substring(0, 2)}</span>
+                                                <span className="md:hidden">{d.substring(0, 3)}</span>
+                                                <span className="hidden md:inline">{d}</span>
                                                 <span className="block text-[8px] md:text-xs font-normal text-slate-500">{day}/{month}</span>
                                             </th>
                                         )
@@ -1768,17 +1771,23 @@ const Activities: React.FC = () => {
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td className="p-1 md:p-2 border bg-slate-50 text-[10px] md:text-xs font-bold text-center align-middle">AM</td>
+                                    <td className="p-1 md:p-2 border bg-slate-50 text-[9px] md:text-xs font-bold text-center align-middle">
+                                        <span className="hidden md:inline">Matin</span>
+                                        <span className="md:hidden">AM</span>
+                                    </td>
                                     {days.map(d => (
-                                        <td key={`m-${d}`} className="p-1 md:p-2 border align-top h-auto">
+                                        <td key={`m-${d}`} className="p-0.5 md:p-2 border align-top h-auto">
                                             {renderSlot(d, Period.MORNING)}
                                         </td>
                                     ))}
                                 </tr>
                                 <tr>
-                                    <td className="p-1 md:p-2 border bg-slate-50 text-[10px] md:text-xs font-bold text-center align-middle">PM</td>
+                                    <td className="p-1 md:p-2 border bg-slate-50 text-[9px] md:text-xs font-bold text-center align-middle">
+                                        <span className="hidden md:inline">Apr&egrave;s-midi</span>
+                                        <span className="md:hidden">PM</span>
+                                    </td>
                                     {days.map(d => (
-                                        <td key={`am-${d}`} className="p-1 md:p-2 border align-top h-auto">
+                                        <td key={`am-${d}`} className="p-0.5 md:p-2 border align-top h-auto">
                                             {renderSlot(d, Period.AFTERNOON)}
                                         </td>
                                     ))}
