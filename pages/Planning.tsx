@@ -21,7 +21,8 @@ const Planning: React.FC = () => {
         rcpTypes,
         effectiveHistory, // Use effectiveHistory instead of shiftHistory for equity calculations
         rcpAttendance,
-        rcpExceptions
+        rcpExceptions,
+        validatedWeeks
     } = useContext(AppContext);
 
     // --- AUTH & ACCESS CONTROL ---
@@ -70,6 +71,10 @@ const Planning: React.FC = () => {
     const [density, setDensity] = useState<'COMPACT' | 'COMFORTABLE'>('COMFORTABLE');
     const [showSettings, setShowSettings] = useState(false);
 
+    // Check if current week is validated/locked in Activities page
+    const currentWeekKey = currentWeekStart.toISOString().split('T')[0];
+    const isCurrentWeekValidated = validatedWeeks?.includes(currentWeekKey) || false;
+
     // Local Schedule Generation
     const schedule = useMemo(() => {
         const generated = generateScheduleForWeek(
@@ -97,9 +102,13 @@ const Planning: React.FC = () => {
                     return { ...slot, assignedDoctorId: doctorId, isLocked: true, isAutoAssigned: isAuto };
                 }
             }
+            // If week is NOT validated, clear activity assignments so they don't show in Planning Global
+            if (!isCurrentWeekValidated && slot.type === SlotType.ACTIVITY) {
+                return { ...slot, assignedDoctorId: null };
+            }
             return slot;
         });
-    }, [currentWeekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, rcpAttendance, rcpExceptions, manualOverrides]);
+    }, [currentWeekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, rcpAttendance, rcpExceptions, manualOverrides, isCurrentWeekValidated]);
 
     const conflicts = useMemo(() => {
         return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions);
@@ -112,7 +121,8 @@ const Planning: React.FC = () => {
 
     const days = Object.values(DayOfWeek);
 
-    // Clean Rows: Only Postes (Boxes + Custom) and Activities. NO RCPs.
+    // Always show all Postes and Activities rows. NO RCPs.
+    // Activity content will be empty if the week is not validated in Activities.
     const displayRows = [...postes, ...activityDefinitions.map(a => a.name)];
 
     const handleResolve = (slotId: string, newDoctorId: string) => {
@@ -322,6 +332,15 @@ const Planning: React.FC = () => {
             s.period === period &&
             (s.location === location || s.subType === location)
         );
+
+        // For activity slots in non-validated weeks: show empty non-clickable cell
+        if (slot && slot.type === SlotType.ACTIVITY && !isCurrentWeekValidated) {
+            return (
+                <div className="h-full w-full bg-slate-50/50 min-h-[60px] flex items-center justify-center cursor-default">
+                    <span className="text-[10px] text-slate-300 italic">—</span>
+                </div>
+            );
+        }
 
         if (!slot) return <div className="h-full w-full bg-slate-50 min-h-[60px] flex items-center justify-center text-[10px] text-slate-300 border-l border-slate-100">--</div>;
 

@@ -1,12 +1,13 @@
-import React, { useContext, useState, useMemo, useRef, useEffect } from 'react';
+import React, { useContext, useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { DayOfWeek, Period, SlotType, Conflict, ScheduleSlot, Doctor, ActivityDefinition } from '../types';
-import { Activity, Plus, Settings, User, Wand2, ChevronLeft, ChevronRight, Calendar, LayoutGrid, AlertTriangle, Minimize2, Maximize2, Printer, Loader2, X, FileText, Trash2, Edit, Save, Layers, Lock, CheckCircle, Shield } from 'lucide-react';
+import { Activity, Plus, Settings, User, Wand2, ChevronLeft, ChevronRight, Calendar, LayoutGrid, AlertTriangle, Minimize2, Maximize2, Printer, Loader2, X, FileText, Trash2, Edit, Save, Layers, Lock, CheckCircle, Shield, History, Clock, UserCircle, ChevronDown } from 'lucide-react';
 import { generateMonthSchedule, getDateForDayOfWeek, generateScheduleForWeek, detectConflicts, getDoctorWorkRate, computeHistoryFromDate, isFrenchHoliday } from '../services/scheduleService';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { activityLogService, ActivityLogEntry } from '../services/activityLogService';
 
 // Predefined equity groups
 const EQUITY_GROUPS = [
@@ -43,6 +44,22 @@ const Activities: React.FC = () => {
     const { profile } = useAuth();
     const isAdmin = profile?.role === 'Admin' || profile?.role_name === 'Admin';
 
+    // --- ACTIVITY LOG STATE ---
+    const [showLogPanel, setShowLogPanel] = useState(false);
+    const [logEntries, setLogEntries] = useState<ActivityLogEntry[]>([]);
+    const [logFilter, setLogFilter] = useState<'ALL' | 'WEEK'>('ALL');
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+    // Get the user's display name for logs
+    const getUserDisplayName = useCallback(() => {
+        if (!profile) return 'Utilisateur inconnu';
+        if (profile.doctor_id) {
+            const doc = doctors.find(d => d.id === profile.doctor_id);
+            if (doc) return doc.name;
+        }
+        return profile.email || 'Utilisateur';
+    }, [profile, doctors]);
+
     // Use context weekOffset (survives re-renders caused by parent state changes)
     const weekOffset = activitiesWeekOffset;
     const setWeekOffset = setActivitiesWeekOffset;
@@ -64,6 +81,42 @@ const Activities: React.FC = () => {
     // Check if current week is validated (locked)
     const currentWeekKey = currentWeekStart.toISOString().split('T')[0];
     const isCurrentWeekValidated = validatedWeeks?.includes(currentWeekKey) || false;
+
+    // Helper to add a log entry (defined after currentWeekKey)
+    const addLog = useCallback(async (action: string, description: string, opts?: { activityName?: string; doctorName?: string; details?: string }) => {
+        if (!profile) return;
+        await activityLogService.addLog({
+            userId: profile.id,
+            userEmail: profile.email,
+            userName: getUserDisplayName(),
+            action,
+            description,
+            weekKey: currentWeekKey,
+            activityName: opts?.activityName,
+            doctorName: opts?.doctorName,
+            details: opts?.details
+        });
+    }, [profile, getUserDisplayName, currentWeekKey]);
+
+    // Load logs when panel opens
+    const loadLogs = useCallback(async () => {
+        setIsLoadingLogs(true);
+        try {
+            const weekFilter = logFilter === 'WEEK' ? currentWeekKey : undefined;
+            const entries = await activityLogService.getLogs(weekFilter, 200);
+            setLogEntries(entries);
+        } catch (err) {
+            console.error('Failed to load logs:', err);
+        } finally {
+            setIsLoadingLogs(false);
+        }
+    }, [logFilter, currentWeekKey]);
+
+    useEffect(() => {
+        if (showLogPanel) {
+            loadLogs();
+        }
+    }, [showLogPanel, loadLogs]);
 
     // Check if we can navigate to previous week (must not go before start date's week)
     const canNavigatePrevious = useMemo(() => {
@@ -232,6 +285,13 @@ const Activities: React.FC = () => {
         setManualOverrides(newOverrides);
         setAutoFillTriggered(true);
 
+        // Log the auto-recalculate action
+        const groupName = currentEquityGroup === 'workflow' ? 'Supervision Workflow' : 'Unity + Astreinte';
+        addLog('AUTO_RECALCULATE', `Recalcul automatique du groupe "${groupName}"`, {
+            activityName: groupName,
+            details: JSON.stringify({ equityGroup: currentEquityGroup })
+        });
+
         console.log('✅ Auto-calcul effectué pour groupe', currentEquityGroup, '- weekOffset should still be:', weekOffset);
     };
 
@@ -261,6 +321,12 @@ const Activities: React.FC = () => {
 
         setManualOverrides(newOverrides);
         setAutoFillTriggered(false);
+
+        // Log the clear action
+        addLog('CLEAR_CHOICES', `Tous les choix de "${groupName}" effacés (${weekSlotIds.length} créneaux)`, {
+            activityName: groupName,
+            details: JSON.stringify({ slotsCleared: weekSlotIds.length })
+        });
 
         console.log('🗑️ Choix effacés pour groupe:', currentEquityGroup, '- slots:', weekSlotIds.length);
     };
@@ -370,6 +436,7 @@ const Activities: React.FC = () => {
     const handleCreateActivity = (e: React.FormEvent) => {
         e.preventDefault();
         if (newActName.trim()) {
+            const groupLabel = EQUITY_GROUPS.find(g => g.id === newActEquityGroup)?.name || newActEquityGroup;
             addActivityDefinition({
                 id: `act_${Date.now()}`,
                 name: newActName,
@@ -377,6 +444,10 @@ const Activities: React.FC = () => {
                 allowDoubleBooking: false,
                 color: 'bg-gray-100 text-gray-800',
                 equityGroup: newActEquityGroup
+            });
+            addLog('CREATE_ACTIVITY', `Nouvelle activité créée : "${newActName}" (${newActType === 'WEEKLY' ? 'Semaine' : 'Demi-journée'}, Groupe: ${groupLabel})`, {
+                activityName: newActName,
+                details: JSON.stringify({ type: newActType, equityGroup: newActEquityGroup })
             });
             setNewActName("");
             setNewActEquityGroup('custom');
@@ -386,8 +457,12 @@ const Activities: React.FC = () => {
 
     const handleDeleteActivity = (id: string) => {
         if (deleteConfirmId === id) {
+            const act = activityDefinitions.find(a => a.id === id);
             removeActivityDefinition(id);
             setDeleteConfirmId(null);
+            addLog('DELETE_ACTIVITY', `Activité supprimée : "${act?.name || id}"`, {
+                activityName: act?.name
+            });
             // Switch tab if current activity was deleted
             if (activeTabId === id) {
                 const remaining = activityDefinitions.filter(a => a.id !== id);
@@ -410,11 +485,24 @@ const Activities: React.FC = () => {
         if (!editingActivityId || !editActivityName.trim()) return;
         const act = activityDefinitions.find(a => a.id === editingActivityId);
         if (act) {
+            const changes: string[] = [];
+            if (act.name !== editActivityName.trim()) changes.push(`nom: "${act.name}" → "${editActivityName.trim()}"`);
+            if (act.equityGroup !== editActivityEquityGroup) {
+                const oldGroup = EQUITY_GROUPS.find(g => g.id === act.equityGroup)?.name || act.equityGroup;
+                const newGroup = EQUITY_GROUPS.find(g => g.id === editActivityEquityGroup)?.name || editActivityEquityGroup;
+                changes.push(`groupe: "${oldGroup}" → "${newGroup}"`);
+            }
             updateActivityDefinition({
                 ...act,
                 name: editActivityName.trim(),
                 equityGroup: editActivityEquityGroup
             });
+            if (changes.length > 0) {
+                addLog('EDIT_ACTIVITY', `Activité modifiée : ${changes.join(', ')}`, {
+                    activityName: editActivityName.trim(),
+                    details: JSON.stringify({ oldName: act.name, newName: editActivityName.trim(), oldGroup: act.equityGroup, newGroup: editActivityEquityGroup })
+                });
+            }
         }
         setEditingActivityId(null);
     }
@@ -422,13 +510,27 @@ const Activities: React.FC = () => {
     // Handle Manual Assignment with Persistence (Single Slot)
     const handleManualAssign = (slotId: string, doctorId: string) => {
         const newOverrides = { ...manualOverrides };
+        const slot = schedule.find(s => s.id === slotId);
+        const actDef = slot?.activityId ? activityDefinitions.find(a => a.id === slot.activityId) : null;
 
         if (doctorId === "") {
             // Revert to Auto (Delete override)
             delete newOverrides[slotId];
+            const prevDoc = doctors.find(d => d.id === slot?.assignedDoctorId);
+            addLog('MANUAL_ASSIGN', `Assignation retirée${actDef ? ` pour "${actDef.name}"` : ''} (${slot?.day} ${slot?.period})`, {
+                activityName: actDef?.name,
+                doctorName: prevDoc?.name,
+                details: JSON.stringify({ slotId, day: slot?.day, period: slot?.period, action: 'removed' })
+            });
         } else {
             // Set Override
             newOverrides[slotId] = doctorId;
+            const doc = doctors.find(d => d.id === doctorId);
+            addLog('MANUAL_ASSIGN', `${doc?.name || 'Médecin'} assigné manuellement${actDef ? ` à "${actDef.name}"` : ''} (${slot?.day} ${slot?.period})`, {
+                activityName: actDef?.name,
+                doctorName: doc?.name,
+                details: JSON.stringify({ slotId, doctorId, day: slot?.day, period: slot?.period })
+            });
         }
 
         setManualOverrides(newOverrides);
@@ -450,10 +552,18 @@ const Activities: React.FC = () => {
         });
 
         setManualOverrides(newOverrides);
+        const doc = doctors.find(d => d.id === doctorId);
         if (doctorId !== "") {
             setWeeklyAssignmentMode('MANUAL');
+            addLog('WEEKLY_ASSIGN', `${doc?.name || 'Médecin'} assigné pour toute la semaine à "${currentActivity?.name || 'Activité'}"`, {
+                activityName: currentActivity?.name,
+                doctorName: doc?.name
+            });
         } else {
             setWeeklyAssignmentMode('AUTO');
+            addLog('WEEKLY_ASSIGN', `Assignation semaine retirée pour "${currentActivity?.name || 'Activité'}"`, {
+                activityName: currentActivity?.name
+            });
         }
     }
 
@@ -533,6 +643,9 @@ const Activities: React.FC = () => {
         if (isCurrentWeekValidated) {
             if (window.confirm('⚠️ Déverrouiller cette semaine ?\n\nLes affectations pourront être modifiées par l\'algorithme automatique.\n\n⚠️ Attention: Les affectations verrouillées resteront, mais de nouvelles peuvent être générées automatiquement.')) {
                 unvalidateWeek(currentWeekKey);
+                addLog('UNVALIDATE_WEEK', `Semaine déverrouillée`, {
+                    details: JSON.stringify({ weekKey: currentWeekKey })
+                });
             }
         } else {
             // Count activity slots for this week
@@ -546,28 +659,31 @@ const Activities: React.FC = () => {
 
                 activitySlots.forEach(slot => {
                     if (slot.assignedDoctorId) {
-                        // Preserve the auto/manual status when locking
-                        // If slot was auto-assigned, save with 'auto:' prefix
-                        // If slot was manually assigned (already in overrides without auto:), keep as is
                         const existingOverride = manualOverrides[slot.id];
                         if (existingOverride && existingOverride !== '__CLOSED__') {
-                            // Already has an override - keep it as is (preserves auto: prefix if present)
                             newOverrides[slot.id] = existingOverride;
                         } else if (slot.isAutoAssigned) {
-                            // Auto-assigned slot that wasn't in overrides - save with auto: prefix
                             newOverrides[slot.id] = `auto:${slot.assignedDoctorId}`;
                         } else {
-                            // Manually assigned (shouldn't happen often, but fallback)
                             newOverrides[slot.id] = slot.assignedDoctorId;
                         }
                     }
                 });
 
-                // Update overrides (this will persist to database via App.tsx)
                 setManualOverrides(newOverrides);
-
-                // Mark week as validated
                 validateWeek(currentWeekKey);
+
+                // Log with assignment details
+                const assignmentDetails = activitySlots
+                    .filter(s => s.assignedDoctorId)
+                    .map(s => {
+                        const doc = doctors.find(d => d.id === s.assignedDoctorId);
+                        const act = activityDefinitions.find(a => a.id === s.activityId);
+                        return `${act?.name}: ${doc?.name} (${s.day} ${s.period})`;
+                    });
+                addLog('VALIDATE_WEEK', `Semaine validée et verrouillée (${assignedCount} affectations)`, {
+                    details: JSON.stringify({ assignedCount, assignments: assignmentDetails.slice(0, 20) })
+                });
             }
         }
     };
@@ -1341,6 +1457,16 @@ const Activities: React.FC = () => {
                         </button>
                     )}
 
+                    {/* Activity Log History Button */}
+                    <button
+                        onClick={() => setShowLogPanel(!showLogPanel)}
+                        className={`flex items-center px-3 py-2 rounded text-sm font-medium transition-all ${showLogPanel ? 'bg-violet-100 text-violet-700 border border-violet-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'}`}
+                        title="Historique des modifications"
+                    >
+                        <History className="w-4 h-4 mr-2" />
+                        Historique
+                    </button>
+
                     {isAdmin && (
                         <button
                             onClick={() => setShowSettings(!showSettings)}
@@ -2031,6 +2157,163 @@ const Activities: React.FC = () => {
                     onResolve={handleManualAssign}
                     onCloseSlot={handleCloseSlot}
                 />
+            )}
+
+            {/* ======= ACTIVITY LOG SLIDING PANEL ======= */}
+            {showLogPanel && (
+                <>
+                    {/* Backdrop */}
+                    <div
+                        className="fixed inset-0 bg-black/20 z-40 transition-opacity"
+                        onClick={() => setShowLogPanel(false)}
+                    />
+                    {/* Sliding Panel */}
+                    <div className="fixed top-0 right-0 h-full w-[420px] max-w-[90vw] bg-white shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300 border-l border-slate-200">
+                        {/* Panel Header */}
+                        <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-violet-50 to-indigo-50 flex-shrink-0">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center">
+                                    <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center mr-3">
+                                        <History className="w-5 h-5 text-violet-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="font-bold text-slate-800 text-lg">Historique</h2>
+                                        <p className="text-xs text-slate-500">Modifications des activités</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowLogPanel(false)}
+                                    className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-slate-500" />
+                                </button>
+                            </div>
+                            {/* Filter Tabs */}
+                            <div className="flex bg-white/80 p-1 rounded-lg border border-slate-200">
+                                <button
+                                    onClick={() => setLogFilter('ALL')}
+                                    className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'ALL' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Toutes les semaines
+                                </button>
+                                <button
+                                    onClick={() => setLogFilter('WEEK')}
+                                    className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'WEEK' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Semaine actuelle
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Panel Content */}
+                        <div className="flex-1 overflow-y-auto p-4">
+                            {isLoadingLogs ? (
+                                <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                                    <Loader2 className="w-8 h-8 animate-spin mb-3 text-violet-400" />
+                                    <span className="text-sm">Chargement...</span>
+                                </div>
+                            ) : logEntries.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                                    <History className="w-12 h-12 mb-3 opacity-30" />
+                                    <span className="text-sm font-medium">Aucune modification enregistrée</span>
+                                    <span className="text-xs mt-1">Les modifications apparaîtront ici</span>
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {(() => {
+                                        // Group logs by date
+                                        const grouped = new Map<string, ActivityLogEntry[]>();
+                                        logEntries.forEach(entry => {
+                                            const dateKey = new Date(entry.timestamp).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                            if (!grouped.has(dateKey)) grouped.set(dateKey, []);
+                                            grouped.get(dateKey)!.push(entry);
+                                        });
+
+                                        return Array.from(grouped.entries()).map(([dateLabel, entries]) => (
+                                            <div key={dateLabel} className="mb-4">
+                                                <div className="sticky top-0 bg-white/95 backdrop-blur-sm py-2 z-10">
+                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider capitalize">{dateLabel}</span>
+                                                </div>
+                                                <div className="space-y-2 relative">
+                                                    {/* Timeline line */}
+                                                    <div className="absolute left-[15px] top-2 bottom-2 w-px bg-slate-200" />
+                                                    {entries.map(entry => {
+                                                        // Action icon & color
+                                                        let iconColor = 'bg-slate-100 text-slate-500';
+                                                        let actionLabel = entry.action;
+                                                        if (entry.action === 'MANUAL_ASSIGN') { iconColor = 'bg-blue-100 text-blue-600'; actionLabel = 'Assignation manuelle'; }
+                                                        else if (entry.action === 'AUTO_RECALCULATE') { iconColor = 'bg-cyan-100 text-cyan-600'; actionLabel = 'Recalcul auto'; }
+                                                        else if (entry.action === 'VALIDATE_WEEK') { iconColor = 'bg-green-100 text-green-600'; actionLabel = 'Validation semaine'; }
+                                                        else if (entry.action === 'UNVALIDATE_WEEK') { iconColor = 'bg-orange-100 text-orange-600'; actionLabel = 'Déverrouillage'; }
+                                                        else if (entry.action === 'CLEAR_CHOICES') { iconColor = 'bg-red-100 text-red-600'; actionLabel = 'Choix effacés'; }
+                                                        else if (entry.action === 'WEEKLY_ASSIGN') { iconColor = 'bg-indigo-100 text-indigo-600'; actionLabel = 'Assignation semaine'; }
+                                                        else if (entry.action === 'CREATE_ACTIVITY') { iconColor = 'bg-emerald-100 text-emerald-600'; actionLabel = 'Création activité'; }
+                                                        else if (entry.action === 'DELETE_ACTIVITY') { iconColor = 'bg-rose-100 text-rose-600'; actionLabel = 'Suppression activité'; }
+                                                        else if (entry.action === 'EDIT_ACTIVITY') { iconColor = 'bg-amber-100 text-amber-600'; actionLabel = 'Modification activité'; }
+
+                                                        const time = new Date(entry.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                                                        return (
+                                                            <div key={entry.id} className="relative pl-9 group">
+                                                                {/* Timeline dot */}
+                                                                <div className={`absolute left-[10px] top-3 w-[11px] h-[11px] rounded-full border-2 border-white shadow-sm ${iconColor.split(' ')[0]}`} />
+
+                                                                <div className="bg-white border border-slate-100 rounded-lg p-3 hover:border-slate-200 hover:shadow-sm transition-all">
+                                                                    {/* Header: Action badge + Time */}
+                                                                    <div className="flex items-center justify-between mb-1.5">
+                                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${iconColor}`}>
+                                                                            {actionLabel}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-slate-400 font-mono flex items-center">
+                                                                            <Clock className="w-3 h-3 mr-1" />{time}
+                                                                        </span>
+                                                                    </div>
+
+                                                                    {/* Description */}
+                                                                    <p className="text-sm text-slate-700 leading-snug">{entry.description}</p>
+
+                                                                    {/* Week badge */}
+                                                                    {entry.weekKey && (
+                                                                        <div className="mt-2 flex items-center text-[10px] text-slate-400">
+                                                                            <Calendar className="w-3 h-3 mr-1" />
+                                                                            Sem. du {new Date(entry.weekKey).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* User info */}
+                                                                    <div className="mt-2 flex items-center text-[10px] text-slate-400 border-t border-slate-50 pt-2">
+                                                                        <UserCircle className="w-3.5 h-3.5 mr-1 text-violet-400" />
+                                                                        <span className="font-medium text-violet-500">{entry.userName}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ));
+                                    })()}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Panel Footer */}
+                        <div className="p-3 border-t border-slate-200 bg-slate-50 flex-shrink-0">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-slate-400">
+                                    {logEntries.length} modification{logEntries.length !== 1 ? 's' : ''}
+                                </span>
+                                <button
+                                    onClick={loadLogs}
+                                    className="text-[10px] text-violet-600 hover:text-violet-700 font-bold flex items-center"
+                                >
+                                    <History className="w-3 h-3 mr-1" />
+                                    Actualiser
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </>
             )}
 
         </div>

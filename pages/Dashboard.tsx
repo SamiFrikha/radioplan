@@ -25,7 +25,8 @@ const Dashboard: React.FC = () => {
         setDashboardViewMode,
         dashboardWeekOffset,
         setDashboardWeekOffset,
-        addRcpException
+        addRcpException,
+        validatedWeeks
     } = useContext(AppContext);
 
     // Compute week start from offset (stored in context to survive re-renders)
@@ -60,6 +61,10 @@ const Dashboard: React.FC = () => {
     // RCP Exception Modal (for moving RCPs from holidays)
     const [rcpExceptionSlot, setRcpExceptionSlot] = useState<ScheduleSlot | null>(null);
 
+    // Check if current dashboard week is validated/locked in Activities page
+    const currentWeekKey = currentWeekStart.toISOString().split('T')[0];
+    const isCurrentWeekValidated = validatedWeeks?.includes(currentWeekKey) || false;
+
     // Generate Local Schedule based on Local Week
     // Dashboard does NOT auto-fill activities - it uses manual overrides only
     const schedule = useMemo(() => {
@@ -88,9 +93,13 @@ const Dashboard: React.FC = () => {
                     return { ...slot, assignedDoctorId: doctorId, isLocked: true, isAutoAssigned: isAuto };
                 }
             }
+            // If week is NOT validated, clear activity assignments so they don't show in Dashboard
+            if (!isCurrentWeekValidated && slot.type === SlotType.ACTIVITY) {
+                return { ...slot, assignedDoctorId: null };
+            }
             return slot;
         });
-    }, [currentWeekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, rcpAttendance, rcpExceptions, manualOverrides]);
+    }, [currentWeekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, rcpAttendance, rcpExceptions, manualOverrides, isCurrentWeekValidated]);
 
     const conflicts = useMemo(() => {
         return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions);
@@ -513,19 +522,25 @@ const Dashboard: React.FC = () => {
                                     {day} <span className="block text-[9px] font-normal opacity-80">{date.split('-').slice(1).reverse().join('/')}</span>
                                 </div>
                                 <div className="p-2 space-y-2 flex-1 bg-white">
-                                    {/* Key Roles Summary */}
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Clés</div>
+                                    {/* Key Roles Summary - Only show activities that have assignments */}
+                                    {(docAstreinte || docUnity) && (
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Clés</div>
+                                    )}
 
-                                    <div className="flex items-center justify-between bg-red-50 p-1.5 rounded border border-red-200 border-l-4 border-l-red-500">
-                                        <span className="text-[9px] text-red-700 font-bold">Astreinte</span>
-                                        <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docAstreinte?.name || '-'}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between bg-orange-50 p-1.5 rounded border border-orange-200 border-l-4 border-l-orange-500">
-                                        <span className="text-[9px] text-orange-700 font-bold">UNITY</span>
-                                        <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docUnity?.name || '-'}</span>
-                                    </div>
+                                    {astreinte?.assignedDoctorId && docAstreinte && (
+                                        <div className="flex items-center justify-between bg-red-50 p-1.5 rounded border border-red-200 border-l-4 border-l-red-500">
+                                            <span className="text-[9px] text-red-700 font-bold">Astreinte</span>
+                                            <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docAstreinte.name}</span>
+                                        </div>
+                                    )}
+                                    {unity?.assignedDoctorId && docUnity && (
+                                        <div className="flex items-center justify-between bg-orange-50 p-1.5 rounded border border-orange-200 border-l-4 border-l-orange-500">
+                                            <span className="text-[9px] text-orange-700 font-bold">UNITY</span>
+                                            <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docUnity.name}</span>
+                                        </div>
+                                    )}
 
-                                    <div className="h-px bg-slate-100 my-2"></div>
+                                    {(docAstreinte || docUnity) && <div className="h-px bg-slate-100 my-2"></div>}
 
                                     {/* Workflow if applicable */}
                                     {(() => {
@@ -535,11 +550,11 @@ const Dashboard: React.FC = () => {
                                             activityDefinitions.find(a => a.id === s.activityId && a.equityGroup === 'workflow')
                                         );
                                         const docWorkflow = doctors.find(d => d.id === workflow?.assignedDoctorId);
-                                        return workflow || docWorkflow ? (
+                                        return workflow?.assignedDoctorId && docWorkflow ? (
                                             <>
                                                 <div className="flex items-center justify-between bg-emerald-50 p-1.5 rounded border border-emerald-200 border-l-4 border-l-emerald-500">
                                                     <span className="text-[9px] text-emerald-700 font-bold">Workflow</span>
-                                                    <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docWorkflow?.name || '-'}</span>
+                                                    <span className="text-[9px] text-slate-800 truncate max-w-[60px]">{docWorkflow.name}</span>
                                                 </div>
                                                 <div className="h-px bg-slate-100 my-2"></div>
                                             </>
