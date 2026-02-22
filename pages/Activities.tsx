@@ -1269,21 +1269,25 @@ const Activities: React.FC = () => {
 
                 {/* Admin can change assignments, others just see the result */}
                 {isAdmin && !isCurrentWeekValidated ? (
-                    <select
-                        className={`w-full text-[9px] md:text-xs bg-transparent outline-none font-medium cursor-pointer whitespace-normal break-words leading-tight ${textColor}`}
-                        value={slot.isLocked ? slot.assignedDoctorId || "" : ""}
-                        onChange={(e) => handleManualAssign(slot.id, e.target.value)}
-                        style={{ WebkitAppearance: 'none', textOverflow: 'clip' }}
-                    >
-                        <option value="">Choisir</option>
-                        {doctors.map(d => (
-                            <option key={d.id} value={d.id}>{d.name}</option>
-                        ))}
-                    </select>
+                    <div className="relative w-full">
+                        <div className={`text-[9px] md:text-xs font-medium text-center leading-tight pointer-events-none ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                            {doc ? doc.name : <span className="text-slate-400 italic">Choisir</span>}
+                        </div>
+                        <select
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            value={slot.isLocked ? slot.assignedDoctorId || "" : ""}
+                            onChange={(e) => handleManualAssign(slot.id, e.target.value)}
+                        >
+                            <option value="">Choisir</option>
+                            {doctors.map(d => (
+                                <option key={d.id} value={d.id}>{d.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 ) : (
                     /* Non-admin or validated week: show assignment as read-only */
                     <div className={`text-[9px] md:text-xs font-medium text-center leading-tight ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                        {doc ? doc.name : <span className="text-slate-400 italic text-[8px] md:text-xs">Non assigné</span>}
+                        {doc ? doc.name : <span className="text-slate-400 italic">Non assigné</span>}
                         {isCurrentWeekValidated && <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 inline ml-0.5 text-green-600" />}
                     </div>
                 )}
