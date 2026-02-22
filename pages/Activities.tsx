@@ -1343,59 +1343,60 @@ const Activities: React.FC = () => {
     }
 
     return (
-        <div className="h-full flex flex-col space-y-4">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-                <div className="mb-4 md:mb-0">
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center">
-                        <Activity className="w-6 h-6 mr-3 text-orange-600" />
-                        Activités & Astreintes
+        <div className="h-full flex flex-col space-y-3 md:space-y-4">
+            <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center">
+                        <Activity className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-orange-600" />
+                        <span className="hidden sm:inline">Activités & Astreintes</span>
+                        <span className="sm:hidden">Activités</span>
                     </h1>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
 
                     {/* View Toggle */}
-                    <div className="flex bg-slate-200 p-1 rounded-lg mr-4">
+                    <div className="flex bg-slate-200 p-1 rounded-lg">
                         <button
                             onClick={() => setViewMode('WEEK')}
-                            className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'WEEK' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
+                            className={`px-2 md:px-3 py-1 text-xs font-bold rounded ${viewMode === 'WEEK' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
                         >
                             Semaine
                         </button>
                         <button
                             onClick={() => setViewMode('MONTH')}
-                            className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'MONTH' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
+                            className={`px-2 md:px-3 py-1 text-xs font-bold rounded ${viewMode === 'MONTH' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
                         >
                             Mois
                         </button>
                     </div>
 
-                    <div className="flex items-center bg-white rounded-lg shadow-sm border border-slate-200 p-1 mr-4">
+                    <div className="flex items-center bg-white rounded-lg shadow-sm border border-slate-200 p-1">
                         <button
                             onClick={() => handleWeekChange('prev')}
                             disabled={!canNavigatePrevious}
                             className={`p-1 rounded ${canNavigatePrevious ? 'hover:bg-slate-100' : 'opacity-30 cursor-not-allowed'}`}
                             title={!canNavigatePrevious ? 'Date minimum atteinte' : 'Semaine précédente'}
                         >
-                            <ChevronLeft className="w-5 h-5 text-slate-600" />
+                            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600" />
                         </button>
 
                         {viewMode === 'WEEK' ? (
                             <input
                                 type="date"
-                                className="border-none text-slate-700 font-medium text-sm focus:ring-0 bg-transparent mx-2 w-32"
+                                className="border-none text-slate-700 font-medium text-xs md:text-sm focus:ring-0 bg-transparent mx-1 w-28 md:w-32"
                                 value={`${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`}
                                 onChange={handleDateChange}
                                 min={activitiesStartDate || undefined}
                             />
                         ) : (
-                            <span className="px-4 text-sm font-bold text-slate-700 capitalize w-32 text-center">
+                            <span className="px-2 md:px-4 text-xs md:text-sm font-bold text-slate-700 capitalize w-24 md:w-32 text-center">
                                 {currentWeekStart.toLocaleString('default', { month: 'long', year: 'numeric' })}
                             </span>
                         )}
 
                         <button onClick={() => handleWeekChange('next')} className="p-1 hover:bg-slate-100 rounded">
-                            <ChevronRight className="w-5 h-5 text-slate-600" />
+                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-600" />
                         </button>
                     </div>
 
@@ -1403,7 +1404,7 @@ const Activities: React.FC = () => {
                     {isAdmin && viewMode === 'WEEK' && (
                         <button
                             onClick={handleValidateWeek}
-                            className={`flex items-center px-3 py-2 rounded text-sm font-bold mr-2 transition-all ${isCurrentWeekValidated
+                            className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${isCurrentWeekValidated
                                 ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
                                 : 'bg-orange-100 text-orange-700 border border-orange-300 hover:bg-orange-200'
                                 }`}
@@ -1411,13 +1412,13 @@ const Activities: React.FC = () => {
                         >
                             {isCurrentWeekValidated ? (
                                 <>
-                                    <Lock className="w-4 h-4 mr-2" />
-                                    Semaine verrouillée
+                                    <Lock className="w-4 h-4 md:mr-2" />
+                                    <span className="hidden md:inline">Semaine verrouillée</span>
                                 </>
                             ) : (
                                 <>
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Valider la semaine
+                                    <CheckCircle className="w-4 h-4 md:mr-2" />
+                                    <span className="hidden md:inline">Valider la semaine</span>
                                 </>
                             )}
                         </button>
@@ -1425,9 +1426,9 @@ const Activities: React.FC = () => {
 
                     {/* Show validation badge for non-admins */}
                     {!isAdmin && isCurrentWeekValidated && viewMode === 'WEEK' && (
-                        <div className="flex items-center px-3 py-2 bg-green-50 text-green-700 rounded text-sm font-medium mr-2 border border-green-200">
-                            <Lock className="w-4 h-4 mr-2" />
-                            Semaine validée
+                        <div className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-green-50 text-green-700 rounded text-xs md:text-sm font-medium border border-green-200">
+                            <Lock className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Semaine validée</span>
                         </div>
                     )}
 
@@ -1435,13 +1436,13 @@ const Activities: React.FC = () => {
                     {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
                         <button
                             onClick={handleRecalculateAuto}
-                            className={`flex items-center px-3 py-2 rounded text-sm font-bold mr-2 transition-all ${autoFillTriggered
+                            className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${autoFillTriggered
                                 ? 'bg-green-100 text-green-700 border border-green-300'
                                 : 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200'}`}
                             title="Recalculer les affectations automatiques pour cette semaine"
                         >
-                            <Wand2 className="w-4 h-4 mr-2" />
-                            {autoFillTriggered ? 'Auto calculé ✓' : 'Recalculer Auto'}
+                            <Wand2 className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">{autoFillTriggered ? 'Auto calculé ✓' : 'Recalculer Auto'}</span>
                         </button>
                     )}
 
@@ -1449,31 +1450,31 @@ const Activities: React.FC = () => {
                     {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
                         <button
                             onClick={handleClearAllChoices}
-                            className="flex items-center px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-sm font-medium mr-2 transition-all"
+                            className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-xs md:text-sm font-medium transition-all"
                             title="Effacer tous les choix de cette semaine"
                         >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Effacer
+                            <Trash2 className="w-4 h-4 md:mr-1" />
+                            <span className="hidden md:inline">Effacer</span>
                         </button>
                     )}
 
                     {/* Activity Log History Button */}
                     <button
                         onClick={() => setShowLogPanel(!showLogPanel)}
-                        className={`flex items-center px-3 py-2 rounded text-sm font-medium transition-all ${showLogPanel ? 'bg-violet-100 text-violet-700 border border-violet-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'}`}
+                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-medium transition-all ${showLogPanel ? 'bg-violet-100 text-violet-700 border border-violet-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'}`}
                         title="Historique des modifications"
                     >
-                        <History className="w-4 h-4 mr-2" />
-                        Historique
+                        <History className="w-4 h-4 md:mr-2" />
+                        <span className="hidden md:inline">Historique</span>
                     </button>
 
                     {isAdmin && (
                         <button
                             onClick={() => setShowSettings(!showSettings)}
-                            className="flex items-center px-3 py-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 text-sm font-medium"
+                            className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 text-xs md:text-sm font-medium"
                         >
-                            <Settings className="w-4 h-4 mr-2" />
-                            Gérer
+                            <Settings className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Gérer</span>
                         </button>
                     )}
                 </div>

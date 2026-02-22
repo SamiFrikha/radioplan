@@ -531,118 +531,120 @@ const Planning: React.FC = () => {
             )}
 
             {/* Header controls */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center">
-                        Planning Hebdomadaire
-                    </h1>
-                    <p className="text-sm text-slate-500 mt-1">Généré automatiquement selon les règles de configuration</p>
-                </div>
+            <div className="flex flex-col gap-3 mb-4 md:mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center">
+                            Planning Hebdomadaire
+                        </h1>
+                        <p className="text-xs md:text-sm text-slate-500 mt-1 hidden sm:block">Généré automatiquement selon les règles de configuration</p>
+                    </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
+                    <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
 
-                    <div className="relative">
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowSettings(!showSettings)}
+                                className={`p-2 rounded-lg border flex items-center text-sm font-medium transition-colors ${showSettings ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                            >
+                                <Settings className="w-4 h-4 mr-2" />
+                                Affichage
+                            </button>
+
+                            {showSettings && (
+                                <div className="absolute top-full mt-2 right-0 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="mb-4">
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
+                                            <LayoutGrid className="w-3 h-3 mr-1" /> Mode de Vue
+                                        </h4>
+                                        <div className="flex bg-slate-100 p-1 rounded-lg">
+                                            <button
+                                                onClick={() => setViewMode('ROOM')}
+                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'ROOM' ? 'bg-white shadow text-blue-700' : 'text-slate-500'}`}
+                                            >
+                                                Par Poste
+                                            </button>
+                                            <button
+                                                onClick={() => setViewMode('DOCTOR')}
+                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'DOCTOR' ? 'bg-white shadow text-blue-700' : 'text-slate-500'}`}
+                                            >
+                                                Par Médecin
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
+                                            <Palette className="w-3 h-3 mr-1" /> Couleurs
+                                        </h4>
+                                        <div className="space-y-2">
+                                            <button
+                                                onClick={() => setColorMode('DOCTOR')}
+                                                className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            >
+                                                <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
+                                                Par Médecin
+                                            </button>
+                                            <button
+                                                onClick={() => setColorMode('ACTIVITY')}
+                                                className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                            >
+                                                <div className="w-3 h-3 rounded-full bg-orange-400 mr-2"></div>
+                                                Par Activité
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
+                                            <Eye className="w-3 h-3 mr-1" /> Densité
+                                        </h4>
+                                        <div className="flex bg-slate-100 p-1 rounded-lg">
+                                            <button
+                                                onClick={() => setDensity('COMPACT')}
+                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMPACT' ? 'bg-white shadow text-slate-700' : 'text-slate-500'}`}
+                                            >
+                                                Compact
+                                            </button>
+                                            <button
+                                                onClick={() => setDensity('COMFORTABLE')}
+                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMFORTABLE' ? 'bg-white shadow text-slate-700' : 'text-slate-500'}`}
+                                            >
+                                                Aéré
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex items-center space-x-2 bg-white p-1.5 md:p-2 rounded-lg shadow-sm border border-slate-200">
+                            <button onClick={() => handleWeekChange('prev')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600">
+                                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                            </button>
+
+                            <input
+                                type="date"
+                                className="border-none text-slate-700 font-medium text-xs md:text-sm focus:ring-0 bg-transparent w-28 md:w-32"
+                                value={currentWeekStart.toISOString().split('T')[0]}
+                                onChange={handleDateChange}
+                            />
+
+                            <button onClick={() => handleWeekChange('next')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600">
+                                <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                            </button>
+                        </div>
+
                         <button
-                            onClick={() => setShowSettings(!showSettings)}
-                            className={`p-2 rounded-lg border flex items-center text-sm font-medium transition-colors ${showSettings ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                            onClick={handleDownloadPDF}
+                            disabled={isGeneratingPdf}
+                            className="bg-slate-800 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-slate-700 flex items-center text-xs md:text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-wait"
                         >
-                            <Settings className="w-4 h-4 mr-2" />
-                            Affichage
+                            {isGeneratingPdf ? <Loader2 className="w-4 h-4 md:mr-2 animate-spin" /> : <Printer className="w-4 h-4 md:mr-2" />}
+                            <span className="hidden md:inline">{isGeneratingPdf ? 'Génération...' : 'Télécharger PDF'}</span>
                         </button>
 
-                        {showSettings && (
-                            <div className="absolute top-full mt-2 right-0 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
-                                <div className="mb-4">
-                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
-                                        <LayoutGrid className="w-3 h-3 mr-1" /> Mode de Vue
-                                    </h4>
-                                    <div className="flex bg-slate-100 p-1 rounded-lg">
-                                        <button
-                                            onClick={() => setViewMode('ROOM')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'ROOM' ? 'bg-white shadow text-blue-700' : 'text-slate-500'}`}
-                                        >
-                                            Par Poste
-                                        </button>
-                                        <button
-                                            onClick={() => setViewMode('DOCTOR')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'DOCTOR' ? 'bg-white shadow text-blue-700' : 'text-slate-500'}`}
-                                        >
-                                            Par Médecin
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="mb-4">
-                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
-                                        <Palette className="w-3 h-3 mr-1" /> Couleurs
-                                    </h4>
-                                    <div className="space-y-2">
-                                        <button
-                                            onClick={() => setColorMode('DOCTOR')}
-                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
-                                            Par Médecin
-                                        </button>
-                                        <button
-                                            onClick={() => setColorMode('ACTIVITY')}
-                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            <div className="w-3 h-3 rounded-full bg-orange-400 mr-2"></div>
-                                            Par Activité
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
-                                        <Eye className="w-3 h-3 mr-1" /> Densité
-                                    </h4>
-                                    <div className="flex bg-slate-100 p-1 rounded-lg">
-                                        <button
-                                            onClick={() => setDensity('COMPACT')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMPACT' ? 'bg-white shadow text-slate-700' : 'text-slate-500'}`}
-                                        >
-                                            Compact
-                                        </button>
-                                        <button
-                                            onClick={() => setDensity('COMFORTABLE')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMFORTABLE' ? 'bg-white shadow text-slate-700' : 'text-slate-500'}`}
-                                        >
-                                            Aéré
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
-
-                    <div className="flex items-center space-x-2 bg-white p-2 rounded-lg shadow-sm border border-slate-200">
-                        <button onClick={() => handleWeekChange('prev')} className="p-2 hover:bg-slate-100 rounded-full text-slate-600">
-                            <ChevronLeft className="w-5 h-5" />
-                        </button>
-
-                        <input
-                            type="date"
-                            className="border-none text-slate-700 font-medium text-sm focus:ring-0 bg-transparent w-32"
-                            value={currentWeekStart.toISOString().split('T')[0]}
-                            onChange={handleDateChange}
-                        />
-
-                        <button onClick={() => handleWeekChange('next')} className="p-2 hover:bg-slate-100 rounded-full text-slate-600">
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <button
-                        onClick={handleDownloadPDF}
-                        disabled={isGeneratingPdf}
-                        className="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 flex items-center text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-wait"
-                    >
-                        {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
-                        {isGeneratingPdf ? 'Génération...' : 'Télécharger PDF'}
-                    </button>
-
                 </div>
             </div>
 

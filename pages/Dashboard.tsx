@@ -686,55 +686,59 @@ const Dashboard: React.FC = () => {
 
 
     return (
-        <div className="space-y-6 h-full flex flex-col">
+        <div className="space-y-4 md:space-y-6 h-full flex flex-col">
             {/* Header Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center space-x-4 mb-4 md:mb-0">
-                    <div className="flex bg-slate-100 p-1 rounded-lg">
-                        <button
-                            onClick={() => setViewMode('DAY')}
-                            className={`px-3 py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'DAY' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
-                        >
-                            <LayoutList className="w-4 h-4 mr-2" /> Vue Jour
-                        </button>
-                        <button
-                            onClick={() => setViewMode('WEEK')}
-                            className={`px-3 py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'WEEK' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
-                        >
-                            <LayoutGrid className="w-4 h-4 mr-2" /> Vue Semaine
-                        </button>
+            <div className="flex flex-col gap-3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="flex bg-slate-100 p-1 rounded-lg">
+                            <button
+                                onClick={() => setViewMode('DAY')}
+                                className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'DAY' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                            >
+                                <LayoutList className="w-4 h-4 md:mr-2" />
+                                <span className="hidden md:inline">Vue Jour</span>
+                            </button>
+                            <button
+                                onClick={() => setViewMode('WEEK')}
+                                className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'WEEK' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                            >
+                                <LayoutGrid className="w-4 h-4 md:mr-2" />
+                                <span className="hidden md:inline">Vue Semaine</span>
+                            </button>
+                        </div>
+                        <div>
+                            <h1 className="text-sm md:text-xl font-bold text-slate-800 capitalize">
+                                {viewMode === 'DAY'
+                                    ? selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                                    : `Semaine du ${currentWeekStart.toLocaleDateString('fr-FR')}`
+                                }
+                            </h1>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-800 capitalize">
-                            {viewMode === 'DAY'
-                                ? selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                                : `Semaine du ${currentWeekStart.toLocaleDateString('fr-FR')}`
-                            }
-                        </h1>
-                    </div>
-                </div>
 
-                <div className="flex items-center space-x-2">
-                    <button onClick={() => handleTimeChange('prev')} className="p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <div className="relative">
-                        <input
-                            type="date"
-                            className="pl-8 pr-2 py-1.5 border border-slate-300 rounded-md text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={selectedDate.toISOString().split('T')[0]}
-                            onChange={handleDateChange}
-                        />
-                        <Calendar className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                    <div className="flex items-center space-x-2">
+                        <button onClick={() => handleTimeChange('prev')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
+                            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                className="pl-7 md:pl-8 pr-2 py-1 md:py-1.5 border border-slate-300 rounded-md text-xs md:text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 md:w-auto"
+                                value={selectedDate.toISOString().split('T')[0]}
+                                onChange={handleDateChange}
+                            />
+                            <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 absolute left-2 md:left-2.5 top-2 md:top-2.5 pointer-events-none" />
+                        </div>
+                        <button onClick={() => handleTimeChange('next')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
+                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
                     </div>
-                    <button onClick={() => handleTimeChange('next')} className="p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
                 </div>
             </div>
 
             {/* Dynamic Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <StatCard
                     title={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
                     value={stats.presentDoctorsCount}
