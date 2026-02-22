@@ -408,7 +408,7 @@ const Dashboard: React.FC = () => {
                         }
 
                         return (
-                            <div key={s.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
+                            <div key={s.id} className="flex items-center justify-between p-1.5 md:p-2 bg-slate-50 rounded-lg border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
                                 <div className="flex items-center flex-1 min-w-0">
                                     {isRcpUnconfirmed ? (
                                         <div className="flex flex-col">
@@ -469,22 +469,22 @@ const Dashboard: React.FC = () => {
         );
 
         return (
-            <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6 h-full overflow-y-auto">
+            <div className="mobile-carousel flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6 h-full overflow-y-auto">
                 <div className="bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
-                    <div className="p-2 md:p-3 bg-yellow-50 border-b border-yellow-100 text-yellow-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Matin
-                        <span className="ml-auto text-[9px] font-normal text-yellow-600">{morningSlots.length} créneaux</span>
+                    <div className="p-1.5 md:p-3 bg-yellow-50 border-b border-yellow-100 text-yellow-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Matin
+                        <span className="ml-auto text-[9px] font-normal text-yellow-600">{morningSlots.length}</span>
                     </div>
-                    <div className="p-2 md:p-4 overflow-y-auto flex-1 max-h-[250px] md:max-h-none">
+                    <div className="p-1.5 md:p-4 overflow-y-auto flex-1">
                         {renderSlotList(morningSlots)}
                     </div>
                 </div>
                 <div className="bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden">
-                    <div className="p-2 md:p-3 bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Après-midi
-                        <span className="ml-auto text-[9px] font-normal text-indigo-600">{afternoonSlots.length} créneaux</span>
+                    <div className="p-1.5 md:p-3 bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
+                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> Après-midi
+                        <span className="ml-auto text-[9px] font-normal text-indigo-600">{afternoonSlots.length}</span>
                     </div>
-                    <div className="p-2 md:p-4 overflow-y-auto flex-1 max-h-[250px] md:max-h-none">
+                    <div className="p-1.5 md:p-4 overflow-y-auto flex-1">
                         {renderSlotList(afternoonSlots)}
                     </div>
                 </div>
@@ -495,8 +495,8 @@ const Dashboard: React.FC = () => {
     const renderWeekView = () => {
         const days = Object.values(DayOfWeek);
         return (
-            <div className="overflow-x-auto pb-2">
-                <div className="grid grid-cols-5 gap-3 min-w-[700px]">
+            <div className="overflow-x-auto pb-2 table-scroll-wrapper">
+                <div className="grid grid-cols-5 gap-1 md:gap-3">
                     {days.map(day => {
                         const date = getDateForDayOfWeek(currentWeekStart, day);
                         const isToday = date === new Date().toISOString().split('T')[0];
@@ -740,7 +740,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Dynamic Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+            <div className="stat-cards-mobile grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <StatCard
                     title={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
                     value={stats.presentDoctorsCount}

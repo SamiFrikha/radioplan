@@ -648,9 +648,9 @@ const Planning: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-white rounded-xl shadow border border-slate-200" ref={tableContainerRef}>
-                <div className="bg-white p-2 md:p-4 min-w-[1000px]">
-                    <table className="w-full border-collapse table-fixed">
+            <div className="flex-1 overflow-auto bg-white rounded-xl shadow border border-slate-200 table-scroll-wrapper" ref={tableContainerRef}>
+                <div className="bg-white p-1 md:p-4">
+                    <table className="w-full border-collapse table-fixed" style={{ minWidth: '550px' }}>
                         <thead>
                             <tr>
                                 <th className="p-1 md:p-3 border-b border-r bg-slate-100 w-16 md:w-28 text-left text-[9px] md:text-xs font-bold text-slate-500 uppercase">

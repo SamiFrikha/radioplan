@@ -1623,7 +1623,7 @@ const Activities: React.FC = () => {
             )}
 
             {/* TABS */}
-            <div className="flex gap-1 md:gap-2 border-b border-slate-200 pb-1 overflow-x-auto shrink-0 -mx-0.5 px-0.5">
+            <div className="activity-tabs flex gap-1 md:gap-2 border-b border-slate-200 pb-1 overflow-x-auto shrink-0 -mx-0.5 px-0.5">
                 {activityDefinitions.map(act => {
                     const equityGrp = EQUITY_GROUPS.find(g => g.id === (act.equityGroup || 'custom'));
                     return (
@@ -1647,7 +1647,7 @@ const Activities: React.FC = () => {
             </div>
 
             {/* CONTENT */}
-            <div className="flex-1 bg-white border border-slate-300 rounded-b-lg p-2 md:p-4 shadow-sm overflow-auto min-h-0">
+            <div className="flex-1 bg-white border border-slate-300 rounded-b-lg p-1.5 md:p-4 shadow-sm overflow-auto min-h-0 table-scroll-wrapper">
                 {viewMode === 'MONTH' ? (
                     renderMonthGrid()
                 ) : currentActivity?.granularity === 'WEEKLY' ? (
