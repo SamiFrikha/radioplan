@@ -1,33 +1,28 @@
 /* ===========================================
    RadioPlan AI – Mobile Responsiveness
-   Precise mobile optimizations per spec
+   Clean, targeted optimizations
    =========================================== */
 
 /* ═══════════════════════════════════════════
-   GLOBAL
+   GLOBAL (all screen sizes)
    ═══════════════════════════════════════════ */
 html,
 body {
   overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
 }
 
-/* Smooth native scrollbar */
-.overflow-auto,
-.overflow-x-auto {
+/* Smooth scrollbar */
+.table-scroll-wrapper {
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: #94a3b8 transparent;
+  touch-action: pan-x pan-y;
 }
 
-.overflow-auto::-webkit-scrollbar,
-.overflow-x-auto::-webkit-scrollbar {
+.table-scroll-wrapper::-webkit-scrollbar {
   height: 4px;
-  width: 4px;
 }
 
-.overflow-auto::-webkit-scrollbar-thumb,
-.overflow-x-auto::-webkit-scrollbar-thumb {
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
   background-color: #94a3b8;
   border-radius: 4px;
 }
@@ -60,278 +55,153 @@ body {
 }
 
 /* ═══════════════════════════════════════════
-   MOBILE VIEWPORT (max-width: 768px)
+   MOBILE ( ≤ 768px )
+   Only targeted rules — no blanket overrides
    ═══════════════════════════════════════════ */
 @media (max-width: 768px) {
 
-  /* ── 1. FONT SIZE REDUCTIONS ─────────── */
+  /* ── Base font ─────────────────────────── */
   body {
-    font-size: 12px;
+    font-size: 13px;
   }
 
-  h1 {
-    font-size: clamp(0.8rem, 3.5vw, 1rem) !important;
-  }
-
-  h2 {
-    font-size: clamp(0.75rem, 3vw, 0.9rem) !important;
-  }
-
-  h3 {
-    font-size: clamp(0.7rem, 2.8vw, 0.85rem) !important;
-  }
-
-  .text-2xl {
-    font-size: 0.95rem !important;
-  }
-
-  .text-xl {
-    font-size: 0.85rem !important;
-  }
-
-  .text-lg {
-    font-size: 0.8rem !important;
-  }
-
-  .text-base {
-    font-size: 0.75rem !important;
-  }
-
-  .text-sm {
-    font-size: 0.65rem !important;
-  }
-
-  .text-xs {
-    font-size: 0.575rem !important;
-  }
-
-  button {
-    font-size: 0.625rem;
-  }
-
-  /* ── 2. LAYOUT / PADDING ─────────────── */
+  /* ── Main content area ─────────────────── */
   main {
-    padding: 0.25rem !important;
-  }
-
-  /* Reduce all padding utilities */
-  .p-6 {
     padding: 0.5rem !important;
   }
 
-  .p-4 {
-    padding: 0.375rem !important;
-  }
-
-  .p-3 {
-    padding: 0.25rem !important;
-  }
-
-  /* Reduce spacing utilities */
-  .space-y-6>*+* {
-    margin-top: 0.375rem !important;
-  }
-
-  .space-y-4>*+* {
-    margin-top: 0.25rem !important;
-  }
-
-  .gap-6 {
-    gap: 0.375rem !important;
-  }
-
-  .gap-4 {
-    gap: 0.25rem !important;
-  }
-
-  .gap-3 {
-    gap: 0.2rem !important;
-  }
-
-  .mb-6 {
-    margin-bottom: 0.375rem !important;
-  }
-
-  .mb-4 {
-    margin-bottom: 0.25rem !important;
-  }
-
-  .mt-4 {
-    margin-top: 0.25rem !important;
-  }
-
-  /* ── 3. SCROLL-SNAP CAROUSEL ─────────── */
-  /* Applied to containers that get .mobile-carousel class */
+  /* ── Scroll-snap carousel ──────────────── */
   .mobile-carousel {
     display: flex !important;
+    flex-direction: row !important;
     overflow-x: auto !important;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    scroll-padding: 0 0.25rem;
-    gap: 0.375rem !important;
-    padding-bottom: 0.25rem;
+    gap: 0.5rem !important;
+    padding-bottom: 6px;
   }
 
   .mobile-carousel>* {
     scroll-snap-align: start;
-    min-width: 100% !important;
+    min-width: 90% !important;
     flex-shrink: 0;
   }
 
-  /* Stat cards carousel: show each card full-width */
+  /* ── Stat cards: horizontal scroll ─────── */
   .stat-cards-mobile {
     display: flex !important;
+    flex-direction: row !important;
     overflow-x: auto !important;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    gap: 0.375rem !important;
-    grid-template-columns: none !important;
+    gap: 0.5rem !important;
+    padding-bottom: 4px;
+    grid-template-columns: unset !important;
   }
 
   .stat-cards-mobile>* {
     scroll-snap-align: start;
-    min-width: 70% !important;
+    min-width: 65% !important;
     flex-shrink: 0;
   }
 
-  /* ── 4. TABLES ───────────────────────── */
-
-  /* Table wrapper: smooth horizontal scroll */
-  .table-scroll-wrapper {
-    overflow-x: auto !important;
+  /* ── Activity tabs ─────────────────────── */
+  .activity-tabs {
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
   }
 
-  /* Remove ALL sticky positioning from first column */
-  table th,
-  table td {
-    position: static !important;
-    z-index: auto !important;
-  }
-
-  /* Tight cell padding + small font */
-  table th,
-  table td {
-    padding: 4px 6px !important;
+  .activity-tabs button {
     font-size: 11px !important;
-    line-height: 1.3 !important;
+    padding: 4px 8px !important;
   }
 
-  /* First column: explicit narrow width */
-  table th:first-child,
-  table td:first-child {
-    width: 55px !important;
-    min-width: 55px !important;
-    max-width: 70px !important;
-  }
-
-  /* Day columns: narrower to fit 5 */
-  table th:not(:first-child),
-  table td:not(:first-child) {
-    min-width: 0 !important;
-  }
-
-  /* Kill large min-widths */
-  .min-w-\[1000px\] {
-    min-width: 0 !important;
-  }
-
-  .min-w-\[700px\] {
-    min-width: 0 !important;
-  }
-
-  .min-w-\[150px\] {
-    min-width: 0 !important;
-  }
-
-  /* Period labels inside cells */
-  table td .text-\[9px\] {
-    font-size: 7px !important;
-    padding: 0 2px !important;
-  }
-
-  /* Reduce cell row height */
-  table td.h-20 {
-    height: 3rem !important;
-  }
-
-  /* ── 5. DASHBOARD ────────────────────── */
-
-  /* Main grid: single column */
-  .grid.grid-cols-1.lg\:grid-cols-3 {
-    grid-template-columns: 1fr !important;
-    gap: 0.375rem !important;
-  }
-
-  /* Left panel: compact */
-  .lg\:col-span-1 {
-    max-height: 180px !important;
-  }
-
-  /* ── 6. ACTIVITY LOG PANEL ───────────── */
+  /* ── Activity log panel ────────────────── */
   .w-\[420px\] {
     width: 100vw !important;
     max-width: 100vw !important;
   }
 
-  /* ── 7. MODALS ───────────────────────── */
+  /* ── Planning / Activity tables ────────── */
+  .mobile-table {
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  .mobile-table th,
+  .mobile-table td {
+    padding: 3px 4px !important;
+    font-size: 10px !important;
+    line-height: 1.3;
+    position: static !important;
+    z-index: auto !important;
+  }
+
+  .mobile-table th:first-child,
+  .mobile-table td:first-child {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 60px !important;
+    word-break: break-word;
+    overflow: hidden;
+  }
+
+  /* Period labels inside cells */
+  .mobile-table .period-label {
+    font-size: 7px !important;
+    padding: 0 1px !important;
+    letter-spacing: 0;
+  }
+
+  /* Cell content */
+  .mobile-table .cell-content {
+    font-size: 9px !important;
+  }
+
+  /* Row height */
+  .mobile-table td[class*="h-20"] {
+    height: 2.5rem !important;
+  }
+
+  /* ── Dashboard sections ────────────────── */
+  .dashboard-section-gap {
+    gap: 0.75rem !important;
+  }
+
+  /* Left sidebar panel */
+  .dashboard-left-panel {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  /* ── Modals ────────────────────────────── */
   div[class*="max-w-md"],
   div[class*="max-w-lg"],
   div[class*="max-w-xl"],
   div[class*="max-w-2xl"] {
     max-width: 96vw !important;
-    margin: 0.25rem auto !important;
-  }
-
-  /* ── 8. ACTIVITY TABS ────────────────── */
-  .activity-tabs {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .activity-tabs button {
-    padding: 0.2rem 0.5rem !important;
-    font-size: 10px !important;
-    white-space: nowrap;
-    flex-shrink: 0;
+    margin-left: auto !important;
+    margin-right: auto !important;
   }
 }
 
 /* ═══════════════════════════════════════════
-   VERY SMALL PHONE (< 380px)
+   VERY SMALL ( ≤ 380px )
    ═══════════════════════════════════════════ */
 @media (max-width: 380px) {
-  body {
-    font-size: 11px;
+
+  .mobile-table th,
+  .mobile-table td {
+    padding: 2px 3px !important;
+    font-size: 9px !important;
   }
 
-  h1 {
-    font-size: 0.8rem !important;
-  }
-
-  table th:first-child,
-  table td:first-child {
-    width: 45px !important;
-    min-width: 45px !important;
-  }
-
-  table th,
-  table td {
-    padding: 3px 4px !important;
-    font-size: 10px !important;
+  .mobile-table th:first-child,
+  .mobile-table td:first-child {
+    width: 42px !important;
+    min-width: 42px !important;
   }
 
   .stat-cards-mobile>* {
     min-width: 80% !important;
-  }
-}
-
-/* ═══════════════════════════════════════════
-   TABLET (768px - 1024px)
-   ═══════════════════════════════════════════ */
-@media (min-width: 769px) and (max-width: 1024px) {
-  main {
-    padding: 0.75rem !important;
   }
 }

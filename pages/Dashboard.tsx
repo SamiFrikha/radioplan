@@ -688,7 +688,7 @@ const Dashboard: React.FC = () => {
 
 
     return (
-        <div className="space-y-4 md:space-y-6 h-full flex flex-col">
+        <div className="dashboard-section-gap space-y-4 md:space-y-6 h-full flex flex-col">
             {/* Header Controls */}
             <div className="flex flex-col gap-3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -771,9 +771,9 @@ const Dashboard: React.FC = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 flex-1 min-h-0">
+            <div className="dashboard-section-gap grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 flex-1 min-h-0">
                 {/* Left: Alerts, Absences & UNASSIGNED */}
-                <div className="lg:col-span-1 flex flex-col gap-3 md:gap-4 overflow-hidden max-h-[250px] md:max-h-[600px] overflow-y-auto">
+                <div className="dashboard-left-panel lg:col-span-1 flex flex-col gap-3 md:gap-4 overflow-hidden max-h-[250px] md:max-h-[600px] overflow-y-auto">
 
                     {/* ALERTES */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">

@@ -1249,7 +1249,7 @@ const Activities: React.FC = () => {
             slot.isLocked ? (isAuto ? 'text-green-800' : 'text-blue-800') : 'text-slate-700';
 
         return (
-            <div className={`p-2 rounded border h-full flex flex-col justify-center min-h-[60px] relative ${borderColor}`}>
+            <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative ${borderColor}`}>
                 {hasConflict && (
                     <div className="absolute top-1 right-1 text-red-500 animate-pulse">
                         <AlertTriangle className="w-3 h-3" />
@@ -1748,17 +1748,19 @@ const Activities: React.FC = () => {
                     </div>
                 ) : (
                     // Standard Weekly Grid
-                    <div className="min-w-[700px]">
-                        <table className="w-full border-collapse table-fixed">
+                    <div className="table-scroll-wrapper">
+                        <table className="mobile-table w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                             <thead>
                                 <tr>
-                                    <th className="p-2 border bg-slate-100 text-xs font-bold text-slate-500 uppercase w-24">Période</th>
+                                    <th className="p-1 md:p-2 border bg-slate-100 text-[10px] md:text-xs font-bold text-slate-500 uppercase" style={{ width: '60px' }}>Période</th>
                                     {days.map(d => {
                                         const date = getDateForDayOfWeek(currentWeekStart, d);
                                         const [year, month, day] = date.split('-');
                                         return (
-                                            <th key={d} className="p-2 border bg-slate-50 text-sm font-bold text-slate-700">
-                                                {d} <span className="block text-xs font-normal text-slate-500">{day}/{month}</span>
+                                            <th key={d} className="p-1 md:p-2 border bg-slate-50 text-[10px] md:text-sm font-bold text-slate-700">
+                                                <span className="hidden sm:inline">{d}</span>
+                                                <span className="sm:hidden">{d.substring(0, 2)}</span>
+                                                <span className="block text-[8px] md:text-xs font-normal text-slate-500">{day}/{month}</span>
                                             </th>
                                         )
                                     })}
@@ -1766,17 +1768,17 @@ const Activities: React.FC = () => {
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td className="p-2 border bg-slate-50 text-xs font-bold text-center align-middle">Matin</td>
+                                    <td className="p-1 md:p-2 border bg-slate-50 text-[10px] md:text-xs font-bold text-center align-middle">AM</td>
                                     {days.map(d => (
-                                        <td key={`m-${d}`} className="p-2 border align-top h-auto">
+                                        <td key={`m-${d}`} className="p-1 md:p-2 border align-top h-auto">
                                             {renderSlot(d, Period.MORNING)}
                                         </td>
                                     ))}
                                 </tr>
                                 <tr>
-                                    <td className="p-2 border bg-slate-50 text-xs font-bold text-center align-middle">Après-midi</td>
+                                    <td className="p-1 md:p-2 border bg-slate-50 text-[10px] md:text-xs font-bold text-center align-middle">PM</td>
                                     {days.map(d => (
-                                        <td key={`am-${d}`} className="p-2 border align-top h-auto">
+                                        <td key={`am-${d}`} className="p-1 md:p-2 border align-top h-auto">
                                             {renderSlot(d, Period.AFTERNOON)}
                                         </td>
                                     ))}
