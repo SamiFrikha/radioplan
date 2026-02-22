@@ -10,7 +10,7 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* ── Smooth scrolling for tables ─────────── */
+/* ── Smooth scrolling for overflow containers ── */
 .overflow-auto,
 .overflow-x-auto {
   -webkit-overflow-scrolling: touch;
@@ -20,8 +20,8 @@ body {
 
 .overflow-auto::-webkit-scrollbar,
 .overflow-x-auto::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
+  height: 4px;
+  width: 4px;
 }
 
 .overflow-auto::-webkit-scrollbar-track,
@@ -33,11 +33,6 @@ body {
 .overflow-x-auto::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 3px;
-}
-
-.overflow-auto::-webkit-scrollbar-thumb:hover,
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
 }
 
 /* ── Slide-in animation ──────────────────── */
@@ -57,197 +52,234 @@ body {
   animation: slideInRight 0.3s ease-out forwards;
 }
 
-/* ── Touch-friendly targets (all touch devices) ── */
+/* ── Touch devices: prevent iOS zoom ─────── */
 @media (pointer: coarse) {
 
   select,
   input {
-    min-height: 40px;
     font-size: 16px !important;
-    /* Prevents iOS zoom on focus */
-  }
-}
-
-/* ── Sticky first column on tables ───────── */
-@media (max-width: 1024px) {
-
-  table th:first-child,
-  table td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 5;
   }
 }
 
 /* ===========================================
-   MOBILE BREAKPOINT (< 768px)
+   MOBILE (< 768px)
    =========================================== */
 @media (max-width: 767px) {
 
-  /* ── Main content padding ──────────────── */
-  main {
-    padding: 0.5rem !important;
+  /* ── Reduce base font size globally ────── */
+  body {
+    font-size: 13px;
   }
 
-  /* ── Typography adjustments ────────────── */
+  /* ── Main content: minimal padding ─────── */
+  main {
+    padding: 0.375rem !important;
+  }
+
+  /* ── Typography: smaller everywhere ────── */
   h1 {
-    font-size: 1.125rem !important;
+    font-size: 0.95rem !important;
+    line-height: 1.3 !important;
   }
 
   h2 {
-    font-size: 0.975rem !important;
+    font-size: 0.85rem !important;
   }
 
   h3 {
-    font-size: 0.875rem !important;
+    font-size: 0.8rem !important;
   }
 
-  /* ── Cards & containers: reduce padding ── */
-  .bg-white.rounded-xl,
-  .bg-white.rounded-lg {
-    border-radius: 0.75rem;
+
+  /* ── Reduce .text-sm and .text-xs further ── */
+  .text-sm {
+    font-size: 0.7rem !important;
   }
 
-  /* ── Activity log sliding panel: full width ── */
+  .text-xs {
+    font-size: 0.6rem !important;
+  }
+
+  .text-base {
+    font-size: 0.8rem !important;
+  }
+
+  .text-lg {
+    font-size: 0.9rem !important;
+  }
+
+  .text-xl {
+    font-size: 0.95rem !important;
+  }
+
+  .text-2xl {
+    font-size: 1rem !important;
+  }
+
+  /* ── Activity log panel: full width ──────── */
   .w-\[420px\] {
     width: 100vw !important;
     max-width: 100vw !important;
   }
 
-  /* ── Planning table: allow horizontal scroll ── */
+  /* ── PLANNING & ACTIVITIES TABLES ────────
+     Remove min-width to show more columns.
+     Remove sticky first column (causes overlap bug).
+     ────────────────────────────────────────── */
   .min-w-\[1000px\] {
-    min-width: 800px;
+    min-width: 600px !important;
   }
 
-  /* ── Date picker width ─────────────────── */
-  input[type="date"] {
-    width: 7.5rem !important;
+  /* Kill sticky first column on mobile — it overlaps */
+  table th:first-child,
+  table td:first-child {
+    position: static !important;
+    z-index: auto !important;
   }
 
-  /* ── Settings/dropdown popovers ────────── */
-  .absolute.top-full {
-    right: 0 !important;
-    max-width: 90vw !important;
+  /* Reduce column min-widths */
+  table th.min-w-\[150px\],
+  table td.min-w-\[150px\] {
+    min-width: 80px !important;
   }
 
-  /* ── Activity tabs: scrollable chips ───── */
-  .border-b.border-slate-200.overflow-x-auto {
-    gap: 0.25rem !important;
-    padding-bottom: 0.5rem !important;
+  /* Tighter table cell padding */
+  table th,
+  table td {
+    padding: 4px !important;
+    font-size: 0.6rem !important;
   }
 
-  .border-b.border-slate-200.overflow-x-auto button {
-    padding: 0.375rem 0.75rem !important;
-    font-size: 0.7rem !important;
-    flex-shrink: 0;
+  /* First column (labels) narrower */
+  table th.w-28,
+  table td.w-28 {
+    width: 60px !important;
+    min-width: 60px !important;
   }
 
-  /* ── Dashboard: main 3-column grid stacks ── */
+  /* ── Dashboard: stat cards 2-col ────────── */
+  .grid.grid-cols-2.lg\:grid-cols-4 {
+    gap: 0.375rem !important;
+  }
+
+  /* ── Dashboard: main 3-col grid stacks ──── */
   .grid.grid-cols-1.lg\:grid-cols-3 {
     grid-template-columns: 1fr !important;
-    gap: 0.75rem !important;
-  }
-
-  /* ── Dashboard: left column max height ──── */
-  .lg\:col-span-1.max-h-\[600px\] {
-    max-height: 300px !important;
-  }
-
-  /* ── Stat cards grid: always 2 columns ──── */
-  .grid.grid-cols-2.lg\:grid-cols-4 {
-    grid-template-columns: repeat(2, 1fr) !important;
     gap: 0.5rem !important;
   }
 
-  /* ── Activity settings form: stack fields ── */
-  .flex.flex-wrap.gap-4.items-end {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 0.75rem !important;
+  /* ── Dashboard: limit alert panel height ── */
+  .lg\:col-span-1.max-h-\[250px\] {
+    max-height: 200px !important;
   }
 
-  .flex.flex-wrap.gap-4.items-end>div {
-    width: 100% !important;
-  }
-
-  .flex.flex-wrap.gap-4.items-end input,
-  .flex.flex-wrap.gap-4.items-end select {
-    width: 100% !important;
-  }
-
-  /* ── Activity definition grid: single column ── */
-  .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* ── Weekly assignment panel: less padding ── */
-  .bg-slate-50.p-6.rounded-xl {
-    padding: 1rem !important;
-  }
-
-  /* ── Equity table: horizontal scroll ──── */
-  .bg-white.rounded-lg.shadow.border.border-slate-200.p-4.mt-4 {
-    padding: 0.75rem !important;
-    overflow-x: auto !important;
-  }
-
-  .bg-white.rounded-lg.shadow.border.border-slate-200.p-4.mt-4 table {
-    min-width: 600px;
-  }
-
-  /* ── Month grid: tighter ──────────────── */
+  /* ── Dashboard Week view grid ──────────── */
   .grid.grid-cols-5 {
+    grid-template-columns: repeat(5, 1fr) !important;
     gap: 0.25rem !important;
   }
 
   .grid.grid-cols-5>div {
-    font-size: 0.65rem !important;
+    font-size: 0.6rem !important;
   }
 
-  /* ── Dashboard week view cards ─────────── */
-  .grid-cols-5 {
-    grid-template-columns: repeat(2, 1fr) !important;
+  /* ── Dashboard day view min-width ────────── */
+  .min-w-\[700px\] {
+    min-width: 0 !important;
   }
 
-  /* ── Conflict/alert sections: tighter ──── */
-  .p-4.border-b {
-    padding: 0.75rem !important;
+  /* ── Activity tabs: compact ────────────── */
+  .border-b.border-slate-200.overflow-x-auto button {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.6rem !important;
   }
 
-  .p-4.max-h-80 {
-    padding: 0.75rem !important;
-    max-height: 200px !important;
+  /* ── Activity settings form: stack ─────── */
+  form.flex.flex-col.sm\:flex-row {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
   }
 
-  /* ── Modal overlays: full-width on mobile ── */
-  .fixed.inset-0+div[class*="max-w-"],
-  .fixed.inset-0~div[class*="max-w-"],
+  /* ── Activity definition grid: 1 col ───── */
+  .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Equity table scroll ───────────────── */
+  .overflow-x-auto table {
+    min-width: 500px;
+  }
+
+  /* ── Modals ────────────────────────────── */
   div[class*="max-w-md"],
   div[class*="max-w-lg"],
-  div[class*="max-w-xl"],
-  div[class*="max-w-2xl"] {
+  div[class*="max-w-xl"] {
     max-width: 95vw !important;
-    margin: 0.5rem auto !important;
+    margin: 0.25rem auto !important;
   }
 
-  /* print:hidden elements stay hidden via Tailwind */
-}
+  /* ── Buttons: compact ──────────────────── */
+  button {
+    font-size: 0.65rem;
+  }
 
-/* ===========================================
-   SMALL PHONE (< 400px)  
-   =========================================== */
-@media (max-width: 400px) {
-  main {
+  /* ── Cards: less padding ───────────────── */
+  .p-4 {
+    padding: 0.5rem !important;
+  }
+
+  .p-6 {
+    padding: 0.75rem !important;
+  }
+
+  .p-3 {
     padding: 0.375rem !important;
   }
 
-  /* Single column stat cards on very small screens */
+  /* Be more specific about spacing adjustments */
+  .space-y-6>*+* {
+    margin-top: 0.5rem !important;
+  }
+
+  .space-y-4>*+* {
+    margin-top: 0.375rem !important;
+  }
+
+  .gap-6 {
+    gap: 0.5rem !important;
+  }
+
+  .gap-4 {
+    gap: 0.375rem !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 0.5rem !important;
+  }
+
+  .mb-4 {
+    margin-bottom: 0.375rem !important;
+  }
+
+  .mt-4 {
+    margin-top: 0.375rem !important;
+  }
+}
+
+/* ===========================================
+   VERY SMALL PHONE (< 380px)
+   =========================================== */
+@media (max-width: 380px) {
   .grid.grid-cols-2 {
     grid-template-columns: 1fr !important;
   }
 
+  .min-w-\[1000px\] {
+    min-width: 500px !important;
+  }
+
   h1 {
-    font-size: 1rem !important;
+    font-size: 0.85rem !important;
   }
 }
 
@@ -256,10 +288,10 @@ body {
    =========================================== */
 @media (min-width: 768px) and (max-width: 1024px) {
   main {
-    padding: 1rem !important;
+    padding: 0.75rem !important;
   }
 
   .min-w-\[1000px\] {
-    min-width: 900px;
+    min-width: 850px;
   }
 }
