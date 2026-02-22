@@ -1249,7 +1249,7 @@ const Activities: React.FC = () => {
             slot.isLocked ? (isAuto ? 'text-green-800' : 'text-blue-800') : 'text-slate-700';
 
         return (
-            <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative ${borderColor}`}>
+            <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative text-[9px] md:text-xs ${borderColor}`}>
                 {hasConflict && (
                     <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1 text-red-500 animate-pulse">
                         <AlertTriangle className="w-2.5 h-2.5 md:w-3 md:h-3" />
@@ -1270,13 +1270,14 @@ const Activities: React.FC = () => {
                 {/* Admin can change assignments, others just see the result */}
                 {isAdmin && !isCurrentWeekValidated ? (
                     <div className="relative w-full">
-                        <div className={`text-[9px] md:text-xs font-medium text-center leading-tight pointer-events-none ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                        <div className={`font-medium text-center leading-tight pointer-events-none ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal', fontSize: 'inherit' }}>
                             {doc ? doc.name : <span className="text-slate-400 italic">Choisir</span>}
                         </div>
                         <select
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             value={slot.isLocked ? slot.assignedDoctorId || "" : ""}
                             onChange={(e) => handleManualAssign(slot.id, e.target.value)}
+                            style={{ fontSize: '1px', minHeight: 0, height: '100%' }}
                         >
                             <option value="">Choisir</option>
                             {doctors.map(d => (
@@ -1286,7 +1287,7 @@ const Activities: React.FC = () => {
                     </div>
                 ) : (
                     /* Non-admin or validated week: show assignment as read-only */
-                    <div className={`text-[9px] md:text-xs font-medium text-center leading-tight ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                    <div className={`font-medium text-center leading-tight ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal', fontSize: 'inherit' }}>
                         {doc ? doc.name : <span className="text-slate-400 italic">Non assigné</span>}
                         {isCurrentWeekValidated && <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 inline ml-0.5 text-green-600" />}
                     </div>
