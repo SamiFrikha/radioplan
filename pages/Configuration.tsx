@@ -628,11 +628,11 @@ const Configuration: React.FC = () => {
         <div className="h-full flex flex-col space-y-4 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div className="mb-4 md:mb-0">
-                    <h1 className="text-2xl font-bold text-slate-800 flex items-center">
-                        <LayoutTemplate className="w-6 h-6 mr-3 text-purple-600" />
+                    <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center">
+                        <LayoutTemplate className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-purple-600" />
                         Règles & Postes
                     </h1>
-                    <p className="text-sm text-slate-500 mt-1 max-w-2xl">
+                    <p className="text-xs md:text-sm text-slate-500 mt-1 max-w-2xl hidden sm:block">
                         Définissez les postes fixes (Consultations) et les RCP hebdomadaires.
                     </p>
                 </div>
@@ -736,15 +736,17 @@ const Configuration: React.FC = () => {
                 <div className="flex gap-2">
                     <button
                         onClick={() => setActiveTab(SlotType.CONSULTATION)}
-                        className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === SlotType.CONSULTATION ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-full transition-colors ${activeTab === SlotType.CONSULTATION ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
                     >
-                        Consultations & Postes
+                        <span className="hidden md:inline">Consultations & Postes</span>
+                        <span className="md:hidden">Consult.</span>
                     </button>
                     <button
                         onClick={() => setActiveTab(SlotType.RCP)}
-                        className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === SlotType.RCP ? 'bg-purple-100 text-purple-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-full transition-colors ${activeTab === SlotType.RCP ? 'bg-purple-100 text-purple-700' : 'text-slate-600 hover:bg-slate-100'}`}
                     >
-                        RCP (Gestion)
+                        <span className="hidden md:inline">RCP (Gestion)</span>
+                        <span className="md:hidden">RCP</span>
                     </button>
                 </div>
 

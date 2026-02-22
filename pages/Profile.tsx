@@ -495,15 +495,15 @@ const Profile: React.FC = () => {
     const upcomingRcps = getUpcomingRcps();
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-20 p-4">
+        <div className="max-w-5xl mx-auto space-y-3 md:space-y-6 pb-20 p-1 md:p-4">
 
             {/* HEADER CARD */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
-                    <div className="flex items-center justify-between">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 md:p-8 text-white">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div className="flex items-center">
                             <div
-                                className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold shadow-lg mr-6 border-4 border-white/20"
+                                className="w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center text-lg md:text-2xl font-bold shadow-lg mr-3 md:mr-6 border-4 border-white/20"
                                 style={{ backgroundColor: currentDoctor.color || '#3B82F6' }}
                             >
                                 {currentDoctor.name.substring(0, 2)}
@@ -562,7 +562,7 @@ const Profile: React.FC = () => {
                                 ) : (
                                     <>
                                         <div className="flex items-center space-x-2">
-                                            <h1 className="text-2xl font-bold">{currentDoctor.name}</h1>
+                                            <h1 className="text-lg md:text-2xl font-bold">{currentDoctor.name}</h1>
                                             <button onClick={() => setIsEditingProfile(true)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded">
                                                 <Edit className="w-4 h-4" />
                                             </button>
@@ -578,7 +578,7 @@ const Profile: React.FC = () => {
                                 )}
                             </div>
                         </div>
-                        <div className="text-right text-sm text-blue-100">
+                        <div className="text-right text-xs md:text-sm text-blue-100">
                             <div>{profile.email}</div>
                             <div className="text-xs mt-1 opacity-75">{profile.role_name || profile.role}</div>
                         </div>
@@ -586,11 +586,11 @@ const Profile: React.FC = () => {
                 </div>
 
                 {/* RCP NOTIFICATIONS */}
-                <div className="bg-yellow-50 border-b border-yellow-100 p-6">
-                    <div className="flex items-center justify-between mb-4">
+                <div className="bg-yellow-50 border-b border-yellow-100 p-3 md:p-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3 md:mb-4">
                         <div className="flex items-center">
-                            <h3 className="text-lg font-bold text-yellow-800 flex items-center">
-                                <Bell className="w-5 h-5 mr-2" />
+                            <h3 className="text-sm md:text-lg font-bold text-yellow-800 flex items-center">
+                                <Bell className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
                                 Mes RCPs ({upcomingRcps.length})
                             </h3>
                             {notifications.count > 0 && (
@@ -749,16 +749,16 @@ const Profile: React.FC = () => {
             </div>
 
             {/* BOTTOM SECTION: ABSENCES & PREFERENCES */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
 
                 {/* ABSENCES */}
                 <div>
-                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                        <Calendar className="w-5 h-5 mr-2 text-blue-500" />
+                    <h2 className="text-sm md:text-lg font-bold text-slate-800 mb-3 md:mb-4 flex items-center">
+                        <Calendar className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 text-blue-500" />
                         Déclarer une absence
                     </h2>
 
-                    <form onSubmit={handleAddUnavailability} className="bg-white p-5 rounded-xl border border-slate-200 mb-6 space-y-4 shadow-sm">
+                    <form onSubmit={handleAddUnavailability} className="bg-white p-3 md:p-5 rounded-xl border border-slate-200 mb-4 md:mb-6 space-y-3 md:space-y-4 shadow-sm">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">Du</label>
@@ -881,8 +881,8 @@ const Profile: React.FC = () => {
                                 <div className="flex flex-wrap gap-1">
                                     {(currentDoctor as any).excludedHalfDays.map((excl: any, idx: number) => (
                                         <span key={idx} className={`px-2 py-1 text-xs rounded font-medium ${excl.period === Period.MORNING
-                                                ? 'bg-orange-100 text-orange-800'
-                                                : 'bg-blue-100 text-blue-800'
+                                            ? 'bg-orange-100 text-orange-800'
+                                            : 'bg-blue-100 text-blue-800'
                                             }`}>
                                             {excl.day.substring(0, 3)} {excl.period === Period.MORNING ? 'matin' : 'ap-m.'}
                                         </span>

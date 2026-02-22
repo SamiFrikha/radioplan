@@ -445,12 +445,12 @@ const Planning: React.FC = () => {
                     <>
                         <div className="flex items-center space-x-2">
                             <div
-                                className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white shadow-sm border border-black/5"
+                                className="w-4 h-4 md:w-5 md:h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[7px] md:text-[8px] font-bold text-white shadow-sm border border-black/5"
                                 style={{ backgroundColor: getDoctorHexColor(doc.color) }}
                             >
                                 {doc.name.substring(0, 2)}
                             </div>
-                            <div className="font-bold text-sm text-slate-800 leading-tight truncate">{doc.name}</div>
+                            <div className="font-bold text-[10px] md:text-sm text-slate-800 leading-tight break-words">{doc.name}</div>
                         </div>
 
                         {secondaryDocs && secondaryDocs.length > 0 && (
@@ -650,7 +650,7 @@ const Planning: React.FC = () => {
 
             <div className="flex-1 overflow-auto bg-white rounded-xl shadow border border-slate-200" ref={tableContainerRef}>
                 <div className="bg-white p-1 md:p-4 min-w-[600px] md:min-w-[1000px]">
-                    <table className="w-full border-collapse table-fixed">
+                    <table className="w-full border-collapse md:table-fixed">
                         <thead>
                             <tr>
                                 <th className="p-1 md:p-3 border-b border-r bg-slate-100 w-16 md:w-28 text-left text-[9px] md:text-xs font-bold text-slate-500 uppercase">
@@ -683,8 +683,7 @@ const Planning: React.FC = () => {
                                             <td rowSpan={2} className={`p-1 md:p-3 border-r border-b text-[9px] md:text-xs text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] font-bold
                                     ${postes.includes(loc) ? 'bg-slate-50 text-slate-700' : 'bg-orange-50 text-orange-800'}
                                 `}>
-                                                <span className="md:hidden">{loc.substring(0, 6)}</span>
-                                                <span className="hidden md:inline">{loc}</span>
+                                                <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
                                             </td>
                                             {days.map(day => (
                                                 <td key={`${day}-matin`} className={`border-r border-b border-slate-100 relative ${rowHeightClass} align-top p-0`}>
@@ -714,12 +713,12 @@ const Planning: React.FC = () => {
                                         <tr>
                                             <td rowSpan={2} className="p-1 md:p-3 border-r border-b bg-slate-50 text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
                                                 <div
-                                                    className="w-8 h-8 rounded-full mx-auto flex items-center justify-center text-xs font-bold text-white"
+                                                    className="w-6 h-6 md:w-8 md:h-8 rounded-full mx-auto flex items-center justify-center text-[8px] md:text-xs font-bold text-white"
                                                     style={{ backgroundColor: getDoctorHexColor(doc.color) }}
                                                 >
                                                     {doc.name.substring(0, 2)}
                                                 </div>
-                                                <div className="text-[10px] font-bold text-slate-700 mt-1 truncate max-w-[80px] mx-auto">{doc.name}</div>
+                                                <div className="text-[8px] md:text-[10px] font-bold text-slate-700 mt-0.5 md:mt-1 leading-tight break-words text-center">{doc.name}</div>
                                             </td>
                                             {days.map(day => (
                                                 <td key={`${day}-matin`} className="border-r border-b border-slate-100 relative h-20 align-top p-0">

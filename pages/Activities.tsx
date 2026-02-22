@@ -1207,9 +1207,9 @@ const Activities: React.FC = () => {
         const holiday = isFrenchHoliday(dateStr);
         if (holiday) {
             return (
-                <div className="h-full w-full bg-pink-50 flex items-center justify-center border border-pink-200 flex-col opacity-80 min-h-[60px]">
-                    <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Férié</span>
-                    <span className="text-[9px] text-pink-300 text-center px-1 leading-tight">{holiday.name}</span>
+                <div className="h-full w-full bg-pink-50 flex items-center justify-center border border-pink-200 flex-col opacity-80 min-h-[40px] md:min-h-[60px]">
+                    <span className="text-[8px] md:text-[10px] text-pink-400 font-bold uppercase tracking-wider">Férié</span>
+                    <span className="text-[7px] md:text-[9px] text-pink-300 text-center px-0.5 leading-tight">{holiday.name}</span>
                 </div>
             )
         }
@@ -1233,7 +1233,7 @@ const Activities: React.FC = () => {
         // In month view, simplify display
         if (viewMode === 'MONTH') {
             return (
-                <div className={`text-[10px] p-1 border rounded truncate min-h-[1.5rem] flex items-center ${hasConflict ? 'bg-red-50 border-red-300' : 'bg-slate-50'}`}>
+                <div className={`text-[8px] md:text-[10px] p-0.5 md:p-1 border rounded min-h-[1.25rem] md:min-h-[1.5rem] flex items-center break-words ${hasConflict ? 'bg-red-50 border-red-300' : 'bg-slate-50'}`}>
                     {doc ? (
                         <span className={`font-bold ${hasConflict ? 'text-red-700' : 'text-slate-700'}`}>{doc.name}</span>
                     ) : <span className="text-slate-300">--</span>}
@@ -1249,7 +1249,7 @@ const Activities: React.FC = () => {
             slot.isLocked ? (isAuto ? 'text-green-800' : 'text-blue-800') : 'text-slate-700';
 
         return (
-            <div className={`p-2 rounded border h-full flex flex-col justify-center min-h-[60px] relative ${borderColor}`}>
+            <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative ${borderColor}`}>
                 {hasConflict && (
                     <div className="absolute top-1 right-1 text-red-500 animate-pulse">
                         <AlertTriangle className="w-3 h-3" />
@@ -1270,7 +1270,7 @@ const Activities: React.FC = () => {
                 {/* Admin can change assignments, others just see the result */}
                 {isAdmin && !isCurrentWeekValidated ? (
                     <select
-                        className={`w-full text-xs bg-transparent outline-none font-medium cursor-pointer ${textColor}`}
+                        className={`w-full text-[10px] md:text-xs bg-transparent outline-none font-medium cursor-pointer ${textColor}`}
                         value={slot.isLocked ? slot.assignedDoctorId || "" : ""}
                         onChange={(e) => handleManualAssign(slot.id, e.target.value)}
                     >
@@ -1281,7 +1281,7 @@ const Activities: React.FC = () => {
                     </select>
                 ) : (
                     /* Non-admin or validated week: show assignment as read-only */
-                    <div className={`text-xs font-medium text-center ${textColor}`}>
+                    <div className={`text-[10px] md:text-xs font-medium text-center break-words ${textColor}`}>
                         {doc ? doc.name : <span className="text-slate-400 italic">Non assigné</span>}
                         {isCurrentWeekValidated && <Lock className="w-3 h-3 inline ml-1 text-green-600" />}
                     </div>
