@@ -255,8 +255,21 @@ const Profile: React.FC = () => {
         return [...standardRcps, ...manualRcps].sort((a, b) => (a?.date || '').localeCompare(b?.date || ''));
     };
 
+    // Derive lock status from existing rcpAttendance (no new state needed)
+    const getRcpLockInfo = (slotKey: string): { lockedByDoctorId: string | null } => {
+        const slotAttendance = rcpAttendance[slotKey] ?? {};
+        const lockedByDoctorId =
+            Object.entries(slotAttendance).find(([, status]) => status === 'PRESENT')?.[0] ?? null;
+        return { lockedByDoctorId };
+    };
+
     const handleAttendanceToggle = async (slotId: string, status: 'PRESENT' | 'ABSENT') => {
         if (!currentDoctor) return;
+        // Block PRÉSENT if slot is already locked by someone else
+        const { lockedByDoctorId } = getRcpLockInfo(slotId);
+        if (status === 'PRESENT' && lockedByDoctorId && lockedByDoctorId !== currentDoctor.id) {
+            return; // slot locked by someone else
+        }
         const currentMap = rcpAttendance[slotId] || {};
         const newMap = { ...currentMap, [currentDoctor.id]: status };
 
@@ -693,20 +706,51 @@ const Profile: React.FC = () => {
                                         </div>
                                         <div className="font-bold text-slate-800 text-sm mb-3">{item.template.location}</div>
 
-                                        <div className="flex items-center space-x-2">
-                                            <button
-                                                onClick={() => handleAttendanceToggle(item.generatedId, 'PRESENT')}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center transition-colors ${item.myStatus === 'PRESENT' ? 'bg-green-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-green-100'}`}
-                                            >
-                                                <CheckCircle2 className="w-3 h-3 mr-1" /> Présent
-                                            </button>
-                                            <button
-                                                onClick={() => handleAttendanceToggle(item.generatedId, 'ABSENT')}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center transition-colors ${item.myStatus === 'ABSENT' ? 'bg-red-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-red-100'}`}
-                                            >
-                                                <XCircle className="w-3 h-3 mr-1" /> Absent
-                                            </button>
-                                        </div>
+                                        {(() => {
+                                            const { lockedByDoctorId } = getRcpLockInfo(item.generatedId);
+                                            const currentDoctorId = currentDoctor?.id;
+                                            const isLockedByMe = lockedByDoctorId === currentDoctorId;
+                                            const isLockedBySomeoneElse = !!lockedByDoctorId && !isLockedByMe;
+                                            const lockedByDoctor = lockedByDoctorId ? doctors.find(d => d.id === lockedByDoctorId) : null;
+                                            return (
+                                                <>
+                                                    <div className="mb-2 flex flex-wrap gap-1">
+                                                        {isLockedBySomeoneElse && (
+                                                            <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                                <UserCheck size={12} />
+                                                                Confirmé — {lockedByDoctor?.name ?? 'Médecin'}
+                                                            </span>
+                                                        )}
+                                                        {isLockedByMe && (
+                                                            <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                                                <UserCheck size={12} />
+                                                                Vous avez confirmé
+                                                            </span>
+                                                        )}
+                                                        {!lockedByDoctorId && (
+                                                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                                                                En attente de confirmation
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={() => handleAttendanceToggle(item.generatedId, 'PRESENT')}
+                                                            disabled={isLockedBySomeoneElse}
+                                                            className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center transition-colors ${item.myStatus === 'PRESENT' ? 'bg-green-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-green-100'} ${isLockedBySomeoneElse ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                                        >
+                                                            <CheckCircle2 className="w-3 h-3 mr-1" /> Présent
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleAttendanceToggle(item.generatedId, 'ABSENT')}
+                                                            className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center transition-colors ${item.myStatus === 'ABSENT' ? 'bg-red-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-red-100'}`}
+                                                        >
+                                                            <XCircle className="w-3 h-3 mr-1" /> Absent
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
                                         {item.myStatus && (
                                             <div className="text-center mt-1">
                                                 <button onClick={() => handleClearDecision(item.generatedId)} className="text-[10px] text-slate-400 hover:text-slate-600 underline">
