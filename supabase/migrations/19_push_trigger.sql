@@ -9,6 +9,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 DROP POLICY IF EXISTS "Service role reads all subscriptions" ON public.push_subscriptions;
 
 -- Trigger function: fires send-push edge function after each notification insert
+-- send-push is deployed with verify_jwt=false so no Authorization header is needed
 CREATE OR REPLACE FUNCTION notify_push_on_notification()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -16,11 +17,8 @@ SECURITY DEFINER
 AS $$
 BEGIN
   PERFORM net.http_post(
-    url     := current_setting('app.supabase_url') || '/functions/v1/send-push',
-    headers := jsonb_build_object(
-      'Content-Type',  'application/json',
-      'Authorization', 'Bearer ' || current_setting('app.service_role_key')
-    ),
+    url     := 'https://sbkwkqqrersznlqpihkg.supabase.co/functions/v1/send-push',
+    headers := jsonb_build_object('Content-Type', 'application/json'),
     body    := jsonb_build_object(
       'user_id', NEW.user_id::text,
       'title',   NEW.title,
