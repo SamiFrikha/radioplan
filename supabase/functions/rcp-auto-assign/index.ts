@@ -1,15 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import webpush from 'https://esm.sh/web-push@3.6.7';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-);
-
-webpush.setVapidDetails(
-  Deno.env.get('VAPID_SUBJECT')!,
-  Deno.env.get('VAPID_PUBLIC_KEY')!,
-  Deno.env.get('VAPID_PRIVATE_KEY')!
 );
 
 const DAY_OFFSETS: Record<string, number> = {
@@ -145,21 +138,6 @@ Deno.serve(async (req) => {
         body: `Vous avez été sélectionné pour le RCP du ${dateStr} (${slot.sub_type ?? 'RCP'})`,
         data: { slotId, date: dateStr },
       });
-
-      // Push notification
-      const { data: pushSubs } = await supabase
-        .from('push_subscriptions')
-        .select('endpoint, p256dh, auth')
-        .eq('user_id', pickedProfile.id);
-
-      for (const sub of (pushSubs ?? [])) {
-        try {
-          await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-            JSON.stringify({ title: 'RadioPlan — RCP assigné', body: `RCP du ${dateStr}` })
-          );
-        } catch { /* expired subscription */ }
-      }
     }
 
     results.push({ slotId, assignedTo: pickedDoctorId });
