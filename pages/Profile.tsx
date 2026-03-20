@@ -14,6 +14,7 @@ import { SlotType, Doctor, Period, Specialty } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 const NOTIF_ICON: Record<string, string> = {
     RCP_AUTO_ASSIGNED: '🎲', RCP_SLOT_FILLED: '✅', RCP_REMINDER_24H: '⏰',
@@ -29,10 +30,12 @@ const NotificationSection: React.FC<{
     clearAll: () => Promise<void>;
     loading: boolean;
     currentDoctorName?: string;
-}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName }) => {
+    userId?: string;
+}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId }) => {
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [clearing, setClearing] = useState(false);
+    const { permission, isStandalone, subscribe, loading: pushLoading, error: pushError } = usePushNotifications(userId);
 
     const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
         const requestId = n.data?.requestId as string | undefined;
@@ -70,6 +73,45 @@ const NotificationSection: React.FC<{
 
     return (
         <div className="space-y-3">
+            {/* Push notification subscription */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-slate-600 min-w-0">
+                <span className="text-base flex-shrink-0">
+                  {permission === 'granted' ? '🔔' : '🔕'}
+                </span>
+                <span className="truncate">Notifications push</span>
+              </div>
+              <div className="flex-shrink-0">
+                {permission === 'not-standalone' && (
+                  <span className="text-xs text-amber-600 text-right block max-w-[160px]">
+                    Installez l'app sur votre écran d'accueil pour activer
+                  </span>
+                )}
+                {permission === 'unsupported' && (
+                  <span className="text-xs text-slate-400">Non supporté</span>
+                )}
+                {permission === 'default' && (
+                  <button
+                    onClick={subscribe}
+                    disabled={pushLoading}
+                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {pushLoading ? 'Activation...' : 'Activer'}
+                  </button>
+                )}
+                {permission === 'granted' && (
+                  <span className="text-xs text-green-600 font-medium">Activées ✓</span>
+                )}
+                {permission === 'denied' && (
+                  <span className="text-xs text-red-500 text-right block max-w-[160px]">
+                    Bloquées — vérifiez les paramètres du navigateur
+                  </span>
+                )}
+              </div>
+            </div>
+            {pushError && (
+              <p className="text-xs text-red-500">{pushError}</p>
+            )}
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
                     Mes notifications
@@ -788,6 +830,7 @@ const Profile: React.FC = () => {
                             clearAll={clearAll}
                             loading={notifLoading}
                             currentDoctorName={doctors.find(d => d.id === profile?.doctor_id)?.name}
+                            userId={profile?.id}
                         />
                     )}
 
