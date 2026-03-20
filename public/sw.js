@@ -1,5 +1,10 @@
 // public/sw.js — Service Worker for RadioPlan PWA
 
+// Take control immediately so navigator.serviceWorker.ready resolves without
+// waiting for old tabs to close (prevents push subscription hanging).
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
 // Push notification received (sent by send-push edge function)
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {};

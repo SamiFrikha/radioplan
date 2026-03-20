@@ -1,6 +1,8 @@
 // supabase/functions/send-push/index.ts
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import webpush from 'https://esm.sh/web-push@3.6.7';
+// npm: specifier uses Deno's native Node.js compatibility layer
+// (esm.sh transpilation breaks web-push's crypto internals in Deno)
+import webpush from 'npm:web-push@3.6.7';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
