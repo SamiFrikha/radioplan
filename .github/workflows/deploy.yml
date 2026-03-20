@@ -39,6 +39,8 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+        env:
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
       - name: Add .nojekyll file
         run: touch ./dist/.nojekyll
       - name: Setup Pages

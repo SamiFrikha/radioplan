@@ -20,10 +20,12 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(clients.openWindow('/radioplan/'));
 });
 
-// Fetch handler — cache-nothing strategy
-// Required for Chrome PWA installability. Cache-nothing ensures ESM importmap
-// modules (react, lucide-react, etc.) are always fetched fresh.
+// Fetch handler — required for Chrome PWA installability.
+// Only intercept same-origin requests; let CDN requests (tailwind, esm.sh, etc.)
+// pass through untouched so they don't break in standalone PWA mode.
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
   event.respondWith(fetch(event.request));
 });
 
