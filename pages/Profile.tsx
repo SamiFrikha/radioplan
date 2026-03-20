@@ -6,67 +6,141 @@ import {
     Calendar, Save, Trash2, UserCheck,
     Briefcase, Edit, Bell, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
-    Plus, Loader2, Tag, LayoutGrid
+    Plus, Loader2, Tag
 } from 'lucide-react';
-import PersonalAgendaWeek from '../components/PersonalAgendaWeek';
-import PersonalAgendaMonth from '../components/PersonalAgendaMonth';
+import { resolveReplacementRequest } from '../services/replacementService';
+import { createNotification } from '../services/notificationService';
 import { SlotType, Doctor, Period, Specialty } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
+
+const NOTIF_ICON: Record<string, string> = {
+    RCP_AUTO_ASSIGNED: '🎲', RCP_SLOT_FILLED: '✅', RCP_REMINDER_24H: '⏰',
+    RCP_REMINDER_12H: '⚠️', RCP_UNASSIGNED_ALERT: '🚨',
+    REPLACEMENT_REQUEST: '🔄', REPLACEMENT_ACCEPTED: '✅', REPLACEMENT_REJECTED: '❌',
+};
 
 const NotificationSection: React.FC<{
     notifications: any[];
     unreadCount: number;
     markRead: (id: string) => Promise<void>;
     markAllRead: () => Promise<void>;
+    clearAll: () => Promise<void>;
     loading: boolean;
-}> = ({ notifications, unreadCount, markRead, markAllRead, loading }) => {
+    currentDoctorName?: string;
+}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName }) => {
+    const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [clearing, setClearing] = useState(false);
+
+    const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
+        const requestId = n.data?.requestId as string | undefined;
+        if (!requestId) return;
+        setActionLoading(requestId);
+        try {
+            const resolved = await resolveReplacementRequest(requestId, status);
+            const { data: requesterProfile } = await supabase
+                .from('profiles').select('id').eq('doctor_id', resolved.requesterDoctorId).single();
+            if (requesterProfile) {
+                await createNotification({
+                    user_id: requesterProfile.id,
+                    type: status === 'ACCEPTED' ? 'REPLACEMENT_ACCEPTED' : 'REPLACEMENT_REJECTED',
+                    title: status === 'ACCEPTED' ? 'Remplacement accepté ✅' : 'Remplacement refusé ❌',
+                    body: `${currentDoctorName ? `Dr. ${currentDoctorName} a ` : ''}${status === 'ACCEPTED' ? 'accepté' : 'refusé'} votre demande de remplacement pour le ${resolved.slotDate} (${resolved.period}).`,
+                    data: { requestId, slotId: resolved.slotId },
+                    read: false,
+                });
+            }
+            // Persist resolution in notification's data so it survives page refresh
+            await supabase.from('notifications')
+                .update({ data: { requestId, resolution: status }, read: true })
+                .eq('id', n.id);
+            setResolvedMap(prev => ({ ...prev, [n.id]: status }));
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const REPLACEMENT_TYPES = ['REPLACEMENT_REQUEST', 'REPLACEMENT_ACCEPTED', 'REPLACEMENT_REJECTED'];
+    const filteredNotifications = notifications.filter((n: any) => REPLACEMENT_TYPES.includes(n.type));
+    const filteredUnreadCount = filteredNotifications.filter((n: any) => !n.read).length;
+
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
                     Mes notifications
-                    {unreadCount > 0 && (
-                        <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                            {unreadCount}
-                        </span>
+                    {filteredUnreadCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{filteredUnreadCount}</span>
                     )}
                 </h2>
-                {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">
-                        Tout marquer lu
-                    </button>
-                )}
+                <div className="flex items-center gap-3">
+                    {filteredUnreadCount > 0 && (
+                        <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">Tout marquer lu</button>
+                    )}
+                    {filteredNotifications.length > 0 && (
+                        <button
+                            onClick={async () => { setClearing(true); try { await clearAll(); } finally { setClearing(false); } }}
+                            disabled={clearing}
+                            className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1 disabled:opacity-50">
+                            <Trash2 className="w-3.5 h-3.5" /> Vider
+                        </button>
+                    )}
+                </div>
             </div>
 
             {loading && <p className="text-sm text-gray-400 py-6 text-center">Chargement...</p>}
-
-            {!loading && notifications.length === 0 && (
-                <p className="text-sm text-gray-400 py-6 text-center">Aucune notification</p>
+            {!loading && filteredNotifications.length === 0 && (
+                <p className="text-sm text-gray-400 py-6 text-center">Aucune notification de remplacement</p>
             )}
 
             <div className="space-y-2">
-                {notifications.map((n: any) => (
-                    <div key={n.id}
-                        onClick={() => markRead(n.id)}
-                        className={`rounded-xl p-3.5 border cursor-pointer transition-colors
-              ${n.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}`}
-                    >
-                        <div className="flex items-start gap-2">
-                            {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />}
-                            <div className="flex-1">
-                                <p className={`text-sm ${n.read ? 'text-gray-700' : 'font-semibold text-gray-800'}`}>
-                                    {n.title}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                    {new Date(n.created_at).toLocaleString('fr-FR')}
-                                </p>
+                {filteredNotifications.map((n: any) => {
+                    const icon = NOTIF_ICON[n.type] ?? '🔔';
+                    const requestId = n.data?.requestId as string | undefined;
+                    const resolution = resolvedMap[n.id];
+                    return (
+                        <div key={n.id}
+                            onClick={() => !requestId && markRead(n.id)}
+                            className={`rounded-xl p-3.5 border transition-colors
+                                ${n.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}
+                                ${!requestId ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                        >
+                            <div className="flex items-start gap-2">
+                                <span className="text-base mt-0.5 shrink-0">{icon}</span>
+                                {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />}
+                                <div className="flex-1">
+                                    <p className={`text-sm ${n.read ? 'text-gray-700' : 'font-semibold text-gray-800'}`}>{n.title}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>
+                                    <p className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString('fr-FR')}</p>
+                                    {n.type === 'REPLACEMENT_REQUEST' && requestId && (
+                                        (resolution || n.data?.resolution) ? (
+                                            <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${(resolution || n.data?.resolution) === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {(resolution || n.data?.resolution) === 'ACCEPTED' ? '✅ Vous avez accepté ce remplacement' : '❌ Vous avez refusé ce remplacement'}
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-2 mt-2">
+                                                <button onClick={(e) => { e.stopPropagation(); handleReplacement(n, 'ACCEPTED'); }}
+                                                    disabled={actionLoading === requestId}
+                                                    className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full hover:bg-green-200 disabled:opacity-50 font-medium">
+                                                    Accepter
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleReplacement(n, 'REJECTED'); }}
+                                                    disabled={actionLoading === requestId}
+                                                    className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-200 disabled:opacity-50 font-medium">
+                                                    Refuser
+                                                </button>
+                                            </div>
+                                        )
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
@@ -92,13 +166,11 @@ const Profile: React.FC = () => {
     } = useContext(AppContext);
 
     const { profile, loading: authLoading } = useAuth();
-    const { notifications, unreadCount, markRead, markAllRead, loading: notifLoading } = useNotifications();
+    const { notifications, unreadCount, markRead, markAllRead, clearAll, loading: notifLoading } = useNotifications();
     const navigate = useNavigate();
 
     // Tab state for bottom section
-    const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences' | 'planning'>('notifications');
-    const [agendaView, setAgendaView] = useState<'week' | 'month'>('week');
-    const [agendaWeekOffset, setAgendaWeekOffset] = useState(0);
+    const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences' | 'rcp'>('rcp');
 
     // Find the doctor linked to the current user
     const [currentDoctor, setCurrentDoctor] = useState<Doctor | null>(null);
@@ -671,6 +743,13 @@ const Profile: React.FC = () => {
                 {/* Tab Navigation */}
                 <div className="flex border-b border-slate-200">
                     <button
+                        onClick={() => setActiveTab('rcp')}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'rcp' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <CheckCircle2 className="w-4 h-4" />
+                        RCP
+                    </button>
+                    <button
                         onClick={() => setActiveTab('notifications')}
                         className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'notifications' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
@@ -696,13 +775,6 @@ const Profile: React.FC = () => {
                         <Briefcase className="w-4 h-4" />
                         Préférences
                     </button>
-                    <button
-                        onClick={() => setActiveTab('planning')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'planning' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <LayoutGrid className="w-4 h-4" />
-                        Mon Planning
-                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -713,7 +785,9 @@ const Profile: React.FC = () => {
                             unreadCount={unreadCount}
                             markRead={markRead}
                             markAllRead={markAllRead}
+                            clearAll={clearAll}
                             loading={notifLoading}
+                            currentDoctorName={doctors.find(d => d.id === profile?.doctor_id)?.name}
                         />
                     )}
 
@@ -834,35 +908,112 @@ const Profile: React.FC = () => {
             </div>
         )}
 
-                    {activeTab === 'planning' && (
+                    {activeTab === 'rcp' && (
                         <div>
+                            {/* Week navigation */}
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-bold text-slate-800 flex items-center">
-                                    <LayoutGrid className="w-5 h-5 mr-2 text-blue-500" />
-                                    Mon Planning
-                                </h2>
-                                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-                                    <button
-                                        onClick={() => setAgendaView('week')}
-                                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${agendaView === 'week' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-                                    >
-                                        Semaine
-                                    </button>
-                                    <button
-                                        onClick={() => setAgendaView('month')}
-                                        className={`px-3 py-1.5 text-sm font-medium transition-colors ${agendaView === 'month' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-                                    >
-                                        Mois
-                                    </button>
-                                </div>
+                                <button onClick={() => setNotifWeekOffset(notifWeekOffset - 1)} className="p-1 hover:bg-slate-100 rounded-lg">
+                                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                </button>
+                                <span className="text-sm font-semibold text-slate-700">{getNotificationWeekLabel()}</span>
+                                <button onClick={() => setNotifWeekOffset(notifWeekOffset + 1)} className="p-1 hover:bg-slate-100 rounded-lg">
+                                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                                </button>
                             </div>
-                            {agendaView === 'week' ? (
-                                <PersonalAgendaWeek
-                                    weekOffset={agendaWeekOffset}
-                                    onOffsetChange={setAgendaWeekOffset}
-                                />
+
+                            {upcomingRcps.length === 0 ? (
+                                <p className="text-center text-slate-400 py-8 text-sm italic">Aucun RCP cette semaine</p>
                             ) : (
-                                <PersonalAgendaMonth />
+                                <div className="space-y-3">
+                                    {upcomingRcps.map((rcp, idx) => {
+                                        const { lockedByDoctorId } = getRcpLockInfo(rcp.generatedId);
+                                        const lockedByOther = lockedByDoctorId && lockedByDoctorId !== currentDoctor!.id;
+                                        const lockedDoctor = lockedByOther ? doctors.find(d => d.id === lockedByDoctorId) : null;
+                                        return (
+                                            <div key={idx} className={`border rounded-xl p-4 ${rcp.isCancelled ? 'opacity-50 bg-slate-50' : 'bg-white border-slate-200'}`}>
+                                                {/* Header */}
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex-1">
+                                                        <p className="font-semibold text-slate-800 text-sm">{rcp.template.location || rcp.template.id}</p>
+                                                        <p className="text-xs text-slate-500 mt-0.5">
+                                                            {new Date(rcp.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                                                            {rcp.time !== 'N/A' && ` · ${rcp.time}`}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-1 justify-end shrink-0">
+                                                        {rcp.isCancelled && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">Annulé</span>}
+                                                        {rcp.isMoved && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Déplacé</span>}
+                                                        {rcp.holiday && <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Férié</span>}
+                                                    </div>
+                                                </div>
+
+                                                {!rcp.isCancelled && (
+                                                    <>
+                                                        {/* Lock: confirmed by colleague */}
+                                                        {lockedByOther && (
+                                                            <div className="mt-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+                                                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                                                Confirmé par {lockedDoctor?.name || 'un collègue'}
+                                                            </div>
+                                                        )}
+
+                                                        {/* My decision + action buttons */}
+                                                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                                            {rcp.myStatus === 'PRESENT' && (
+                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                                                    <CheckCircle2 className="w-3 h-3" /> Présent
+                                                                </span>
+                                                            )}
+                                                            {rcp.myStatus === 'ABSENT' && (
+                                                                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                                                                    <XCircle className="w-3 h-3" /> Absent
+                                                                </span>
+                                                            )}
+                                                            <div className="flex gap-2 ml-auto">
+                                                                {!lockedByOther && (
+                                                                    <button
+                                                                        onClick={() => handleAttendanceToggle(rcp.generatedId, 'PRESENT')}
+                                                                        disabled={rcp.myStatus === 'PRESENT'}
+                                                                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'PRESENT' ? 'bg-green-600 text-white cursor-default' : 'bg-slate-100 text-slate-700 hover:bg-green-50 hover:text-green-700'}`}
+                                                                    >
+                                                                        Présent
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleAttendanceToggle(rcp.generatedId, 'ABSENT')}
+                                                                    disabled={rcp.myStatus === 'ABSENT'}
+                                                                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'ABSENT' ? 'bg-red-500 text-white cursor-default' : 'bg-slate-100 text-slate-700 hover:bg-red-50 hover:text-red-600'}`}
+                                                                >
+                                                                    Absent
+                                                                </button>
+                                                                {rcp.myStatus && (
+                                                                    <button onClick={() => handleClearDecision(rcp.generatedId)}
+                                                                        className="text-xs px-2 py-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" title="Réinitialiser">
+                                                                        <RotateCcw className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Colleagues */}
+                                                        {rcp.colleaguesStatus.length > 0 && (
+                                                            <div className="mt-3 pt-3 border-t border-slate-100">
+                                                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1.5">Collègues</p>
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    {rcp.colleaguesStatus.map((col: any) => (
+                                                                        <span key={col.id} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${col.status === 'PRESENT' ? 'bg-green-100 text-green-700' : col.status === 'ABSENT' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                                            {col.name}{col.status === 'PRESENT' ? ' ✓' : col.status === 'ABSENT' ? ' ✗' : ' ?'}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </div>
                     )}

@@ -115,9 +115,8 @@ const Configuration: React.FC = () => {
 
     // RCP Auto-assignment Config State
     const [rcpAutoConfigs, setRcpAutoConfigs] = useState<RcpAutoConfig[]>([]);
-    const [autoConfigWeekDate, setAutoConfigWeekDate] = useState('');
-    const [autoConfigDeadlineDate, setAutoConfigDeadlineDate] = useState('');
-    const [autoConfigDeadlineTime, setAutoConfigDeadlineTime] = useState('14:00');
+    const [autoConfigDay, setAutoConfigDay] = useState('Vendredi');
+    const [autoConfigTime, setAutoConfigTime] = useState('14:00');
     const [savingAutoConfig, setSavingAutoConfig] = useState(false);
 
     const days = Object.values(DayOfWeek);
@@ -326,13 +325,36 @@ const Configuration: React.FC = () => {
     }
 
     const handleSaveAutoConfig = async () => {
-        if (!autoConfigWeekDate || !autoConfigDeadlineDate || !profile?.id) return;
+        if (!profile?.id) return;
         setSavingAutoConfig(true);
-        const deadlineAt = new Date(`${autoConfigDeadlineDate}T${autoConfigDeadlineTime}:00`).toISOString();
-        await upsertRcpAutoConfig(autoConfigWeekDate, deadlineAt, profile.id);
-        const updated = await getRcpAutoConfigs();
-        setRcpAutoConfigs(updated);
-        setSavingAutoConfig(false);
+        try {
+            const DAY_OFFSET: Record<string, number> = {
+                'Lundi': 0, 'Mardi': 1, 'Mercredi': 2, 'Jeudi': 3, 'Vendredi': 4,
+            };
+            const today = new Date();
+            const dow = today.getDay();
+            const diff = today.getDate() - dow + (dow === 0 ? -6 : 1);
+            const currentMonday = new Date(today);
+            currentMonday.setDate(diff);
+            currentMonday.setHours(0, 0, 0, 0);
+
+            const [h, m] = autoConfigTime.split(':').map(Number);
+            for (let w = 0; w < 8; w++) {
+                const monday = new Date(currentMonday);
+                monday.setDate(currentMonday.getDate() + w * 7);
+                const deadlineDay = new Date(monday);
+                deadlineDay.setDate(monday.getDate() + (DAY_OFFSET[autoConfigDay] ?? 4));
+                deadlineDay.setHours(h, m, 0, 0);
+                const weekStr = monday.toISOString().split('T')[0];
+                await upsertRcpAutoConfig(weekStr, deadlineDay.toISOString(), profile.id);
+            }
+            const updated = await getRcpAutoConfigs();
+            setRcpAutoConfigs(updated);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setSavingAutoConfig(false);
+        }
     };
 
     // --- RENDER HELPERS ---
@@ -1066,62 +1088,73 @@ const Configuration: React.FC = () => {
                 </div>
             )}
 
-            {/* Auto-assignment deadline config */}
+            {/* Auto-assignment global config */}
             {activeTab === SlotType.RCP && rcpViewMode === 'RULES' && (
-                <div className="border border-gray-200 rounded-xl p-4 space-y-4 mt-4">
-                    <h3 className="font-semibold text-gray-700">Attribution automatique des RCP</h3>
-                    <p className="text-sm text-gray-500">
-                        Si aucun médecin n'a confirmé sa présence avant cette date/heure,
-                        le système tire au sort un médecin disponible.
-                    </p>
-
-                    <div className="grid grid-cols-3 gap-3">
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1">Semaine (lundi de la semaine RCP)</label>
-                            <input type="date" value={autoConfigWeekDate}
-                                onChange={e => setAutoConfigWeekDate(e.target.value)}
-                                className="w-full border rounded px-2 py-1.5 text-sm" />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1">Date limite</label>
-                            <input type="date" value={autoConfigDeadlineDate}
-                                onChange={e => setAutoConfigDeadlineDate(e.target.value)}
-                                className="w-full border rounded px-2 py-1.5 text-sm" />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1">Heure limite</label>
-                            <input type="time" value={autoConfigDeadlineTime}
-                                onChange={e => setAutoConfigDeadlineTime(e.target.value)}
-                                className="w-full border rounded px-2 py-1.5 text-sm" />
-                        </div>
+                <div className="border border-blue-200 rounded-xl p-5 space-y-4 mt-4 bg-blue-50/30">
+                    <div>
+                        <h3 className="font-semibold text-gray-800">Attribution automatique des RCP</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Chaque semaine, si aucun médecin n'a confirmé avant l'heure limite,
+                            le système tire au sort automatiquement. Ce planning s'applique aux 8 prochaines semaines.
+                        </p>
                     </div>
 
-                    <button onClick={handleSaveAutoConfig} disabled={savingAutoConfig}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
-                        {savingAutoConfig ? 'Sauvegarde...' : 'Sauvegarder la deadline'}
-                    </button>
+                    <div className="flex items-end gap-3">
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1 font-medium">Jour du tirage</label>
+                            <select value={autoConfigDay} onChange={e => setAutoConfigDay(e.target.value)}
+                                className="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
+                                {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(d => (
+                                    <option key={d}>{d}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1 font-medium">Heure du tirage</label>
+                            <input type="time" value={autoConfigTime}
+                                onChange={e => setAutoConfigTime(e.target.value)}
+                                className="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                        </div>
+                        <button onClick={handleSaveAutoConfig} disabled={savingAutoConfig}
+                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium whitespace-nowrap">
+                            {savingAutoConfig ? 'Application...' : 'Appliquer aux 8 prochaines semaines'}
+                        </button>
+                    </div>
 
-                    <div className="space-y-2 mt-2">
-                        {rcpAutoConfigs.map(c => (
-                            <div key={c.id}
-                                className="flex items-center justify-between bg-gray-50 rounded-lg p-3 text-sm border border-gray-100">
-                                <div>
-                                    <span className="font-medium">Semaine du {c.weekStartDate}</span>
-                                    <span className="text-gray-500 ml-3">
-                                        Tirage: {new Date(c.deadlineAt).toLocaleString('fr-FR')}
-                                    </span>
+                    <div className="border-t border-blue-100 pt-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Planning configuré</span>
+                            <button
+                                onClick={async () => {
+                                    const upcoming = rcpAutoConfigs.find(c => !c.executedAt);
+                                    if (upcoming) await triggerAutoAssignNow(upcoming.weekStartDate);
+                                    const updated = await getRcpAutoConfigs();
+                                    setRcpAutoConfigs(updated);
+                                }}
+                                className="flex items-center gap-1.5 text-xs bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 font-medium">
+                                <RefreshCw size={12} /> Lancer maintenant
+                            </button>
+                        </div>
+                        <div className="space-y-1.5">
+                            {rcpAutoConfigs.length === 0 && (
+                                <p className="text-sm text-gray-400 italic">Aucune configuration. Cliquez sur "Appliquer aux 8 prochaines semaines".</p>
+                            )}
+                            {rcpAutoConfigs.map(c => (
+                                <div key={c.id}
+                                    className="flex items-center justify-between bg-white rounded-lg p-2.5 text-sm border border-gray-100">
+                                    <div>
+                                        <span className="font-medium text-gray-700">Semaine du {new Date(c.weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                        <span className="text-gray-400 ml-3 text-xs">
+                                            Tirage le {new Date(c.deadlineAt).toLocaleString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                    {c.executedAt
+                                        ? <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Exécuté</span>
+                                        : <span className="text-gray-400 text-xs bg-gray-100 px-2 py-0.5 rounded-full">En attente</span>
+                                    }
                                 </div>
-                                {c.executedAt
-                                    ? <span className="text-green-600 text-xs font-medium">✓ Exécuté</span>
-                                    : (
-                                        <button onClick={() => triggerAutoAssignNow(c.weekStartDate)}
-                                            className="text-xs text-orange-600 underline hover:text-orange-800">
-                                            Forcer maintenant
-                                        </button>
-                                    )
-                                }
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

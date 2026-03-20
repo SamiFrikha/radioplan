@@ -5,6 +5,7 @@ import {
   getNotifications,
   markAsRead,
   markAllAsRead,
+  deleteAllNotifications,
   subscribeToNotifications,
 } from '../services/notificationService';
 import { useAuth } from './AuthContext';
@@ -15,6 +16,7 @@ interface NotificationContextType {
   loading: boolean;
   markRead: (id: string) => Promise<void>;
   markAllRead: () => Promise<void>;
+  clearAll: () => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -24,6 +26,7 @@ const NotificationContext = createContext<NotificationContextType>({
   loading: false,
   markRead: async () => {},
   markAllRead: async () => {},
+  clearAll: async () => {},
   refresh: async () => {},
 });
 
@@ -64,10 +67,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
+  const clearAll = async () => {
+    if (!userId) return;
+    await deleteAllNotifications(userId);
+    setNotifications([]);
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, loading, markRead, markAllRead, refresh }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, loading, markRead, markAllRead, clearAll, refresh }}>
       {children}
     </NotificationContext.Provider>
   );

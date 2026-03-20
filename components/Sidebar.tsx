@@ -1,9 +1,8 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, UserCircle, Database, LogOut, Activity, Settings2, X, Users, Shield } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, UserCircle, Database, LogOut, Activity, Settings2, X, Users, Shield, LayoutGrid } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
-import { getDateForDayOfWeek } from '../services/scheduleService';
 import NotificationBell from './NotificationBell';
 
 interface SidebarProps {
@@ -12,75 +11,17 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { currentUser, setCurrentUser, template, rcpAttendance, rcpTypes } = useContext(AppContext);
+  const { currentUser, setCurrentUser } = useContext(AppContext);
   const { hasPermission, signOut, profile } = useAuth();
   const navigate = useNavigate();
-
-  // Calculate Notification Count for RCPs (current week + next week)
-  const notificationCount = useMemo(() => {
-    // Use profile.doctor_id for linked doctor
-    const doctorId = profile?.doctor_id;
-    if (!doctorId) return 0;
-
-    let pendingCount = 0;
-    const today = new Date();
-    const currentMonday = new Date(today);
-    const day = currentMonday.getDay();
-    const diff = currentMonday.getDate() - day + (day === 0 ? -6 : 1);
-    currentMonday.setDate(diff);
-    currentMonday.setHours(0, 0, 0, 0);
-
-    // Check BOTH current week AND next week
-    for (const weekOffset of [0, 1]) {
-      const targetMonday = new Date(currentMonday);
-      targetMonday.setDate(targetMonday.getDate() + (weekOffset * 7));
-      const targetWeekEnd = new Date(targetMonday);
-      targetWeekEnd.setDate(targetWeekEnd.getDate() + 6);
-      const startStr = targetMonday.toISOString().split('T')[0];
-      const endStr = targetWeekEnd.toISOString().split('T')[0];
-
-      template.forEach(t => {
-        if (t.type === 'RCP') {
-          const isInvolved =
-            (t.doctorIds && t.doctorIds.includes(doctorId)) ||
-            (t.defaultDoctorId === doctorId) ||
-            (t.secondaryDoctorIds && t.secondaryDoctorIds.includes(doctorId)) ||
-            (t.backupDoctorId === doctorId);
-
-          if (isInvolved) {
-            const slotDate = getDateForDayOfWeek(targetMonday, t.day);
-            const generatedId = `${t.id}-${slotDate}`;
-            const myDecision = rcpAttendance[generatedId]?.[doctorId];
-            if (!myDecision) pendingCount++;
-          }
-        }
-      });
-
-      rcpTypes.forEach(rcp => {
-        if (rcp.frequency === 'MANUAL' && rcp.manualInstances) {
-          rcp.manualInstances.forEach(inst => {
-            if (inst.date >= startStr && inst.date <= endStr) {
-              const isInvolved = inst.doctorIds.includes(doctorId) || inst.backupDoctorId === doctorId;
-              if (isInvolved) {
-                const generatedId = `manual-rcp-${rcp.id}-${inst.id}`;
-                const myDecision = rcpAttendance[generatedId]?.[doctorId];
-                if (!myDecision) pendingCount++;
-              }
-            }
-          });
-        }
-      });
-    }
-
-    return pendingCount;
-  }, [profile?.doctor_id, template, rcpAttendance, rcpTypes]);
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Tableau de bord', show: true },
     { to: '/planning', icon: CalendarDays, label: 'Planning Global', show: hasPermission('view_planning') },
+    { to: '/mon-planning', icon: LayoutGrid, label: 'Mon Planning', show: true },
     { to: '/activities', icon: Activity, label: 'Activités', show: true },
     { to: '/configuration', icon: Settings2, label: 'Règles & Postes', show: hasPermission('manage_settings') },
-    { to: '/profile', icon: UserCircle, label: 'Mon Profil', badge: notificationCount, show: true },
+    { to: '/profile', icon: UserCircle, label: 'Mon Profil', show: true },
   ];
 
   const adminItems = [
@@ -133,11 +74,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             >
               <item.icon className="w-5 h-5 mr-3" />
               <span className="font-medium">{item.label}</span>
-              {item.badge && item.badge > 0 && (
-                <span className="absolute right-3 top-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
             </NavLink>
           ))}
 

@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Dashboard from './pages/Dashboard';
 import Planning from './pages/Planning';
 import Profile from './pages/Profile';
+import MonPlanning from './pages/MonPlanning';
 import Configuration from './pages/Configuration';
 import DataAdministration from './pages/DataAdministration';
 import Activities from './pages/Activities';
@@ -41,6 +42,31 @@ const RequirePermission = ({ permission, children }: { permission: string, child
 };
 
 export const AppContext = React.createContext<AppContextType>({} as AppContextType);
+
+// Defined OUTSIDE App to prevent remounting on every App re-render
+const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { session } = useAuth();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    if (!session) return <>{children}</>;
+
+    return (
+        <div className="flex h-screen overflow-hidden print:overflow-visible print:h-auto print:block">
+            <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 text-white flex items-center justify-between px-4 z-50 shadow-md">
+                <span className="font-bold tracking-wider text-blue-400">RadioPlan AI</span>
+                <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded hover:bg-slate-800">
+                    <Menu className="w-6 h-6" />
+                </button>
+            </div>
+            <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+            <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible print:h-auto print:block pt-14 md:pt-0 transition-all duration-300">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 md:p-6 print:overflow-visible print:h-auto print:bg-white print:p-0">
+                    {children}
+                </main>
+            </div>
+        </div>
+    );
+};
 
 const App: React.FC = () => {
     const [currentReferenceDate] = useState<Date>(new Date());
@@ -613,33 +639,6 @@ const App: React.FC = () => {
         return <div className="flex items-center justify-center h-screen">Chargement des données...</div>;
     }
 
-    const AppLayout = ({ children }: { children: React.ReactNode }) => {
-        const { session } = useAuth();
-        const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-        if (!session) return <>{children}</>;
-
-        return (
-            <div className="flex h-screen overflow-hidden print:overflow-visible print:h-auto print:block">
-                {/* MOBILE HEADER */}
-                <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 text-white flex items-center justify-between px-4 z-50 shadow-md">
-                    <span className="font-bold tracking-wider text-blue-400">RadioPlan AI</span>
-                    <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded hover:bg-slate-800">
-                        <Menu className="w-6 h-6" />
-                    </button>
-                </div>
-
-                <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-
-                <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible print:h-auto print:block pt-14 md:pt-0 transition-all duration-300">
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 md:p-6 print:overflow-visible print:h-auto print:bg-white print:p-0">
-                        {children}
-                    </main>
-                </div>
-            </div>
-        );
-    };
-
     return (
         <AppContext.Provider value={{
             doctors, addDoctor, updateDoctor, removeDoctor, currentUser, schedule, template, unavailabilities,
@@ -671,6 +670,7 @@ const App: React.FC = () => {
                     <Route path="/configuration" element={<ProtectedRoute><AppLayout><Configuration /></AppLayout></ProtectedRoute>} />
                     <Route path="/data" element={<ProtectedRoute><AppLayout><DataAdministration /></AppLayout></ProtectedRoute>} />
                     <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
+                    <Route path="/mon-planning" element={<ProtectedRoute><AppLayout><MonPlanning /></AppLayout></ProtectedRoute>} />
 
                     {/* Admin Routes */}
                     <Route path="/admin/roles" element={

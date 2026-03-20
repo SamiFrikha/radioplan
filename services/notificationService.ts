@@ -37,6 +37,11 @@ export const createNotification = async (
   if (error) throw error;
 };
 
+export const deleteAllNotifications = async (userId: string): Promise<void> => {
+  const { error } = await supabase.from('notifications').delete().eq('user_id', userId);
+  if (error) throw error;
+};
+
 export const subscribeToNotifications = (
   userId: string,
   onNew: (n: AppNotification) => void
