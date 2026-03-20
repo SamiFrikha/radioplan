@@ -12,6 +12,7 @@ import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, A
 import { detectConflicts, generateScheduleForWeek, computeHistoryFromDate, getDateForDayOfWeek } from './services/scheduleService';
 import { Menu } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Login from './pages/Login';
 import RoleManagement from './pages/admin/RoleManagement';
 import TeamManagement from './pages/admin/TeamManagement';
@@ -659,6 +660,7 @@ const App: React.FC = () => {
             configRcpViewMode, setConfigRcpViewMode,
             configRcpFullscreen, setConfigRcpFullscreen
         }}>
+            <NotificationProvider>
             <Router>
                 <Routes>
                     <Route path="/login" element={<Login />} />
@@ -693,6 +695,7 @@ const App: React.FC = () => {
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
             </Router>
+            </NotificationProvider>
         </AppContext.Provider>
     );
 };
