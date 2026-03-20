@@ -9,7 +9,7 @@ if (!rootElement) {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(console.error);
+  navigator.serviceWorker.register('/radioplan/sw.js').catch(console.error);
 }
 
 const root = ReactDOM.createRoot(rootElement);
