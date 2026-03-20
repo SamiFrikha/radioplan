@@ -203,6 +203,50 @@ export interface GlobalBackupData {
   }
 }
 
+// --- NOTIFICATION SYSTEM ---
+
+export type NotificationType =
+  | 'RCP_REMINDER_24H'
+  | 'RCP_REMINDER_12H'
+  | 'RCP_AUTO_ASSIGNED'
+  | 'RCP_SLOT_FILLED'
+  | 'RCP_UNASSIGNED_ALERT'
+  | 'REPLACEMENT_REQUEST'
+  | 'REPLACEMENT_ACCEPTED'
+  | 'REPLACEMENT_REJECTED';
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  read: boolean;
+  created_at: string;
+}
+
+export interface ReplacementRequest {
+  id: string;
+  requesterDoctorId: string;
+  targetDoctorId: string;
+  slotDate: string;         // YYYY-MM-DD
+  period: Period;
+  activityName: string;
+  slotId: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  created_at: string;
+  resolved_at?: string;
+}
+
+export interface RcpAutoConfig {
+  id: string;
+  weekStartDate: string;   // YYYY-MM-DD
+  deadlineAt: string;      // ISO datetime
+  executedAt?: string;
+  createdAt: string;
+}
+
 export interface AppContextType {
   doctors: Doctor[];
   addDoctor: (d: Doctor) => void;
