@@ -11,6 +11,64 @@ import {
 import { SlotType, Doctor, Period, Specialty } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
+import { useNotifications } from '../context/NotificationContext';
+
+const NotificationSection: React.FC<{
+    notifications: any[];
+    unreadCount: number;
+    markRead: (id: string) => Promise<void>;
+    markAllRead: () => Promise<void>;
+    loading: boolean;
+}> = ({ notifications, unreadCount, markRead, markAllRead, loading }) => {
+    return (
+        <div className="space-y-3">
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                    Mes notifications
+                    {unreadCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                            {unreadCount}
+                        </span>
+                    )}
+                </h2>
+                {unreadCount > 0 && (
+                    <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">
+                        Tout marquer lu
+                    </button>
+                )}
+            </div>
+
+            {loading && <p className="text-sm text-gray-400 py-6 text-center">Chargement...</p>}
+
+            {!loading && notifications.length === 0 && (
+                <p className="text-sm text-gray-400 py-6 text-center">Aucune notification</p>
+            )}
+
+            <div className="space-y-2">
+                {notifications.map((n: any) => (
+                    <div key={n.id}
+                        onClick={() => markRead(n.id)}
+                        className={`rounded-xl p-3.5 border cursor-pointer transition-colors
+              ${n.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}`}
+                    >
+                        <div className="flex items-start gap-2">
+                            {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />}
+                            <div className="flex-1">
+                                <p className={`text-sm ${n.read ? 'text-gray-700' : 'font-semibold text-gray-800'}`}>
+                                    {n.title}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {new Date(n.created_at).toLocaleString('fr-FR')}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const Profile: React.FC = () => {
     const {
@@ -32,7 +90,11 @@ const Profile: React.FC = () => {
     } = useContext(AppContext);
 
     const { profile, loading: authLoading } = useAuth();
+    const { notifications, unreadCount, markRead, markAllRead, loading: notifLoading } = useNotifications();
     const navigate = useNavigate();
+
+    // Tab state for bottom section
+    const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences'>('notifications');
 
     // Find the doctor linked to the current user
     const [currentDoctor, setCurrentDoctor] = useState<Doctor | null>(null);
@@ -454,7 +516,7 @@ const Profile: React.FC = () => {
         };
     };
 
-    const notifications = getUnconfirmedRcpNotifications();
+    const rcpNotifications = getUnconfirmedRcpNotifications();
 
     // Loading state
     if (authLoading || loadingDoctor) {
@@ -598,202 +660,54 @@ const Profile: React.FC = () => {
                     </div>
                 </div>
 
-                {/* RCP NOTIFICATIONS */}
-                <div className="bg-yellow-50 border-b border-yellow-100 p-3 md:p-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3 md:mb-4">
-                        <div className="flex items-center">
-                            <h3 className="text-sm md:text-lg font-bold text-yellow-800 flex items-center">
-                                <Bell className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2" />
-                                Mes RCPs ({upcomingRcps.length})
-                            </h3>
-                            {notifications.count > 0 && (
-                                <div className="ml-3 flex items-center bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-bold animate-pulse">
-                                    <span className="mr-1">🔔</span>
-                                    {notifications.count} à confirmer
-                                    {notifications.thisWeek > 0 && notifications.nextWeek > 0 && (
-                                        <span className="ml-1 opacity-75">
-                                            ({notifications.thisWeek} cette sem. + {notifications.nextWeek} proch.)
-                                        </span>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                        <div className="flex items-center space-x-2 bg-white rounded-lg p-1 border border-yellow-200 shadow-sm">
-                            <button onClick={() => setNotifWeekOffset(Math.max(0, notifWeekOffset - 1))} className="p-1 hover:bg-slate-100 rounded">
-                                <ChevronLeft className="w-4 h-4 text-slate-600" />
-                            </button>
-                            <span className="text-sm font-bold text-slate-700 min-w-[140px] text-center select-none">
-                                {getNotificationWeekLabel()}
-                            </span>
-                            <button onClick={() => setNotifWeekOffset(notifWeekOffset + 1)} className="p-1 hover:bg-slate-100 rounded">
-                                <ChevronRight className="w-4 h-4 text-slate-600" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {upcomingRcps.length === 0 ? (
-                        <div className="text-sm text-slate-500 italic bg-white p-4 rounded border border-slate-200 text-center">
-                            Aucune RCP prévue pour cette période.
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {upcomingRcps.map((item: any) => {
-                                const isBackup = item.template.backupDoctorId === currentDoctor.id;
-
-                                // Calculate the actual day name from the display date (not template day)
-                                const displayDateObj = new Date(item.date + 'T00:00:00');
-                                const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-                                const actualDayName = dayNames[displayDateObj.getDay()];
-
-                                // For normal RCPs, use template.day; for moved RCPs, use calculated day
-                                const displayDay = item.isMoved ? actualDayName : (item.isManual ? '' : item.template.day);
-
-                                if (item.isCancelled) {
-                                    return (
-                                        <div key={item.generatedId} className="border rounded-lg p-3 bg-gray-100 border-gray-200 opacity-70 relative">
-                                            <div className="text-xs font-bold text-gray-500 uppercase line-through">
-                                                {displayDay} {item.date.split('-').slice(1).reverse().join('/')}
-                                            </div>
-                                            <div className="font-bold text-gray-600 text-sm mb-2 line-through">{item.template.location}</div>
-                                            <div className="absolute top-2 right-2 text-[10px] bg-red-100 text-red-600 font-bold px-1.5 py-0.5 rounded">ANNULÉ</div>
-                                        </div>
-                                    );
-                                }
-
-                                return (
-                                    <div key={item.generatedId} className={`border rounded-lg p-3 transition-all relative ${item.isMoved ? 'ring-2 ring-orange-300' : ''} ${item.myStatus === 'PRESENT' ? 'bg-green-50 border-green-200' : item.myStatus === 'ABSENT' ? 'bg-red-50 border-red-200 opacity-80' : 'bg-white border-slate-200 shadow-sm'}`}>
-                                        {/* Notification pastille - shows for current and next week when no choice made */}
-                                        {!item.myStatus && (notifWeekOffset === 0 || notifWeekOffset === 1) && (
-                                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse flex items-center justify-center shadow-lg" title={notifWeekOffset === 0 ? "Confirmation requise cette semaine" : "Confirmation requise pour semaine prochaine"}>
-                                                <span className="text-[8px] text-white font-bold">!</span>
-                                            </div>
-                                        )}
-
-                                        {/* Badge for exceptionally moved RCP */}
-                                        {item.isMoved && (
-                                            <div className="absolute top-2 right-2 text-[9px] bg-orange-100 text-orange-700 font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 animate-pulse">
-                                                <span>⚡</span> DÉPLACÉ
-                                            </div>
-                                        )}
-
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div className="text-xs font-bold text-slate-500 uppercase">
-                                                {displayDay} {item.date.split('-').slice(1).reverse().join('/')}
-                                                {/* Show original date if moved */}
-                                                {item.isMoved && item.originalDate && (
-                                                    <div className="text-[9px] text-orange-600 font-normal normal-case mt-0.5">
-                                                        (initialement le {item.originalDate.split('-').slice(1).reverse().join('/')})
-                                                    </div>
-                                                )}
-                                                <div className="flex items-center text-[10px] text-slate-400 mt-0.5">
-                                                    <Clock className="w-3 h-3 mr-1" /> {item.time}
-                                                    {item.isTimeChanged && (
-                                                        <span className="ml-1 text-orange-600 font-medium">(modifié)</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                {isBackup && (
-                                                    <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">Backup</span>
-                                                )}
-                                                {item.myStatus === 'PRESENT' && (
-                                                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">✓</span>
-                                                )}
-                                                {item.myStatus === 'ABSENT' && (
-                                                    <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">✗</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="font-bold text-slate-800 text-sm mb-3">{item.template.location}</div>
-
-                                        {(() => {
-                                            const { lockedByDoctorId } = getRcpLockInfo(item.generatedId);
-                                            const currentDoctorId = currentDoctor?.id;
-                                            const isLockedByMe = lockedByDoctorId === currentDoctorId;
-                                            const isLockedBySomeoneElse = !!lockedByDoctorId && !isLockedByMe;
-                                            const lockedByDoctor = lockedByDoctorId ? doctors.find(d => d.id === lockedByDoctorId) : null;
-                                            return (
-                                                <>
-                                                    <div className="mb-2 flex flex-wrap gap-1">
-                                                        {isLockedBySomeoneElse && (
-                                                            <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                                                <UserCheck size={12} />
-                                                                Confirmé — {lockedByDoctor?.name ?? 'Médecin'}
-                                                            </span>
-                                                        )}
-                                                        {isLockedByMe && (
-                                                            <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                                                <UserCheck size={12} />
-                                                                Vous avez confirmé
-                                                            </span>
-                                                        )}
-                                                        {!lockedByDoctorId && (
-                                                            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
-                                                                En attente de confirmation
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <button
-                                                            onClick={() => handleAttendanceToggle(item.generatedId, 'PRESENT')}
-                                                            disabled={isLockedBySomeoneElse}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center transition-colors ${item.myStatus === 'PRESENT' ? 'bg-green-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-green-100'} ${isLockedBySomeoneElse ? 'opacity-40 cursor-not-allowed' : ''}`}
-                                                        >
-                                                            <CheckCircle2 className="w-3 h-3 mr-1" /> Présent
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleAttendanceToggle(item.generatedId, 'ABSENT')}
-                                                            className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center transition-colors ${item.myStatus === 'ABSENT' ? 'bg-red-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-red-100'}`}
-                                                        >
-                                                            <XCircle className="w-3 h-3 mr-1" /> Absent
-                                                        </button>
-                                                    </div>
-                                                </>
-                                            );
-                                        })()}
-                                        {item.myStatus && (
-                                            <div className="text-center mt-1">
-                                                <button onClick={() => handleClearDecision(item.generatedId)} className="text-[10px] text-slate-400 hover:text-slate-600 underline">
-                                                    Annuler mon choix
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* Colleagues attendance status */}
-                                        {item.colleaguesStatus && item.colleaguesStatus.length > 0 && (
-                                            <div className="mt-3 pt-2 border-t border-slate-100">
-                                                <div className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">Autres participants</div>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {item.colleaguesStatus.map((colleague: any) => (
-                                                        <span
-                                                            key={colleague.id || colleague.name}
-                                                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${colleague.status === 'PRESENT'
-                                                                ? 'bg-green-100 text-green-700'
-                                                                : colleague.status === 'ABSENT'
-                                                                    ? 'bg-red-100 text-red-700'
-                                                                    : 'bg-slate-100 text-slate-500'
-                                                                }`}
-                                                            title={colleague.status === 'PRESENT' ? 'Présent' : colleague.status === 'ABSENT' ? 'Absent' : 'Pas encore répondu'}
-                                                        >
-                                                            {colleague.status === 'PRESENT' && '✓ '}
-                                                            {colleague.status === 'ABSENT' && '✗ '}
-                                                            {!colleague.status && '? '}
-                                                            {colleague.name}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
             </div>
 
-            {/* BOTTOM SECTION: ABSENCES & PREFERENCES */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+            {/* BOTTOM SECTION: TABS */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                {/* Tab Navigation */}
+                <div className="flex border-b border-slate-200">
+                    <button
+                        onClick={() => setActiveTab('notifications')}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'notifications' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Bell className="w-4 h-4" />
+                        Notifications
+                        {unreadCount > 0 && (
+                            <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
+                                {unreadCount}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('absences')}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'absences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Calendar className="w-4 h-4" />
+                        Absences
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('preferences')}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'preferences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Briefcase className="w-4 h-4" />
+                        Préférences
+                    </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="p-4 md:p-6">
+                    {activeTab === 'notifications' && (
+                        <NotificationSection
+                            notifications={notifications}
+                            unreadCount={unreadCount}
+                            markRead={markRead}
+                            markAllRead={markAllRead}
+                            loading={notifLoading}
+                        />
+                    )}
+
+                    {activeTab === 'absences' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
 
                 {/* ABSENCES */}
                 <div>
@@ -906,93 +820,87 @@ const Profile: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Preferences & Exclusions - Read Only Display */}
-                <div>
-                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                        <Briefcase className="w-5 h-5 mr-2 text-purple-500" />
-                        Mes Préférences & Exclusions
-                    </h2>
+            </div>
+        )}
 
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                        {/* Demi-journées non travaillées (récurrentes) */}
+                    {activeTab === 'preferences' && (
                         <div>
-                            <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
-                                <Calendar className="w-4 h-4 mr-2 text-red-500" />
-                                Demi-journées non travaillées (récurrentes)
-                            </h3>
-                            {/* Show excludedHalfDays if present, otherwise fallback to excludedDays */}
-                            {(currentDoctor as any).excludedHalfDays && (currentDoctor as any).excludedHalfDays.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                    {(currentDoctor as any).excludedHalfDays.map((excl: any, idx: number) => (
-                                        <span key={idx} className={`px-2 py-1 text-xs rounded font-medium ${excl.period === Period.MORNING
-                                            ? 'bg-orange-100 text-orange-800'
-                                            : 'bg-blue-100 text-blue-800'
-                                            }`}>
-                                            {excl.day.substring(0, 3)} {excl.period === Period.MORNING ? 'matin' : 'ap-m.'}
-                                        </span>
-                                    ))}
+                            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                                <Briefcase className="w-5 h-5 mr-2 text-purple-500" />
+                                Mes Préférences & Exclusions
+                            </h2>
+                            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                                {/* Demi-journées non travaillées (récurrentes) */}
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
+                                        <Calendar className="w-4 h-4 mr-2 text-red-500" />
+                                        Demi-journées non travaillées (récurrentes)
+                                    </h3>
+                                    {(currentDoctor as any).excludedHalfDays && (currentDoctor as any).excludedHalfDays.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {(currentDoctor as any).excludedHalfDays.map((excl: any, idx: number) => (
+                                                <span key={idx} className={`px-2 py-1 text-xs rounded font-medium ${excl.period === Period.MORNING ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>
+                                                    {excl.day.substring(0, 3)} {excl.period === Period.MORNING ? 'matin' : 'ap-m.'}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : currentDoctor.excludedDays && currentDoctor.excludedDays.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {currentDoctor.excludedDays.map(day => (
+                                                <span key={day} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 font-medium">
+                                                    {day} (journée entière)
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-400 italic">Aucune demi-journée exclue</p>
+                                    )}
                                 </div>
-                            ) : currentDoctor.excludedDays && currentDoctor.excludedDays.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                    {currentDoctor.excludedDays.map(day => (
-                                        <span key={day} className="px-2 py-1 text-xs rounded bg-red-100 text-red-800 font-medium">
-                                            {day} (journée entière)
-                                        </span>
-                                    ))}
+                                {/* Activités exclues */}
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
+                                        <AlertTriangle className="w-4 h-4 mr-2 text-slate-500" />
+                                        Activités exclues
+                                    </h3>
+                                    {currentDoctor.excludedActivities && currentDoctor.excludedActivities.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {currentDoctor.excludedActivities.map(actId => {
+                                                const activity = activityDefinitions.find(a => a.id === actId);
+                                                return (
+                                                    <span key={actId} className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-600 font-medium line-through">
+                                                        {activity?.name || actId}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-400 italic">Aucune activité exclue</p>
+                                    )}
                                 </div>
-                            ) : (
-                                <p className="text-sm text-slate-400 italic">Aucune demi-journée exclue</p>
-                            )}
+                                {/* Types de créneaux exclus */}
+                                <div>
+                                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
+                                        <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" />
+                                        Types de créneaux exclus
+                                    </h3>
+                                    {currentDoctor.excludedSlotTypes && currentDoctor.excludedSlotTypes.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {currentDoctor.excludedSlotTypes.map(type => (
+                                                <span key={type} className="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800 font-medium">
+                                                    {type === SlotType.CONSULTATION ? 'Consultation' : type === SlotType.RCP ? 'RCP' : type === SlotType.ACTIVITY ? 'Activité' : type}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-slate-400 italic">Aucun type exclu</p>
+                                    )}
+                                </div>
+                                <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">
+                                    Ces paramètres sont gérés par l'administrateur. Contactez votre responsable pour toute modification.
+                                </p>
+                            </div>
                         </div>
-
-
-                        {/* Activités exclues */}
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
-                                <AlertTriangle className="w-4 h-4 mr-2 text-slate-500" />
-                                Activités exclues
-                            </h3>
-                            {currentDoctor.excludedActivities && currentDoctor.excludedActivities.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                    {currentDoctor.excludedActivities.map(actId => {
-                                        const activity = activityDefinitions.find(a => a.id === actId);
-                                        return (
-                                            <span key={actId} className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-600 font-medium line-through">
-                                                {activity?.name || actId}
-                                            </span>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-400 italic">Aucune activité exclue</p>
-                            )}
-                        </div>
-
-                        {/* Types de créneaux exclus */}
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
-                                <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" />
-                                Types de créneaux exclus
-                            </h3>
-                            {currentDoctor.excludedSlotTypes && currentDoctor.excludedSlotTypes.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                    {currentDoctor.excludedSlotTypes.map(type => (
-                                        <span key={type} className="px-2 py-1 text-xs rounded bg-orange-100 text-orange-800 font-medium">
-                                            {type === SlotType.CONSULTATION ? 'Consultation' :
-                                                type === SlotType.RCP ? 'RCP' :
-                                                    type === SlotType.ACTIVITY ? 'Activité' : type}
-                                        </span>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-slate-400 italic">Aucun type exclu</p>
-                            )}
-                        </div>
-
-                        <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">
-                            Ces paramètres sont gérés par l'administrateur. Contactez votre responsable pour toute modification.
-                        </p>
-                    </div>
+                    )}
                 </div>
             </div>
         </div>
