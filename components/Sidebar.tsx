@@ -4,6 +4,7 @@ import { LayoutDashboard, CalendarDays, UserCircle, Database, LogOut, Activity, 
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { getDateForDayOfWeek } from '../services/scheduleService';
+import NotificationBell from './NotificationBell';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -108,10 +109,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             <h1 className="text-xl font-bold tracking-wider text-blue-400">RadioPlan AI</h1>
             <p className="text-xs text-slate-400 mt-1">Oncologie & Radiothérapie</p>
           </div>
-          {/* Close button for Mobile */}
-          <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white">
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            {/* Close button for Mobile */}
+            <button onClick={onClose} className="md:hidden text-slate-400 hover:text-white">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         <nav className="flex-1 py-6 space-y-2 px-3 overflow-y-auto">
