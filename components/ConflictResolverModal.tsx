@@ -5,6 +5,9 @@ import { getAvailableDoctors, getAlgorithmicReplacementSuggestion, findConflicti
 import { X, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ArrowRight, Activity, Calendar, ShieldAlert } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../services/supabaseClient';
+import { sendReplacementRequest } from '../services/replacementService';
+import { createNotification } from '../services/notificationService';
 
 interface Props {
     slot: ScheduleSlot;
@@ -21,6 +24,8 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const { effectiveHistory, activityDefinitions } = useContext(AppContext);
     const { profile, isAdmin, isDoctor } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [requestSent, setRequestSent] = useState(false);
+    const [sendingRequestTo, setSendingRequestTo] = useState<string | null>(null);
     const [suggestions, setSuggestions] = useState<ReplacementSuggestion[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [manualDoctorId, setManualDoctorId] = useState<string>("");
@@ -102,6 +107,47 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const handleKeepInSlot = (slotToKeep: ScheduleSlot, slotToReplace: ScheduleSlot, strategy: 'KEEP_CURRENT' | 'KEEP_OTHER') => {
         setResolutionStrategy(strategy);
         setTargetSlotForReplacement(slotToReplace);
+    };
+
+    const handleRequestReplacement = async (targetDoctorId: string) => {
+        if (!profile) return;
+        setSendingRequestTo(targetDoctorId);
+        try {
+            const effectiveSlot = targetSlotForReplacement ?? slot;
+            const conflictDoctorId = conflict?.doctorId ?? slot.assignedDoctorId ?? '';
+            const requestId = await sendReplacementRequest({
+                requesterDoctorId: conflictDoctorId,
+                targetDoctorId,
+                slotDate: effectiveSlot.date,
+                period: effectiveSlot.period,
+                activityName: effectiveSlot.subType ?? effectiveSlot.location,
+                slotId: effectiveSlot.id,
+            });
+
+            const { data: targetProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('doctor_id', targetDoctorId)
+                .single();
+
+            if (targetProfile) {
+                const requesterDoctor = doctors.find((d: any) => d.id === conflictDoctorId);
+                await createNotification({
+                    user_id: targetProfile.id,
+                    type: 'REPLACEMENT_REQUEST',
+                    title: 'Demande de remplacement',
+                    body: `Dr ${requesterDoctor?.name ?? 'Inconnu'} vous demande de le remplacer : ${effectiveSlot.subType ?? effectiveSlot.location} le ${effectiveSlot.date} (${effectiveSlot.period})`,
+                    data: { requestId, slotId: effectiveSlot.id },
+                    read: false,
+                });
+            }
+
+            setRequestSent(true);
+        } catch (e) {
+            console.error('Failed to send replacement request:', e);
+        } finally {
+            setSendingRequestTo(null);
+        }
     };
 
     const getSlotColor = (s: ScheduleSlot) => {
@@ -328,16 +374,30 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                         <p className="text-xs text-slate-500 mb-3 italic pl-11">
                                                             "{sugg.reasoning}"
                                                         </p>
-                                                        <button
-                                                            onClick={() => onResolve(targetSlotForReplacement.id, doc.id)}
-                                                            className="w-full py-2 bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
-                                                        >
-                                                            Choisir {doc.name}
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => onResolve(targetSlotForReplacement.id, doc.id)}
+                                                                className="flex-1 py-2 bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
+                                                            >
+                                                                Choisir {doc.name}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleRequestReplacement(doc.id)}
+                                                                disabled={sendingRequestTo === doc.id || requestSent}
+                                                                className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50"
+                                                            >
+                                                                {sendingRequestTo === doc.id ? 'Envoi...' : 'Demander remplacement'}
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 );
                                             })}
                                         </div>
+                                    )}
+                                    {requestSent && (
+                                        <p className="text-sm text-green-600 font-medium text-center py-2">
+                                            ✓ Demande envoyée — le médecin recevra une notification
+                                        </p>
                                     )}
                                 </div>
 
