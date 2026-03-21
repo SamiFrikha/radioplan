@@ -442,7 +442,8 @@ const Profile: React.FC = () => {
                 isMoved: !!exception?.newDate,
                 isTimeChanged: !!exception?.newTime,
                 isCancelled: exception?.isCancelled,
-                isManual: false
+                isManual: false,
+                isExceptional: false
             };
         });
 
@@ -500,11 +501,64 @@ const Profile: React.FC = () => {
                     isMoved: false,
                     isTimeChanged: false,
                     isCancelled: false,
-                    isManual: true
+                    isManual: true,
+                    isExceptional: false
                 };
             });
 
-        return [...standardRcps, ...manualRcps].sort((a, b) => (a?.date || '').localeCompare(b?.date || ''));
+        // Exceptional RCPs: doctor is PRESENT in rcpAttendance but NOT in any template assignment
+        const exceptionalRcps: typeof standardRcps = [];
+        template
+            .filter(t => t.type === SlotType.RCP)
+            .filter(t => {
+                // Skip templates where doctor is already assigned (handled by standardRcps)
+                const isAssigned = (t.doctorIds && t.doctorIds.includes(currentDoctor.id)) ||
+                    t.defaultDoctorId === currentDoctor.id ||
+                    (t.secondaryDoctorIds && t.secondaryDoctorIds.includes(currentDoctor.id)) ||
+                    t.backupDoctorId === currentDoctor.id;
+                return !isAssigned;
+            })
+            .forEach(t => {
+                const slotDate = getDateForDayOfWeek(targetMonday, t.day);
+                const generatedId = `${t.id}-${slotDate}`;
+                const currentMap = rcpAttendance[generatedId] || {};
+
+                // Only include if doctor has PRESENT status (exceptional replacement)
+                if (currentMap[currentDoctor.id] !== 'PRESENT') return;
+
+                const exception = rcpExceptions.find(ex => ex.rcpTemplateId === t.id && ex.originalDate === slotDate);
+                const displayDate = exception?.newDate || slotDate;
+                const displayTime = exception?.newTime || t.time || 'N/A';
+                const holiday = isFrenchHoliday(displayDate);
+                const myStatus = currentMap[currentDoctor.id];
+
+                const allAssignedDoctorIds = [...new Set(
+                    Object.keys(currentMap).filter(id => currentMap[id] === 'PRESENT' && id !== currentDoctor.id)
+                )];
+
+                const colleaguesStatus = allAssignedDoctorIds.map(dId => {
+                    const doctor = doctors.find(d => d.id === dId);
+                    return { id: dId, name: doctor?.name || 'Inconnu', status: currentMap[dId] || null };
+                });
+
+                exceptionalRcps.push({
+                    template: t,
+                    date: displayDate,
+                    time: displayTime,
+                    originalDate: slotDate,
+                    generatedId,
+                    myStatus,
+                    colleaguesStatus,
+                    holiday,
+                    isMoved: !!exception?.newDate,
+                    isTimeChanged: !!exception?.newTime,
+                    isCancelled: exception?.isCancelled,
+                    isManual: false,
+                    isExceptional: true  // Flag for UI badge
+                });
+            });
+
+        return [...standardRcps, ...manualRcps, ...exceptionalRcps].sort((a, b) => (a?.date || '').localeCompare(b?.date || ''));
     };
 
     // Derive lock status from existing rcpAttendance (no new state needed)
@@ -1087,7 +1141,14 @@ const Profile: React.FC = () => {
                                                 {/* Header */}
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1">
-                                                        <p className="font-semibold text-slate-800 text-sm">{rcp.template.location || rcp.template.id}</p>
+                                                        <p className="font-semibold text-slate-800 text-sm">
+                                                            {rcp.template.location || rcp.template.id}
+                                                            {rcp.isExceptional && (
+                                                                <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 font-bold">
+                                                                    Exceptionnel
+                                                                </span>
+                                                            )}
+                                                        </p>
                                                         <p className="text-xs text-slate-500 mt-0.5">
                                                             {new Date(rcp.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}
                                                             {rcp.time !== 'N/A' && ` · ${rcp.time}`}
