@@ -10,12 +10,13 @@ import {
 } from 'lucide-react';
 import { resolveReplacementRequest } from '../services/replacementService';
 import { createNotification } from '../services/notificationService';
-import { SlotType, Doctor, Period, Specialty } from '../types';
-import { getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
+import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot } from '../types';
+import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import AbsenceConflictsModal from '../components/AbsenceConflictsModal';
+import ConflictResolverModal from '../components/ConflictResolverModal';
 
 const NOTIF_ICON: Record<string, string> = {
     RCP_AUTO_ASSIGNED: '🎲', RCP_SLOT_FILLED: '✅', RCP_REMINDER_24H: '⏰',
@@ -210,6 +211,8 @@ const Profile: React.FC = () => {
         effectiveHistory,
         updateSchedule,
         schedule,
+        manualOverrides,
+        setManualOverrides,
     } = useContext(AppContext);
 
     const { profile, loading: authLoading } = useAuth();
@@ -217,7 +220,7 @@ const Profile: React.FC = () => {
     const navigate = useNavigate();
 
     // Tab state for bottom section
-    const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences' | 'rcp'>('rcp');
+    const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences' | 'rcp' | 'conflits'>('rcp');
 
     // Find the doctor linked to the current user
     const [currentDoctor, setCurrentDoctor] = useState<Doctor | null>(null);
@@ -236,6 +239,11 @@ const Profile: React.FC = () => {
         endDate: string;
         period: 'ALL_DAY' | Period;
     } | null>(null);
+
+    // Conflicts tab state
+    const [conflictsWeekOffset, setConflictsWeekOffset] = useState(0);
+    const [conflictModalSlot, setConflictModalSlot] = useState<ScheduleSlot | null>(null);
+    const [conflictModalConflict, setConflictModalConflict] = useState<Conflict | null>(null);
 
     // Edit profile state
     const [isEditingProfile, setIsEditingProfile] = useState(false);
