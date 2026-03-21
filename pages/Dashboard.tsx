@@ -101,9 +101,24 @@ const Dashboard: React.FC = () => {
         });
     }, [currentWeekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, rcpAttendance, rcpExceptions, manualOverrides, isCurrentWeekValidated]);
 
+    // Build conflicts ONLY for the currently visible period so they can never
+    // bleed in from other days/weeks regardless of navigation state.
     const conflicts = useMemo(() => {
-        return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions);
-    }, [schedule, unavailabilities, doctors, activityDefinitions]);
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        let visibleSlots;
+        if (viewMode === 'DAY') {
+            // Only the slots belonging to the selected day
+            visibleSlots = schedule.filter(s => s.date === dateStr);
+        } else {
+            // Only Mon–Fri of the displayed week
+            const weekEndDate = new Date(currentWeekStart);
+            weekEndDate.setDate(weekEndDate.getDate() + 4);
+            const ws = currentWeekStart.toISOString().split('T')[0];
+            const we = weekEndDate.toISOString().split('T')[0];
+            visibleSlots = schedule.filter(s => s.date >= ws && s.date <= we);
+        }
+        return detectConflicts(visibleSlots, unavailabilities, doctors, activityDefinitions);
+    }, [schedule, unavailabilities, doctors, activityDefinitions, viewMode, selectedDate, currentWeekStart]);
 
     // Detect RCPs falling on holidays in the current month AND next month (based on selected date)
     const rcpsOnHolidays = useMemo(() => {
@@ -310,27 +325,9 @@ const Dashboard: React.FC = () => {
         const filledSlots = filteredSlots.filter(s => s.assignedDoctorId).length;
         const occupancy = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
 
-        // Build the strict date range for the currently displayed period so
-        // conflicts from a previous navigation state can never bleed through.
-        const weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(weekEnd.getDate() + 4);
-        const weekStartStr = currentWeekStart.toISOString().split('T')[0];
-        const weekEndStr = weekEnd.toISOString().split('T')[0];
-
-        let relevantConflicts = [];
-        if (viewMode === 'DAY') {
-            // Only conflicts whose slot falls on the exact selected day
-            relevantConflicts = conflicts.filter(c => {
-                const slot = schedule.find(s => s.id === c.slotId);
-                return slot && slot.date === dateStr;
-            });
-        } else {
-            // Only conflicts whose slot falls within the displayed week (Mon–Fri)
-            relevantConflicts = conflicts.filter(c => {
-                const slot = schedule.find(s => s.id === c.slotId);
-                return slot && slot.date >= weekStartStr && slot.date <= weekEndStr;
-            });
-        }
+        // conflicts is already scoped to the visible period (day or week)
+        // by the conflicts useMemo — no secondary filtering needed here.
+        const relevantConflicts = conflicts;
 
         let absentees = [];
         if (viewMode === 'DAY') {
