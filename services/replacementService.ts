@@ -48,3 +48,47 @@ export const resolveReplacementRequest = async (
   if (error) throw error;
   return mapRow(data);
 };
+
+/**
+ * Accepts a replacement request AND directly assigns the target doctor to the slot.
+ * - Marks replacement_requests.status = 'ACCEPTED'
+ * - Merges slotId → targetDoctorId into app_settings.manual_overrides
+ * - For RCP slots: upserts rcp_attendance with status PRESENT
+ */
+export const acceptAndAssignReplacement = async (
+  requestId: string,
+  slotId: string,
+  targetDoctorId: string,
+  slotType?: string
+): Promise<ReplacementRequest> => {
+  // 1. Mark request accepted
+  const resolved = await resolveReplacementRequest(requestId, 'ACCEPTED');
+
+  // 2. Merge into app_settings.manual_overrides (singleton row id=1)
+  const { data: settings, error: settingsErr } = await supabase
+    .from('app_settings')
+    .select('id, manual_overrides')
+    .eq('id', 1)
+    .single();
+
+  if (!settingsErr && settings) {
+    const current: Record<string, string> = settings.manual_overrides ?? {};
+    const merged = { ...current, [slotId]: targetDoctorId };
+    await supabase
+      .from('app_settings')
+      .update({ manual_overrides: merged, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+  }
+
+  // 3. For RCP slots: mark the accepting doctor as PRESENT in rcp_attendance
+  if (slotType === 'RCP') {
+    await supabase
+      .from('rcp_attendance')
+      .upsert(
+        { slot_id: slotId, doctor_id: targetDoctorId, status: 'PRESENT' },
+        { onConflict: 'slot_id,doctor_id' }
+      );
+  }
+
+  return resolved;
+};

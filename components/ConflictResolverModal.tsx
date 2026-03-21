@@ -65,7 +65,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     // Compute available doctor IDs for this slot's date/period (to show availability badge)
     const availableDoctorIds = useMemo(() => {
         if (!slot.date) return new Set<string>();
-        const avail = getAvailableDoctors(doctors, slots, unavailabilities, slot.day, slot.period, slot.date);
+        const avail = getAvailableDoctors(doctors, slots, unavailabilities, slot.day, slot.period, slot.date, slot.type);
         return new Set(avail.map(d => d.id));
     }, [doctors, slots, unavailabilities, slot]);
 
@@ -176,7 +176,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     type: 'REPLACEMENT_REQUEST',
                     title: 'Demande de remplacement',
                     body: `Dr ${requesterDoctor?.name ?? 'Inconnu'} vous demande de le remplacer : ${effectiveSlot.subType ?? effectiveSlot.location} le ${effectiveSlot.date} (${effectiveSlot.period})`,
-                    data: { requestId, slotId: effectiveSlot.id },
+                    data: { requestId, slotId: effectiveSlot.id, slotType: effectiveSlot.type },
                     read: false,
                 });
             }

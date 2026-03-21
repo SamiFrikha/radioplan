@@ -1,6 +1,6 @@
 // components/PersonalAgendaWeek.tsx
 import React, { useMemo, useContext } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
@@ -36,6 +36,15 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
 
   const { profile } = useAuth();
   const doctorId = profile?.doctor_id;
+
+  // Returns RCP confirmation status for the current doctor on a given slot
+  const getRcpStatus = (slot: any): 'UNCONFIRMED' | 'PRESENT' | 'NONE' => {
+    if (slot.type !== SlotType.RCP) return 'NONE';
+    if (slot.isUnconfirmed) return 'UNCONFIRMED';
+    const attendance = rcpAttendance[slot.id];
+    if (attendance && doctorId && attendance[doctorId] === 'PRESENT') return 'PRESENT';
+    return 'NONE';
+  };
 
   const weekStart = useMemo(() => {
     const now = new Date();
@@ -156,15 +165,20 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                     ) : (
                       slots.map((slot: any) => {
                         const style = SLOT_STYLE[slot.type] ?? SLOT_STYLE[SlotType.CONSULTATION];
+                        const rcpStatus = getRcpStatus(slot);
+                        const confirmedBorder = rcpStatus === 'PRESENT' ? 'border-green-400 border-2' : '';
                         return (
                           <div key={slot.id}
-                            className={`rounded-lg border px-1.5 py-1 mb-0.5 ${style.bg} ${style.border}`}
+                            className={`rounded-lg border px-1.5 py-1 mb-0.5 ${style.bg} ${style.border} ${confirmedBorder}`}
                             title={`${slot.subType || slot.location}`}>
                             <div className="flex items-center gap-1">
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
-                              <span className={`text-[10px] font-semibold truncate ${style.text}`}>
+                              <span className={`text-[10px] font-semibold truncate flex-1 ${style.text}`}>
                                 {slot.subType || slot.location}
                               </span>
+                              {rcpStatus === 'UNCONFIRMED' && (
+                                <AlertTriangle size={9} className="text-amber-500 shrink-0" />
+                              )}
                             </div>
                             {slot.subType && slot.location && slot.location !== slot.subType && (
                               <p className={`text-[9px] opacity-70 truncate ml-2.5 ${style.text}`}>{slot.location}</p>

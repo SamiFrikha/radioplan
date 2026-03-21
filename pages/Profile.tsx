@@ -8,7 +8,8 @@ import {
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
     Plus, Loader2, Tag
 } from 'lucide-react';
-import { resolveReplacementRequest } from '../services/replacementService';
+import { resolveReplacementRequest, acceptAndAssignReplacement } from '../services/replacementService';
+import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
 import { createNotification } from '../services/notificationService';
 import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
@@ -33,18 +34,31 @@ const NotificationSection: React.FC<{
     loading: boolean;
     currentDoctorName?: string;
     userId?: string;
-}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId }) => {
+    currentDoctorId?: string;
+    onAssigned?: (slotId: string, doctorId: string) => void;
+}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId, currentDoctorId, onAssigned }) => {
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [clearing, setClearing] = useState(false);
     const { permission, isStandalone, subscribe, loading: pushLoading, error: pushError } = usePushNotifications(userId);
+    const { isEnabled, toggle, loading: prefsLoading } = useNotificationPreferences(userId);
 
     const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
         const requestId = n.data?.requestId as string | undefined;
+        const slotId = n.data?.slotId as string | undefined;
+        const slotType = n.data?.slotType as string | undefined;
         if (!requestId) return;
         setActionLoading(requestId);
         try {
-            const resolved = await resolveReplacementRequest(requestId, status);
+            let resolved;
+            if (status === 'ACCEPTED' && slotId && currentDoctorId) {
+                // Assign accepting doctor directly to the slot
+                resolved = await acceptAndAssignReplacement(requestId, slotId, currentDoctorId, slotType);
+                // Refresh AppContext so planning views update immediately
+                onAssigned?.(slotId, currentDoctorId);
+            } else {
+                resolved = await resolveReplacementRequest(requestId, status);
+            }
             const { data: requesterProfile } = await supabase
                 .from('profiles').select('id').eq('doctor_id', resolved.requesterDoctorId).single();
             if (requesterProfile) {
@@ -59,7 +73,7 @@ const NotificationSection: React.FC<{
             }
             // Persist resolution in notification's data so it survives page refresh
             await supabase.from('notifications')
-                .update({ data: { requestId, resolution: status }, read: true })
+                .update({ data: { requestId, slotId: resolved.slotId, slotType, resolution: status }, read: true })
                 .eq('id', n.id);
             setResolvedMap(prev => ({ ...prev, [n.id]: status }));
         } catch (e) {
@@ -114,6 +128,31 @@ const NotificationSection: React.FC<{
             {pushError && (
               <p className="text-xs text-red-500">{pushError}</p>
             )}
+
+            {/* Per-type notification preferences — only visible when push is granted */}
+            {permission === 'granted' && (
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2.5">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Types de notifications push
+                </p>
+                {ALL_NOTIFICATION_TYPES.map(type => (
+                  <div key={type} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-slate-700">{NOTIFICATION_TYPE_LABELS[type]}</span>
+                    <button
+                      disabled={prefsLoading}
+                      onClick={() => toggle(type)}
+                      aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
+                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
+                        ${isEnabled(type) ? 'bg-blue-600' : 'bg-slate-300'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform
+                        ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
                     Mes notifications
@@ -995,6 +1034,11 @@ const Profile: React.FC = () => {
                             loading={notifLoading}
                             currentDoctorName={doctors.find(d => d.id === profile?.doctor_id)?.name}
                             userId={profile?.id}
+                            currentDoctorId={profile?.doctor_id ?? undefined}
+                            onAssigned={(slotId, doctorId) => {
+                                const newOverrides = { ...manualOverrides, [slotId]: doctorId };
+                                setManualOverrides(newOverrides);
+                            }}
                         />
                     )}
 
