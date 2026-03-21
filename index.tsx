@@ -31,10 +31,13 @@ if ('serviceWorker' in navigator) {
     })
     .catch(err => console.error('[SW] Registration failed:', err));
 
-  // Reload the page when the SW controller changes (new SW took over)
+  // Reload when an updated SW takes over — but NOT on first-ever install
+  // (controllerchange also fires on first install via clients.claim(), which would
+  // cause an unnecessary reload that can interfere with Chrome's PWA install check)
+  const hadController = !!navigator.serviceWorker.controller;
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
+    if (hadController && !refreshing) {
       refreshing = true;
       window.location.reload();
     }

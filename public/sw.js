@@ -1,16 +1,16 @@
 // public/sw.js — Service Worker for RadioPlan PWA
 // v3 — network timeout + cache-first assets + robust error handling
 
-const CACHE_NAME = 'radioplan-v3';
+const CACHE_NAME = 'radioplan-v4';
 const APP_SHELL = ['/radioplan/', '/radioplan/index.html'];
 
 // ─── Install: cache the app shell ────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
+      // Cache best-effort: catch addAll errors so skipWaiting always runs
+      .then(cache => cache.addAll(APP_SHELL).catch(err => console.warn('[SW] Install cache failed:', err)))
       .then(() => self.skipWaiting())
-      .catch(err => console.warn('[SW] Install cache failed:', err))
   );
 });
 
@@ -113,8 +113,8 @@ self.addEventListener('fetch', (event) => {
       // First visit: must wait for network (nothing cached yet)
       return refresh.then(response => {
         if (response) return response;
-        // Absolute last resort: serve index shell
-        return cache.match('/radioplan/') ?? new Response('Offline', { status: 503 });
+        // Absolute last resort: serve index shell (must await — cache.match returns a Promise)
+        return cache.match('/radioplan/').then(r => r ?? new Response('Offline', { status: 503 }));
       });
     })
   );
