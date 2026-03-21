@@ -38,8 +38,9 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const isRcpConflict = slot.type === SlotType.RCP && !!conflict;
 
     // Compute referent doctor IDs from the RCP definition (not from slot.doctorIds which may be stale)
+    // Works for any RCP slot, with or without a conflict object
     const referentDoctorIds = useMemo(() => {
-        if (!isRcpConflict) return new Set<string>();
+        if (slot.type !== SlotType.RCP) return new Set<string>();
         const rcpDef = rcpTypes.find(r => r.name === slot.location);
         if (!rcpDef) return new Set<string>();
         return new Set<string>([
@@ -47,7 +48,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
             ...(rcpDef.secondaryDoctorIds || []),
             ...(rcpDef.backupDoctorId ? [rcpDef.backupDoctorId] : []),
         ].filter(Boolean));
-    }, [isRcpConflict, rcpTypes, slot.location]);
+    }, [slot.type, rcpTypes, slot.location]);
 
     // Double Booking Logic
     const assignedDoctor = doctors.find(d => d.id === slot.assignedDoctorId);
