@@ -1145,8 +1145,12 @@ export const detectConflicts = (
     //   - Half-day exclusion producing one conflict per slot
     const dedupMap = new Map<string, Conflict>();
     for (const c of conflicts) {
+        // DOUBLE_BOOKING: use slotId in key so both sides of a conflict pair survive
+        // Other types: use date+period to dedup true duplicates (e.g. from duplicate absences)
         const slot = slots.find(s => s.id === c.slotId);
-        const key = `${c.type}-${c.doctorId}-${slot?.date ?? 'unknown'}-${slot?.period ?? 'unknown'}`;
+        const key = c.type === 'DOUBLE_BOOKING'
+            ? `${c.type}-${c.doctorId}-${c.slotId}`
+            : `${c.type}-${c.doctorId}-${slot?.date ?? 'unknown'}-${slot?.period ?? 'unknown'}`;
         if (!dedupMap.has(key)) {
             dedupMap.set(key, c);
         }
