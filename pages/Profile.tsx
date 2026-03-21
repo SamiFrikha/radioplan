@@ -325,6 +325,58 @@ const Profile: React.FC = () => {
         }
     }, [doctors, profile?.doctor_id]);
 
+    // Conflicts tab: generate schedule and detect conflicts for the current doctor's week
+    const conflictsWeekSchedule = useMemo(() => {
+        if (!currentDoctor) return [];
+
+        const weekStart = new Date();
+        const day = weekStart.getDay();
+        weekStart.setDate(weekStart.getDate() - day + (day === 0 ? -6 : 1) + (conflictsWeekOffset * 7));
+        weekStart.setHours(0, 0, 0, 0);
+
+        return generateScheduleForWeek(
+            weekStart, template, unavailabilities, doctors,
+            activityDefinitions, rcpTypes, false, {},
+            rcpAttendance, rcpExceptions
+        );
+    }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+
+    const profileConflicts = useMemo(() => {
+        if (!currentDoctor || conflictsWeekSchedule.length === 0) return [];
+
+        const allConflicts = detectConflicts(conflictsWeekSchedule, unavailabilities, doctors, activityDefinitions);
+        return allConflicts.filter(c => c.doctorId === currentDoctor.id);
+    }, [currentDoctor, conflictsWeekSchedule, unavailabilities, doctors, activityDefinitions]);
+
+    const getConflictsWeekLabel = () => {
+        const today = new Date();
+        const currentMonday = new Date(today);
+        const day = currentMonday.getDay();
+        const diff = currentMonday.getDate() - day + (day === 0 ? -6 : 1);
+        currentMonday.setDate(diff);
+
+        const targetMonday = new Date(currentMonday);
+        targetMonday.setDate(targetMonday.getDate() + (conflictsWeekOffset * 7));
+
+        if (conflictsWeekOffset === 0) return "Cette Semaine";
+        if (conflictsWeekOffset === 1) return "Semaine Prochaine";
+        return `Semaine du ${targetMonday.getDate()}/${targetMonday.getMonth() + 1}`;
+    };
+
+    const handleConflictResolve = (slotId: string, newDoctorId: string) => {
+        const newOverrides = { ...manualOverrides, [slotId]: newDoctorId };
+        setManualOverrides(newOverrides);
+        setConflictModalSlot(null);
+        setConflictModalConflict(null);
+    };
+
+    const handleConflictCloseSlot = (slotId: string) => {
+        const newOverrides = { ...manualOverrides, [slotId]: '__CLOSED__' };
+        setManualOverrides(newOverrides);
+        setConflictModalSlot(null);
+        setConflictModalConflict(null);
+    };
+
     // RCP Helper Functions
     const getUpcomingRcps = () => {
         if (!currentDoctor) return [];
