@@ -36,11 +36,21 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// User taps the notification — open the app
+// User taps the notification — focus existing PWA window or open one
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  // Fix: was '/' which is a blank page on GitHub Pages at /radioplan/
-  event.waitUntil(clients.openWindow('/radioplan/'));
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Try to focus an existing PWA window instead of opening in default browser
+      for (const client of windowClients) {
+        if (client.url.includes('/radioplan') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // No existing window — open one
+      return self.clients.openWindow('/radioplan/');
+    })
+  );
 });
 
 // Fetch handler — cache-aware strategy so the installed app never freezes
