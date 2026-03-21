@@ -915,6 +915,18 @@ const Profile: React.FC = () => {
                         <Briefcase className="w-4 h-4" />
                         Préférences
                     </button>
+                    <button
+                        onClick={() => setActiveTab('conflits')}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'conflits' ? 'border-b-2 border-red-600 text-red-600' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <AlertTriangle className="w-4 h-4" />
+                        Conflits
+                        {profileConflicts.length > 0 && (
+                            <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
+                                {profileConflicts.length}
+                            </span>
+                        )}
+                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -1237,6 +1249,67 @@ const Profile: React.FC = () => {
                             </div>
                         </div>
                     )}
+                    {activeTab === 'conflits' && (
+                        <div>
+                            {/* Week navigation */}
+                            <div className="flex items-center justify-between mb-4">
+                                <button onClick={() => setConflictsWeekOffset(prev => prev - 1)} className="p-2 hover:bg-slate-100 rounded-lg transition">
+                                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                </button>
+                                <div className="text-center">
+                                    <h3 className="font-bold text-slate-800">{getConflictsWeekLabel()}</h3>
+                                    <p className="text-xs text-slate-500">{profileConflicts.length} conflit{profileConflicts.length !== 1 ? 's' : ''}</p>
+                                </div>
+                                <button onClick={() => setConflictsWeekOffset(prev => prev + 1)} className="p-2 hover:bg-slate-100 rounded-lg transition">
+                                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                                </button>
+                            </div>
+
+                            {/* Conflict list */}
+                            {profileConflicts.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                    <CheckCircle2 className="w-10 h-10 mb-3 text-green-400" />
+                                    <span className="text-sm font-medium">Aucun conflit sur cette semaine</span>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {profileConflicts.map(conflict => {
+                                        const slot = conflictsWeekSchedule.find(s => s.id === conflict.slotId);
+                                        if (!slot) return null;
+
+                                        return (
+                                            <div
+                                                key={conflict.id}
+                                                onClick={() => {
+                                                    setConflictModalSlot(slot);
+                                                    setConflictModalConflict(conflict);
+                                                }}
+                                                className="p-3 bg-white border border-red-100 rounded-lg shadow-sm hover:border-red-300 hover:shadow-md transition-all cursor-pointer relative group"
+                                            >
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase">
+                                                        {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : conflict.type === 'COMPETENCE_MISMATCH' ? 'Compétence' : 'Indisponibilité'}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                                                        {slot.date
+                                                            ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+                                                            : slot.day?.substring(0, 3)
+                                                        }
+                                                        {' · '}{slot.period === Period.MORNING ? 'Matin' : 'Après-midi'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-medium text-slate-700 mt-2">{slot.location || slot.subType}</p>
+                                                <p className="text-xs text-slate-500 mt-1">{conflict.description}</p>
+                                                <div className="absolute right-2 bottom-2 text-xs text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Résoudre →
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         {absenceConflictModal && currentDoctor && (
@@ -1257,6 +1330,18 @@ const Profile: React.FC = () => {
                 onResolve={handleAbsenceConflictResolve}
                 onCloseSlot={handleAbsenceConflictClose}
                 onDismiss={() => setAbsenceConflictModal(null)}
+            />
+        )}
+        {conflictModalSlot && (
+            <ConflictResolverModal
+                slot={conflictModalSlot}
+                conflict={conflictModalConflict || undefined}
+                doctors={doctors}
+                slots={conflictsWeekSchedule}
+                unavailabilities={unavailabilities}
+                onClose={() => { setConflictModalSlot(null); setConflictModalConflict(null); }}
+                onResolve={handleConflictResolve}
+                onCloseSlot={handleConflictCloseSlot}
             />
         )}
         </div>
