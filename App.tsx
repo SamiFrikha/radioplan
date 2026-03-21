@@ -336,7 +336,10 @@ const App: React.FC = () => {
         if (session && !loadingData) {
             loadAndMergeSchedule();
         }
-    }, [currentReferenceDate, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, manualOverrides, rcpAttendance, rcpExceptions, session, loadingData]);
+    // Use session?.user?.id instead of session so TOKEN_REFRESHED events
+    // (new object reference, same user) don't trigger an unnecessary reload
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentReferenceDate, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, manualOverrides, rcpAttendance, rcpExceptions, session?.user?.id, loadingData]);
 
     // Real-time conflict detection
     const conflicts = useMemo(() => {

@@ -14,8 +14,14 @@ if ('serviceWorker' in navigator) {
   const swUrl = `${import.meta.env.BASE_URL}sw.js`;
   navigator.serviceWorker.register(swUrl)
     .then(registration => {
-      // Check for SW updates each time the app loads
-      registration.update().catch(() => {/* network unavailable, skip update check */});
+      // Throttle SW update checks to at most once per hour
+      // Calling update() on every load wastes bandwidth on mobile
+      const SW_UPDATE_KEY = 'sw_last_update_check';
+      const lastCheck = parseInt(localStorage.getItem(SW_UPDATE_KEY) || '0', 10);
+      if (Date.now() - lastCheck > 60 * 60 * 1000) {
+        localStorage.setItem(SW_UPDATE_KEY, String(Date.now()));
+        registration.update().catch(() => {/* network unavailable, skip update check */});
+      }
 
       // Notify active SW when a new one is waiting (enables seamless updates)
       registration.addEventListener('updatefound', () => {

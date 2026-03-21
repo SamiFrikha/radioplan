@@ -1,7 +1,7 @@
 // public/sw.js — Service Worker for RadioPlan PWA
 // v3 — network timeout + cache-first assets + robust error handling
 
-const CACHE_NAME = 'radioplan-v4';
+const CACHE_NAME = 'radioplan-v5';
 const APP_SHELL = ['/radioplan/', '/radioplan/index.html'];
 
 // ─── Install: cache the app shell ────────────────────────────────────────────
@@ -122,6 +122,8 @@ self.addEventListener('fetch', (event) => {
 
 // ─── Push subscription rotated by browser ────────────────────────────────────
 self.addEventListener('pushsubscriptionchange', (event) => {
+  // oldSubscription can be null in some browsers — guard before accessing .options
+  if (!event.oldSubscription) return;
   event.waitUntil(
     self.registration.pushManager
       .subscribe(event.oldSubscription.options)
