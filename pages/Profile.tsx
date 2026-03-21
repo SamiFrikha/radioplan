@@ -15,6 +15,7 @@ import { getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleServic
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import AbsenceConflictsModal from '../components/AbsenceConflictsModal';
 
 const NOTIF_ICON: Record<string, string> = {
     RCP_AUTO_ASSIGNED: '🎲', RCP_SLOT_FILLED: '✅', RCP_REMINDER_24H: '⏰',
@@ -204,7 +205,11 @@ const Profile: React.FC = () => {
         addRcpException,
         removeRcpException,
         profileRcpWeekOffset,
-        setProfileRcpWeekOffset
+        setProfileRcpWeekOffset,
+        shiftHistory,
+        effectiveHistory,
+        updateSchedule,
+        schedule,
     } = useContext(AppContext);
 
     const { profile, loading: authLoading } = useAuth();
@@ -224,6 +229,13 @@ const Profile: React.FC = () => {
     const [absencePeriod, setAbsencePeriod] = useState<'ALL_DAY' | Period>('ALL_DAY');
     const [reason, setReason] = useState('CONGRES');
     const [customReason, setCustomReason] = useState("");
+
+    // Absence conflict resolution modal
+    const [absenceConflictModal, setAbsenceConflictModal] = useState<{
+        startDate: string;
+        endDate: string;
+        period: 'ALL_DAY' | Period;
+    } | null>(null);
 
     // Edit profile state
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -526,6 +538,11 @@ const Profile: React.FC = () => {
             return;
         }
 
+        // Save dates before resetting form
+        const savedStartDate = startDate;
+        const savedEndDate = endDate;
+        const savedPeriod = absencePeriod;
+
         addUnavailability({
             id: Date.now().toString(),
             doctorId: currentDoctor.id,
@@ -541,6 +558,27 @@ const Profile: React.FC = () => {
         setEndDate(new Date().toISOString().split('T')[0]);
         setAbsencePeriod('ALL_DAY');
         setReason('CONGRES');
+
+        // Show conflict resolution modal for impacted slots
+        setAbsenceConflictModal({
+            startDate: savedStartDate,
+            endDate: savedEndDate,
+            period: savedPeriod,
+        });
+    };
+
+    const handleAbsenceConflictResolve = (slotId: string, newDoctorId: string) => {
+        const updatedSchedule = schedule.map(s =>
+            s.id === slotId ? { ...s, assignedDoctorId: newDoctorId } : s
+        );
+        updateSchedule(updatedSchedule);
+    };
+
+    const handleAbsenceConflictClose = (slotId: string) => {
+        const updatedSchedule = schedule.map(s =>
+            s.id === slotId ? { ...s, isClosed: true, assignedDoctorId: null } : s
+        );
+        updateSchedule(updatedSchedule);
     };
 
     const getNotificationWeekLabel = () => {
@@ -1141,6 +1179,26 @@ const Profile: React.FC = () => {
                     )}
                 </div>
             </div>
+        {absenceConflictModal && currentDoctor && (
+            <AbsenceConflictsModal
+                doctorId={currentDoctor.id}
+                doctorName={currentDoctor.name}
+                startDate={absenceConflictModal.startDate}
+                endDate={absenceConflictModal.endDate}
+                period={absenceConflictModal.period}
+                doctors={doctors}
+                template={template}
+                unavailabilities={unavailabilities}
+                activityDefinitions={activityDefinitions}
+                shiftHistory={effectiveHistory}
+                rcpTypes={rcpTypes}
+                rcpAttendance={rcpAttendance}
+                rcpExceptions={rcpExceptions}
+                onResolve={handleAbsenceConflictResolve}
+                onCloseSlot={handleAbsenceConflictClose}
+                onDismiss={() => setAbsenceConflictModal(null)}
+            />
+        )}
         </div>
     );
 };
