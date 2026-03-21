@@ -33,7 +33,7 @@ const NON_DOCTOR_ROLES = ['Secrétariat', 'Secretariat', 'Secretary'];
 
 const TeamManagement: React.FC = () => {
     const { hasPermission } = useAuth();
-    const { doctors, removeDoctor, updateDoctor, activityDefinitions, unavailabilities, addUnavailability, removeUnavailability } = useContext(AppContext);
+    const { doctors, removeDoctor, updateDoctor, activityDefinitions, unavailabilities, addUnavailability, syncUnavailability, removeUnavailability } = useContext(AppContext);
     const [users, setUsers] = useState<UserData[]>([]);
     const [roles, setRoles] = useState<AppRole[]>([]);
     const [allDoctors, setAllDoctors] = useState<DoctorWithUser[]>([]);
@@ -772,7 +772,7 @@ const TeamManagement: React.FC = () => {
                 prev.map(u => u.id === newUnavail.id ? savedUnavail : u)
             );
             // Also update global context (for when modal closes)
-            addUnavailability(savedUnavail);
+            syncUnavailability(savedUnavail);
         }).catch(err => {
             console.error('Failed to save unavailability:', err);
             // Rollback local state
@@ -1966,7 +1966,7 @@ const TeamManagement: React.FC = () => {
                                                             {unavail.startDate} → {unavail.endDate}
                                                             {unavail.period && unavail.period !== 'ALL_DAY' && (
                                                                 <span className="ml-1 text-[10px] bg-slate-100 px-1 rounded">
-                                                                    {unavail.period === Period.MORNING ? 'AM' : 'PM'}
+                                                                    {unavail.period === Period.MORNING ? 'Matin' : 'Après-midi'}
                                                                 </span>
                                                             )}
                                                         </div>
