@@ -1138,7 +1138,20 @@ export const detectConflicts = (
         }
     });
 
-    return conflicts;
+    // Deduplicate conflicts: keep only one per (type, doctorId, date, period)
+    // This prevents duplicates from:
+    //   - DOUBLE_BOOKING pushing 2 entries per overlapping pair
+    //   - Multiple absence records for the same doctor/date
+    //   - Half-day exclusion producing one conflict per slot
+    const dedupMap = new Map<string, Conflict>();
+    for (const c of conflicts) {
+        const slot = slots.find(s => s.id === c.slotId);
+        const key = `${c.type}-${c.doctorId}-${slot?.date ?? 'unknown'}-${slot?.period ?? 'unknown'}`;
+        if (!dedupMap.has(key)) {
+            dedupMap.set(key, c);
+        }
+    }
+    return Array.from(dedupMap.values());
 };
 
 export const getAvailableDoctors = (

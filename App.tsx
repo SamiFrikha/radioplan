@@ -384,6 +384,19 @@ const App: React.FC = () => {
     };
 
     const addUnavailability = async (u: Unavailability) => {
+        // Prevent duplicate: same doctor, same dates, same period
+        const isDuplicate = unavailabilities.some(
+            existing =>
+                existing.doctorId === u.doctorId &&
+                existing.startDate === u.startDate &&
+                existing.endDate === u.endDate &&
+                existing.period === u.period
+        );
+        if (isDuplicate) {
+            console.warn('[unavailabilities] Duplicate prevented:', u);
+            return;
+        }
+
         // Optimistic update - add immediately for instant UI feedback
         setUnavailabilities(prev => [...prev, u]);
 
