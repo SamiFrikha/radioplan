@@ -21,7 +21,7 @@ interface Props {
 }
 
 const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots, unavailabilities, onClose, onResolve, onCloseSlot }) => {
-    const { effectiveHistory, activityDefinitions, rcpAttendance, setRcpAttendance, rcpTypes } = useContext(AppContext);
+    const { effectiveHistory, activityDefinitions, rcpAttendance, setRcpAttendance, rcpTypes, template } = useContext(AppContext);
     const { profile, isAdmin, isDoctor } = useAuth();
     const [loading, setLoading] = useState(false);
     const [requestSent, setRequestSent] = useState(false);
@@ -37,18 +37,37 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     // Is this an RCP conflict? (doctor is absent/double-booked on an RCP slot)
     const isRcpConflict = slot.type === SlotType.RCP && !!conflict;
 
-    // Compute referent doctor IDs from the RCP definition (not from slot.doctorIds which may be stale)
-    // Works for any RCP slot, with or without a conflict object
+    // Compute referent doctor IDs from the template slot (the source of truth for who should attend this RCP)
     const referentDoctorIds = useMemo(() => {
         if (slot.type !== SlotType.RCP) return new Set<string>();
-        const rcpDef = rcpTypes.find(r => r.name === slot.location);
-        if (!rcpDef) return new Set<string>();
+        // Find the matching template slot by location + day (for recurring RCPs)
+        const templateSlot = template.find(t =>
+            t.type === SlotType.RCP &&
+            t.location === slot.location &&
+            t.day === slot.day
+        );
+        if (templateSlot) {
+            return new Set<string>([
+                ...(templateSlot.doctorIds || []),
+                ...(templateSlot.secondaryDoctorIds || []),
+                ...(templateSlot.defaultDoctorId ? [templateSlot.defaultDoctorId] : []),
+                ...(templateSlot.backupDoctorId ? [templateSlot.backupDoctorId] : []),
+            ].filter(Boolean));
+        }
+        // Fallback for MANUAL RCP instances: use the slot's own assigned doctors
         return new Set<string>([
-            ...(rcpDef.doctorIds || []),
-            ...(rcpDef.secondaryDoctorIds || []),
-            ...(rcpDef.backupDoctorId ? [rcpDef.backupDoctorId] : []),
+            ...(slot.assignedDoctorId ? [slot.assignedDoctorId] : []),
+            ...(slot.secondaryDoctorIds || []),
+            ...(slot.backupDoctorId ? [slot.backupDoctorId] : []),
         ].filter(Boolean));
-    }, [slot.type, rcpTypes, slot.location]);
+    }, [slot, template]);
+
+    // Compute available doctor IDs for this slot's date/period (to show availability badge)
+    const availableDoctorIds = useMemo(() => {
+        if (!slot.date) return new Set<string>();
+        const avail = getAvailableDoctors(doctors, slots, unavailabilities, slot.day, slot.period, slot.date);
+        return new Set(avail.map(d => d.id));
+    }, [doctors, slots, unavailabilities, slot]);
 
     // Double Booking Logic
     const assignedDoctor = doctors.find(d => d.id === slot.assignedDoctorId);
@@ -425,6 +444,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium text-slate-700">{doc.name}</span>
                                                                 <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
+                                                                {availableDoctorIds.has(doc.id)
+                                                                    ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
+                                                                    : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                                }
                                                             </div>
                                                             <button
                                                                 onClick={() => handleRequestReplacement(doc.id)}
@@ -448,6 +471,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium text-slate-700">{doc.name}</span>
                                                                 <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
+                                                                {availableDoctorIds.has(doc.id)
+                                                                    ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
+                                                                    : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                                }
                                                             </div>
                                                             <button
                                                                 onClick={() => handleRequestReplacement(doc.id)}
@@ -474,29 +501,52 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                     <h4 className="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2">
                                         <UserPlus className="w-4 h-4 text-green-600" /> Choisir le médecin remplaçant
                                     </h4>
-                                    <select
-                                        className="w-full text-sm border-slate-300 rounded-lg shadow-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 p-2.5 mb-3"
-                                        value={rcpDirectDoctorId}
-                                        onChange={e => setRcpDirectDoctorId(e.target.value)}
-                                    >
-                                        <option value="">-- Choisir un médecin --</option>
-                                        {referentDoctorIds.size > 0 && (
-                                            <optgroup label="Médecins référents">
+                                    <div className="space-y-1.5 mb-3 max-h-64 overflow-y-auto">
+                                        {/* Referent doctors */}
+                                        {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).length > 0 && (
+                                            <div className="mb-1">
+                                                <p className="text-[10px] uppercase font-bold text-green-700 mb-1">Médecins référents</p>
                                                 {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).map(doc => (
-                                                    <option key={doc.id} value={doc.id}>
-                                                        ✓ {doc.name}
-                                                    </option>
+                                                    <div
+                                                        key={doc.id}
+                                                        onClick={() => setRcpDirectDoctorId(doc.id)}
+                                                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-green-500 bg-green-50' : 'border-green-200 bg-white hover:border-green-400'}`}
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            {rcpDirectDoctorId === doc.id && <span className="text-green-600 font-bold">✓</span>}
+                                                            <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
+                                                            {availableDoctorIds.has(doc.id)
+                                                                ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
+                                                                : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                            }
+                                                        </div>
+                                                    </div>
                                                 ))}
-                                            </optgroup>
+                                            </div>
                                         )}
-                                        <optgroup label="Autres — sélection exceptionnelle">
+                                        {/* Exceptional doctors */}
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-amber-700 mb-1">Sélection exceptionnelle</p>
                                             {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).map(doc => (
-                                                <option key={doc.id} value={doc.id}>
-                                                    ⚠️ {doc.name} (exceptionnel)
-                                                </option>
+                                                <div
+                                                    key={doc.id}
+                                                    onClick={() => setRcpDirectDoctorId(doc.id)}
+                                                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-amber-500 bg-amber-50' : 'border-amber-200 bg-white hover:border-amber-400'}`}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        {rcpDirectDoctorId === doc.id && <span className="text-amber-600 font-bold">✓</span>}
+                                                        <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
+                                                        {availableDoctorIds.has(doc.id)
+                                                            ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
+                                                            : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                        }
+                                                    </div>
+                                                </div>
                                             ))}
-                                        </optgroup>
-                                    </select>
+                                        </div>
+                                    </div>
                                     {rcpDirectDoctorId && !referentDoctorIds.has(rcpDirectDoctorId) && (
                                         <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800">
                                             ⚠️ Ce médecin n'est pas dans l'affectation initiale de la RCP. Il sera ajouté exceptionnellement et bloqué sur cette demi-journée.
