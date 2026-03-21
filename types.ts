@@ -269,6 +269,7 @@ export interface AppContextType {
   updateTemplate: (newTemplate: ScheduleTemplateSlot[]) => void;
   addUnavailability: (u: Unavailability) => void;
   removeUnavailability: (id: string) => void;
+  syncUnavailability: (u: Unavailability) => void;
   setCurrentUser: (d: Doctor | null) => void;
   addRcpType: (name: string) => void;
   updateRcpDefinition: (def: RcpDefinition) => void;

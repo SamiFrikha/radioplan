@@ -429,6 +429,13 @@ const App: React.FC = () => {
         }
     }
 
+    const syncUnavailability = (u: Unavailability) => {
+        setUnavailabilities(prev => {
+            if (prev.some(existing => existing.id === u.id)) return prev;
+            return [...prev, u];
+        });
+    };
+
     const addRcpType = async (name: string) => {
         const trimmedName = name.trim();
         if (!rcpTypes.find(r => r.name === trimmedName)) {
@@ -660,7 +667,7 @@ const App: React.FC = () => {
             doctors, addDoctor, updateDoctor, removeDoctor, currentUser, schedule, template, unavailabilities,
             conflicts, rcpTypes, postes, addPoste, removePoste, activityDefinitions, addActivityDefinition,
             updateActivityDefinition, removeActivityDefinition,
-            updateSchedule, updateTemplate, addUnavailability, removeUnavailability, setCurrentUser,
+            updateSchedule, updateTemplate, addUnavailability, removeUnavailability, syncUnavailability, setCurrentUser,
             addRcpType, updateRcpDefinition, removeRcpType, renameRcpType, shiftHistory, effectiveHistory, manualOverrides,
             setManualOverrides: setManualOverridesWrapper, importConfiguration, rcpAttendance, setRcpAttendance: setRcpAttendanceWrapper,
             rcpExceptions, addRcpException, removeRcpException, activitiesStartDate, setActivitiesStartDate: updateActivitiesStartDate,
