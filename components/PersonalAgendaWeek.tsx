@@ -1,6 +1,6 @@
 // components/PersonalAgendaWeek.tsx
 import React, { useMemo, useContext } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
@@ -21,11 +21,39 @@ const DAY_LABELS: Record<string, string> = {
 };
 const PERIODS = [Period.MORNING, Period.AFTERNOON];
 
-const SLOT_STYLE: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-  [SlotType.CONSULTATION]: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-800', dot: 'bg-blue-500' },
-  [SlotType.RCP]:          { bg: 'bg-violet-50', border: 'border-violet-300', text: 'text-violet-800', dot: 'bg-violet-500' },
+// Base styles — used for all slot types except RCP which has dynamic status styles
+const BASE_STYLE: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  [SlotType.CONSULTATION]: { bg: 'bg-blue-50',   border: 'border-blue-300',   text: 'text-blue-800',   dot: 'bg-blue-500' },
   [SlotType.ACTIVITY]:     { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-800', dot: 'bg-orange-500' },
-  LEAVE:                   { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-500', dot: 'bg-gray-300' },
+  LEAVE:                   { bg: 'bg-gray-50',   border: 'border-gray-200',   text: 'text-gray-500',   dot: 'bg-gray-300' },
+};
+
+// RCP styles vary by confirmation status
+const RCP_STYLES = {
+  // À confirmer — look very different from confirmed (amber/warning)
+  UNCONFIRMED: {
+    bg:     'bg-amber-50',
+    border: 'border-amber-400 border-dashed',
+    text:   'text-amber-800',
+    dot:    'bg-amber-500',
+    subtext:'text-amber-600',
+  },
+  // Confirmé présent — clearly green
+  PRESENT: {
+    bg:     'bg-green-100',
+    border: 'border-green-500 border-2',
+    text:   'text-green-800',
+    dot:    'bg-green-500',
+    subtext:'text-green-600',
+  },
+  // Aucun statut (RCP programmée, sans confirmation individuelle)
+  NONE: {
+    bg:     'bg-violet-50',
+    border: 'border-violet-300',
+    text:   'text-violet-800',
+    dot:    'bg-violet-500',
+    subtext:'text-violet-500',
+  },
 };
 
 const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => {
@@ -41,8 +69,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
   const getRcpStatus = (slot: any): 'UNCONFIRMED' | 'PRESENT' | 'NONE' => {
     if (slot.type !== SlotType.RCP) return 'NONE';
     if (slot.isUnconfirmed) return 'UNCONFIRMED';
-    const attendance = rcpAttendance[slot.id];
-    if (attendance && doctorId && attendance[doctorId] === 'PRESENT') return 'PRESENT';
+    if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT') return 'PRESENT';
     return 'NONE';
   };
 
@@ -95,14 +122,19 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
           period,
           slots: schedule.filter(s =>
             s.day === day && s.period === period &&
-            (s.assignedDoctorId === doctorId || s.secondaryDoctorIds?.includes(doctorId!))
+            (
+              s.assignedDoctorId === doctorId ||
+              s.secondaryDoctorIds?.includes(doctorId!) ||
+              // Include RCP slots where the doctor was recorded as replacement (PRESENT)
+              (s.type === SlotType.RCP && rcpAttendance[s.id]?.[doctorId!] === 'PRESENT')
+            )
           ),
         };
       });
 
       return { day, date, dateStr, isToday, onLeave, periods };
     });
-  }, [schedule, doctorId, unavailabilities, weekStart]);
+  }, [schedule, doctorId, unavailabilities, weekStart, rcpAttendance]);
 
   const hasAnyActivity = days.some(d => d.periods.some(p => p.slots.length > 0));
 
@@ -164,21 +196,55 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                       <div className="h-10 rounded-lg bg-gray-50 border border-dashed border-gray-200" />
                     ) : (
                       slots.map((slot: any) => {
-                        const style = SLOT_STYLE[slot.type] ?? SLOT_STYLE[SlotType.CONSULTATION];
-                        const rcpStatus = getRcpStatus(slot);
-                        const confirmedBorder = rcpStatus === 'PRESENT' ? 'border-green-400 border-2' : '';
+                        // RCP gets dynamic styling based on confirmation status
+                        if (slot.type === SlotType.RCP) {
+                          const rcpStatus = getRcpStatus(slot);
+                          const s = RCP_STYLES[rcpStatus];
+                          return (
+                            <div key={slot.id}
+                              className={`rounded-lg border px-1.5 py-1 mb-0.5 ${s.bg} ${s.border}`}
+                              title={slot.subType || slot.location}>
+                              {/* Status badge row */}
+                              {rcpStatus !== 'NONE' && (
+                                <div className={`flex items-center gap-0.5 mb-0.5 ${s.subtext}`}>
+                                  {rcpStatus === 'UNCONFIRMED' ? (
+                                    <>
+                                      <AlertTriangle size={8} className="shrink-0" />
+                                      <span className="text-[8px] font-bold uppercase tracking-wide">À confirmer</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 size={8} className="shrink-0" />
+                                      <span className="text-[8px] font-bold uppercase tracking-wide">Confirmé</span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                              {/* Slot name */}
+                              <div className="flex items-center gap-1">
+                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.dot}`} />
+                                <span className={`text-[10px] font-semibold truncate flex-1 ${s.text}`}>
+                                  {slot.subType || slot.location}
+                                </span>
+                              </div>
+                              {slot.subType && slot.location && slot.location !== slot.subType && (
+                                <p className={`text-[9px] opacity-70 truncate ml-2.5 ${s.text}`}>{slot.location}</p>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        // Non-RCP slots (consultation, activity, leave)
+                        const style = BASE_STYLE[slot.type] ?? BASE_STYLE[SlotType.CONSULTATION];
                         return (
                           <div key={slot.id}
-                            className={`rounded-lg border px-1.5 py-1 mb-0.5 ${style.bg} ${style.border} ${confirmedBorder}`}
-                            title={`${slot.subType || slot.location}`}>
+                            className={`rounded-lg border px-1.5 py-1 mb-0.5 ${style.bg} ${style.border}`}
+                            title={slot.subType || slot.location}>
                             <div className="flex items-center gap-1">
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
                               <span className={`text-[10px] font-semibold truncate flex-1 ${style.text}`}>
                                 {slot.subType || slot.location}
                               </span>
-                              {rcpStatus === 'UNCONFIRMED' && (
-                                <AlertTriangle size={9} className="text-amber-500 shrink-0" />
-                              )}
                             </div>
                             {slot.subType && slot.location && slot.location !== slot.subType && (
                               <p className={`text-[9px] opacity-70 truncate ml-2.5 ${style.text}`}>{slot.location}</p>
@@ -196,18 +262,27 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-gray-100">
-        {[
-          { label: 'Consultation', style: SLOT_STYLE[SlotType.CONSULTATION] },
-          { label: 'RCP', style: SLOT_STYLE[SlotType.RCP] },
-          { label: 'Activité', style: SLOT_STYLE[SlotType.ACTIVITY] },
-          { label: 'Congé', style: SLOT_STYLE.LEAVE },
-        ].map(({ label, style }) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={`w-2.5 h-2.5 rounded-full ${style.dot}`} />
-            <span className="text-xs text-gray-500">{label}</span>
-          </div>
-        ))}
+      <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 pt-3 border-t border-gray-100">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+          <span className="text-xs text-gray-500">Consultation</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+          <span className="text-xs text-gray-500">RCP</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <AlertTriangle size={10} className="text-amber-500" />
+          <span className="text-xs text-gray-500">RCP à confirmer</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 size={10} className="text-green-500" />
+          <span className="text-xs text-gray-500">RCP confirmé</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+          <span className="text-xs text-gray-500">Activité</span>
+        </div>
       </div>
     </div>
   );

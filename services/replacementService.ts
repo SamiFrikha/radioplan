@@ -51,9 +51,10 @@ export const resolveReplacementRequest = async (
 
 /**
  * Accepts a replacement request AND directly assigns the target doctor to the slot.
- * - Marks replacement_requests.status = 'ACCEPTED'
- * - Merges slotId → targetDoctorId into app_settings.manual_overrides
- * - For RCP slots: upserts rcp_attendance with status PRESENT
+ *
+ * For RCP slots: upserts rcp_attendance → AppContext slice is updated by the caller.
+ * For non-RCP slots: only marks accepted — the caller updates app_settings via
+ *   setManualOverrides (AppContext wrapper) which persists correctly with RLS.
  */
 export const acceptAndAssignReplacement = async (
   requestId: string,
@@ -61,26 +62,11 @@ export const acceptAndAssignReplacement = async (
   targetDoctorId: string,
   slotType?: string
 ): Promise<ReplacementRequest> => {
-  // 1. Mark request accepted
+  // 1. Mark request accepted in DB
   const resolved = await resolveReplacementRequest(requestId, 'ACCEPTED');
 
-  // 2. Merge into app_settings.manual_overrides (singleton row id=1)
-  const { data: settings, error: settingsErr } = await supabase
-    .from('app_settings')
-    .select('id, manual_overrides')
-    .eq('id', 1)
-    .single();
-
-  if (!settingsErr && settings) {
-    const current: Record<string, string> = settings.manual_overrides ?? {};
-    const merged = { ...current, [slotId]: targetDoctorId };
-    await supabase
-      .from('app_settings')
-      .update({ manual_overrides: merged, updated_at: new Date().toISOString() })
-      .eq('id', 1);
-  }
-
-  // 3. For RCP slots: mark the accepting doctor as PRESENT in rcp_attendance
+  // 2. For RCP: persist attendance directly — the slot_id is the generated slot ID
+  //    (e.g. "rcp-HPPE Onco-Monday-2026-03-17") and rcp_attendance uses the same id.
   if (slotType === 'RCP') {
     await supabase
       .from('rcp_attendance')
@@ -89,6 +75,10 @@ export const acceptAndAssignReplacement = async (
         { onConflict: 'slot_id,doctor_id' }
       );
   }
+
+  // 3. For non-RCP (consultation, activity): the caller must call setManualOverrides
+  //    (AppContext wrapper) with { [slotId]: targetDoctorId } — that wrapper persists
+  //    via settingsService which has the correct RLS-safe upsert.
 
   return resolved;
 };

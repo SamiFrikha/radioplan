@@ -1,15 +1,84 @@
 // components/PersonalAgendaMonth.tsx
 import React, { useMemo, useContext, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
 import { SlotType, Period } from '../types';
 
-const SLOT_BG: Record<string, string> = {
-  [SlotType.CONSULTATION]: 'bg-blue-500 text-white',
-  [SlotType.RCP]:          'bg-violet-500 text-white',
-  [SlotType.ACTIVITY]:     'bg-orange-500 text-white',
+// RCP status helper
+const getRcpStatus = (
+  slot: any,
+  doctorId: string | undefined,
+  rcpAttendance: Record<string, Record<string, string>>
+): 'UNCONFIRMED' | 'PRESENT' | 'NONE' => {
+  if (slot.type !== SlotType.RCP) return 'NONE';
+  if (slot.isUnconfirmed) return 'UNCONFIRMED';
+  if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT') return 'PRESENT';
+  return 'NONE';
+};
+
+// Pill shown in the compact month grid cell — color depends on RCP status
+const SlotPill: React.FC<{
+  slot: any;
+  doctorId: string | undefined;
+  rcpAttendance: Record<string, Record<string, string>>;
+}> = ({ slot, doctorId, rcpAttendance }) => {
+  if (slot.type === SlotType.RCP) {
+    const status = getRcpStatus(slot, doctorId, rcpAttendance);
+    if (status === 'UNCONFIRMED') {
+      return (
+        <div
+          className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full
+                     bg-amber-100 text-amber-800 border border-dashed border-amber-400 flex items-center gap-0.5"
+          title={slot.subType || 'RCP — À confirmer'}
+        >
+          <AlertTriangle size={7} className="shrink-0 text-amber-600" />
+          <span className="truncate">{slot.subType || 'RCP'}</span>
+        </div>
+      );
+    }
+    if (status === 'PRESENT') {
+      return (
+        <div
+          className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full
+                     bg-green-500 text-white flex items-center gap-0.5"
+          title={slot.subType || 'RCP — Confirmé'}
+        >
+          <CheckCircle2 size={7} className="shrink-0" />
+          <span className="truncate">{slot.subType || 'RCP'}</span>
+        </div>
+      );
+    }
+    // Default RCP (no individual status)
+    return (
+      <div
+        className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full bg-violet-500 text-white"
+        title={slot.subType || 'RCP'}
+      >
+        {slot.subType || 'RCP'}
+      </div>
+    );
+  }
+
+  // Non-RCP
+  const BG: Record<string, string> = {
+    [SlotType.CONSULTATION]: 'bg-blue-500 text-white',
+    [SlotType.ACTIVITY]:     'bg-orange-500 text-white',
+  };
+  const label =
+    slot.type === SlotType.CONSULTATION ? 'Consultation' :
+    slot.type === SlotType.ACTIVITY ? (slot.subType || slot.location || 'Activité') :
+    '?';
+  const bg = BG[slot.type] ?? 'bg-gray-400 text-white';
+  return (
+    <div
+      className={`text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full ${bg}`}
+      title={label}
+    >
+      {label}
+    </div>
+  );
 };
 
 const SLOT_DOT: Record<string, string> = {
@@ -27,20 +96,6 @@ const getLabel = (slot: any): string => {
 
 const toKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-
-// Pill shown in the compact month grid cell
-const SlotPill: React.FC<{ slot: any }> = ({ slot }) => {
-  const label = getLabel(slot);
-  const bg = SLOT_BG[slot.type] ?? 'bg-gray-400 text-white';
-  return (
-    <div
-      className={`text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full ${bg}`}
-      title={label}
-    >
-      {label}
-    </div>
-  );
-};
 
 const PersonalAgendaMonth: React.FC = () => {
   const {
@@ -91,7 +146,12 @@ const PersonalAgendaMonth: React.FC = () => {
         return { ...slot, assignedDoctorId: assignedId };
       });
       for (const slot of slots) {
-        if (slot.assignedDoctorId !== doctorId && !slot.secondaryDoctorIds?.includes(doctorId)) continue;
+        // Show slot if doctor is assigned, secondary, or confirmed present via rcp_attendance
+        const isVisible =
+          slot.assignedDoctorId === doctorId ||
+          slot.secondaryDoctorIds?.includes(doctorId) ||
+          (slot.type === SlotType.RCP && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT');
+        if (!isVisible) continue;
         const key = slot.date;
         if (!result[key]) result[key] = [];
         result[key].push(slot);
@@ -154,23 +214,22 @@ const PersonalAgendaMonth: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex flex-col gap-0.5 flex-1">
-                  {/* Morning slots — all of them */}
+                  {/* Morning slots */}
                   {morningSlots.length > 0 && (
                     <div className="space-y-0.5">
                       {morningSlots.map((s: any) => (
-                        <SlotPill key={s.id} slot={s} />
+                        <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} />
                       ))}
                     </div>
                   )}
-                  {/* Divider between AM and PM if both have slots */}
                   {morningSlots.length > 0 && afternoonSlots.length > 0 && (
                     <div className="border-t border-gray-100 my-0.5" />
                   )}
-                  {/* Afternoon slots — all of them */}
+                  {/* Afternoon slots */}
                   {afternoonSlots.length > 0 && (
                     <div className="space-y-0.5">
                       {afternoonSlots.map((s: any) => (
-                        <SlotPill key={s.id} slot={s} />
+                        <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} />
                       ))}
                     </div>
                   )}
@@ -182,18 +241,12 @@ const PersonalAgendaMonth: React.FC = () => {
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 mt-3 flex-wrap">
-        {[
-          { dot: SLOT_DOT[SlotType.CONSULTATION], label: 'Consultation' },
-          { dot: SLOT_DOT[SlotType.RCP], label: 'RCP' },
-          { dot: SLOT_DOT[SlotType.ACTIVITY], label: 'Activité' },
-          { dot: 'bg-gray-300', label: 'Congé' },
-        ].map(({ dot, label }) => (
-          <div key={label} className="flex items-center gap-1.5 text-xs text-gray-500">
-            <span className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${dot}`} />
-            {label}
-          </div>
-        ))}
+      <div className="flex gap-3 mt-3 flex-wrap text-xs text-gray-500">
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />Consultation</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-violet-500 inline-block" />RCP</div>
+        <div className="flex items-center gap-1.5"><AlertTriangle size={10} className="text-amber-500" />RCP à confirmer</div>
+        <div className="flex items-center gap-1.5"><CheckCircle2 size={10} className="text-green-500" />RCP confirmé</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />Activité</div>
       </div>
 
       {/* Selected day detail panel */}
@@ -215,34 +268,44 @@ const PersonalAgendaMonth: React.FC = () => {
             const morningSlots = daySlots.filter((s: any) => s.period === Period.MORNING);
             const afternoonSlots = daySlots.filter((s: any) => s.period === Period.AFTERNOON);
 
+            const renderDetailSlot = (s: any) => {
+              const rcpStatus = getRcpStatus(s, doctorId, rcpAttendance);
+              const dotColor = s.type === SlotType.RCP
+                ? (rcpStatus === 'PRESENT' ? 'bg-green-500' : rcpStatus === 'UNCONFIRMED' ? 'bg-amber-500' : 'bg-violet-500')
+                : (SLOT_DOT[s.type] ?? 'bg-gray-300');
+              return (
+                <div key={s.id} className="flex items-center gap-2 py-1">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
+                  <span className="text-gray-700 font-medium">{getLabel(s)}</span>
+                  {s.type === SlotType.RCP && rcpStatus === 'UNCONFIRMED' && (
+                    <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">
+                      <AlertTriangle size={10} />À confirmer
+                    </span>
+                  )}
+                  {s.type === SlotType.RCP && rcpStatus === 'PRESENT' && (
+                    <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
+                      <CheckCircle2 size={10} />Confirmé
+                    </span>
+                  )}
+                  {s.location && s.location !== s.subType && (
+                    <span className="text-gray-400 text-xs">— {s.location}</span>
+                  )}
+                </div>
+              );
+            };
+
             return (
               <div className="space-y-3">
                 {morningSlots.length > 0 && (
                   <div>
                     <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">🌅 Matin</p>
-                    {morningSlots.map((s: any) => (
-                      <div key={s.id} className="flex items-center gap-2 py-1">
-                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${SLOT_DOT[s.type] ?? 'bg-gray-300'}`} />
-                        <span className="text-gray-700 font-medium">{getLabel(s)}</span>
-                        {s.location && s.location !== s.subType && (
-                          <span className="text-gray-400 text-xs">— {s.location}</span>
-                        )}
-                      </div>
-                    ))}
+                    {morningSlots.map(renderDetailSlot)}
                   </div>
                 )}
                 {afternoonSlots.length > 0 && (
                   <div>
                     <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">🌇 Après-midi</p>
-                    {afternoonSlots.map((s: any) => (
-                      <div key={s.id} className="flex items-center gap-2 py-1">
-                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${SLOT_DOT[s.type] ?? 'bg-gray-300'}`} />
-                        <span className="text-gray-700 font-medium">{getLabel(s)}</span>
-                        {s.location && s.location !== s.subType && (
-                          <span className="text-gray-400 text-xs">— {s.location}</span>
-                        )}
-                      </div>
-                    ))}
+                    {afternoonSlots.map(renderDetailSlot)}
                   </div>
                 )}
               </div>

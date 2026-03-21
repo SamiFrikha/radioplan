@@ -35,7 +35,7 @@ const NotificationSection: React.FC<{
     currentDoctorName?: string;
     userId?: string;
     currentDoctorId?: string;
-    onAssigned?: (slotId: string, doctorId: string) => void;
+    onAssigned?: (slotId: string, doctorId: string, slotType: string) => void;
 }> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId, currentDoctorId, onAssigned }) => {
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -55,7 +55,7 @@ const NotificationSection: React.FC<{
                 // Assign accepting doctor directly to the slot
                 resolved = await acceptAndAssignReplacement(requestId, slotId, currentDoctorId, slotType);
                 // Refresh AppContext so planning views update immediately
-                onAssigned?.(slotId, currentDoctorId);
+                onAssigned?.(slotId, currentDoctorId, slotType ?? '');
             } else {
                 resolved = await resolveReplacementRequest(requestId, status);
             }
@@ -1035,9 +1035,24 @@ const Profile: React.FC = () => {
                             currentDoctorName={doctors.find(d => d.id === profile?.doctor_id)?.name}
                             userId={profile?.id}
                             currentDoctorId={profile?.doctor_id ?? undefined}
-                            onAssigned={(slotId, doctorId) => {
-                                const newOverrides = { ...manualOverrides, [slotId]: doctorId };
-                                setManualOverrides(newOverrides);
+                            onAssigned={(slotId, doctorId, slotType) => {
+                                if (slotType === 'RCP') {
+                                    // Update rcpAttendance slice in AppContext so Mon Planning
+                                    // re-renders and shows the RCP for the replacement doctor.
+                                    // DB persistence was already done in acceptAndAssignReplacement.
+                                    setRcpAttendance({
+                                        ...rcpAttendance,
+                                        [slotId]: {
+                                            ...(rcpAttendance[slotId] ?? {}),
+                                            [doctorId]: 'PRESENT',
+                                        },
+                                    });
+                                } else {
+                                    // For consultation/activity: setManualOverrides (AppContext wrapper)
+                                    // updates local state AND persists via settingsService.
+                                    const newOverrides = { ...manualOverrides, [slotId]: doctorId };
+                                    setManualOverrides(newOverrides);
+                                }
                             }}
                         />
                     )}
