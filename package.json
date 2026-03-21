@@ -18,8 +18,6 @@
     "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.2",
-    "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -27,7 +25,7 @@
     "autoprefixer": "^10.4.27",
     "jimp": "^1.6.0",
     "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.2",
+    "tailwindcss": "^3.4.19",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
