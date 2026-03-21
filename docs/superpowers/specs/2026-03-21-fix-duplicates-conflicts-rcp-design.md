@@ -1,7 +1,7 @@
 # Design: Fix doublons, conflits profil, remplacement RCP
 
 **Date**: 2026-03-21
-**Statut**: Validé
+**Statut**: Validé (post-review)
 
 ## Problèmes identifiés
 
@@ -19,6 +19,7 @@
 
 ### P4 — Bugs anciens
 - Dashboard ligne 826 : `'AM'` affiché au lieu de `'Après-midi'` pour la période afternoon.
+- TeamManagement.tsx : même pattern AM/PM à vérifier et corriger.
 - Dedup DOUBLE_BOOKING dans `detectConflicts()` : la clé `type-doctorId-date-period` est identique pour les 2 slots d'une paire, donc un des deux est perdu.
 
 ---
@@ -40,22 +41,16 @@ unavailabilityService.create(newUnavail).then(savedUnavail => {
 });
 ```
 
-**Après** (corrigé):
+**Après** (corrigé) — utiliser une nouvelle fonction `syncUnavailability` :
 ```typescript
 unavailabilityService.create(newUnavail).then(savedUnavail => {
     setLocalDoctorUnavails(prev =>
         prev.map(u => u.id === newUnavail.id ? savedUnavail : u)
     );
     // Sync context state WITHOUT re-inserting in DB
-    setUnavailabilities(prev => {
-        // Prevent duplicates in state
-        if (prev.some(u => u.id === savedUnavail.id)) return prev;
-        return [...prev, savedUnavail];
-    });
+    syncUnavailability(savedUnavail);
 });
 ```
-
-**Problème**: `setUnavailabilities` n'est pas exposé dans le contexte. Solution : ajouter une nouvelle fonction `syncUnavailability(u: Unavailability)` dans le contexte qui met à jour le state sans toucher à la DB.
 
 **Nouvelle fonction dans App.tsx**:
 ```typescript
@@ -67,35 +62,44 @@ const syncUnavailability = (u: Unavailability) => {
 };
 ```
 
-Exposer `syncUnavailability` dans `AppContext` et l'utiliser dans TeamManagement.
+Exposer `syncUnavailability` dans `AppContext` et dans `AppContextType` (`types.ts`).
 
 ### 1.2 Migration DB — Nettoyage + contrainte UNIQUE
 
-**Fichier**: `supabase/migrations/20_fix_duplicate_unavailabilities.sql`
+**Fichier**: `supabase/migrations/21_fix_duplicate_unavailabilities.sql` (numéro 21, car 20 existe déjà)
+
+Approche : rendre `period` NOT NULL avec DEFAULT `'ALL_DAY'` puis contrainte UNIQUE simple (compatible avec Supabase upsert `onConflict`).
 
 ```sql
--- 1. Remove duplicate unavailabilities, keeping the oldest (smallest created_at)
+-- 1. Normalize NULL periods to 'ALL_DAY'
+UPDATE public.unavailabilities SET period = 'ALL_DAY' WHERE period IS NULL;
+
+-- 2. Make period NOT NULL with default
+ALTER TABLE public.unavailabilities
+    ALTER COLUMN period SET DEFAULT 'ALL_DAY',
+    ALTER COLUMN period SET NOT NULL;
+
+-- 3. Remove duplicate unavailabilities, keeping the oldest (smallest created_at)
 DELETE FROM public.unavailabilities
 WHERE id NOT IN (
-    SELECT DISTINCT ON (doctor_id, start_date, end_date, COALESCE(period, 'ALL_DAY'))
+    SELECT DISTINCT ON (doctor_id, start_date, end_date, period)
         id
     FROM public.unavailabilities
-    ORDER BY doctor_id, start_date, end_date, COALESCE(period, 'ALL_DAY'), created_at ASC
+    ORDER BY doctor_id, start_date, end_date, period, created_at ASC
 );
 
--- 2. Add UNIQUE constraint to prevent future duplicates
+-- 4. Add UNIQUE constraint to prevent future duplicates
 CREATE UNIQUE INDEX IF NOT EXISTS unavailabilities_unique_entry
-ON public.unavailabilities(doctor_id, start_date, end_date, COALESCE(period, 'ALL_DAY'));
+ON public.unavailabilities(doctor_id, start_date, end_date, period);
 ```
 
 ### 1.3 Dedup côté service — unavailabilityService.create()
 
 **Fichier**: `services/unavailabilityService.ts`
 
-Ajouter un `upsert` ou un check avant insert :
+Avec `period` NOT NULL et UNIQUE plain, le `onConflict` Supabase fonctionne :
 ```typescript
 async create(unavailability: Omit<Unavailability, 'id'>): Promise<Unavailability> {
-    // Use upsert with the unique constraint to prevent DB-level duplicates
     const { data, error } = await supabase
         .from('unavailabilities')
         .upsert({
@@ -112,11 +116,19 @@ async create(unavailability: Omit<Unavailability, 'id'>): Promise<Unavailability
         .single();
 
     if (error) throw error;
-    // ... map response
+
+    return {
+        id: data.id,
+        doctorId: data.doctor_id,
+        startDate: data.start_date,
+        endDate: data.end_date,
+        period: data.period,
+        reason: data.reason
+    };
 }
 ```
 
-**Note**: Si `upsert` avec `ignoreDuplicates` pose des problèmes avec Supabase, fallback sur un SELECT avant INSERT.
+**Fallback** : si `upsert` avec `ignoreDuplicates` pose des problèmes, utiliser un SELECT avant INSERT.
 
 ---
 
@@ -130,18 +142,21 @@ async create(unavailability: Omit<Unavailability, 'id'>): Promise<Unavailability
 1. Ajouter `'conflits'` au type de tab : `useState<'notifications' | 'absences' | 'preferences' | 'rcp' | 'conflits'>('rcp')`
 2. Ajouter le bouton d'onglet avec icône `AlertTriangle`
 3. Ajouter le contenu de l'onglet
+4. Ajouter les imports nécessaires : `generateScheduleForWeek`, `detectConflicts` depuis `scheduleService`
+5. Ajouter state pour le modal de résolution : `conflictModalSlot`, `conflictModalConflict`
 
 ### 2.2 Logique de détection
 
-Réutiliser le même pattern que le Dashboard :
+Réutiliser le même pattern que le Dashboard. Utiliser un **offset séparé** (`conflictsWeekOffset`) pour ne pas interférer avec la navigation de l'onglet RCP :
 ```typescript
+const [conflictsWeekOffset, setConflictsWeekOffset] = useState(0);
+
 const profileConflicts = useMemo(() => {
     if (!currentDoctor) return [];
 
-    // Generate schedule for the current profile week
     const weekStart = new Date();
     const day = weekStart.getDay();
-    weekStart.setDate(weekStart.getDate() - day + (day === 0 ? -6 : 1) + (notifWeekOffset * 7));
+    weekStart.setDate(weekStart.getDate() - day + (day === 0 ? -6 : 1) + (conflictsWeekOffset * 7));
     weekStart.setHours(0, 0, 0, 0);
 
     const weekSchedule = generateScheduleForWeek(
@@ -154,16 +169,16 @@ const profileConflicts = useMemo(() => {
 
     // Filter only conflicts concerning the current doctor
     return allConflicts.filter(c => c.doctorId === currentDoctor.id);
-}, [currentDoctor, notifWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+}, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
 ```
 
 ### 2.3 Rendu
 
-- Réutiliser la navigation semaine existante (même `notifWeekOffset` que l'onglet RCP)
-- Chaque conflit : carte cliquable avec type (badge), date, période, lieu, description
-- Au clic → ouvrir `ConflictResolverModal` avec le slot correspondant
-- État pour le modal : `conflictModalSlot` / `conflictModalConflict`
+- Navigation semaine propre à l'onglet (boutons ← →, affichage "Semaine du DD/MM")
+- Chaque conflit : carte cliquable avec type (badge coloré), date, période, lieu, description
+- Au clic → ouvrir `ConflictResolverModal` avec le slot correspondant (cherché dans `weekSchedule`)
 - Message vide : "Aucun conflit sur cette semaine"
+- Le `ConflictResolverModal` est rendu dans le Profile avec les mêmes props que dans Dashboard
 
 ---
 
@@ -172,6 +187,13 @@ const profileConflicts = useMemo(() => {
 ### 3.1 Séparation de la liste dans ConflictResolverModal
 
 **Fichier**: `components/ConflictResolverModal.tsx`
+
+**Pré-requis** : Ajouter `rcpTypes` à la destructuration du contexte (ligne 24). Actuellement seuls `effectiveHistory`, `activityDefinitions`, `rcpAttendance`, `setRcpAttendance` sont destructurés.
+
+```typescript
+// Ligne 24 — AJOUTER rcpTypes
+const { effectiveHistory, activityDefinitions, rcpAttendance, setRcpAttendance, rcpTypes } = useContext(AppContext);
+```
 
 Pour les modes `REQUEST` et `DIRECT` d'un conflit RCP :
 
@@ -194,30 +216,50 @@ const exceptionalDoctors = availableDocs.filter(d => !referentDoctorIds.has(d.id
 - Section "Autres médecins — sélection exceptionnelle (N)" avec badge orange + texte "Ce médecin n'est pas assigné à cette RCP"
 - Ordre : référents d'abord (triés par score d'équité), puis exceptionnels (même tri)
 
-### 3.2 Contexte nécessaire
-
-`ConflictResolverModal` a déjà accès à `rcpAttendance` via `AppContext`. Il faut aussi accéder à `rcpTypes` pour trouver la définition de la RCP. Vérifier si `rcpTypes` est dans le contexte (oui, il l'est).
-
-### 3.3 Affichage des RCPs exceptionnelles dans le profil
+### 3.2 Affichage des RCPs exceptionnelles dans le profil
 
 **Fichier**: `pages/Profile.tsx` — onglet RCP
 
-**Logique actuelle** (filtre par template) :
+**Logique actuelle** : le code itère `relevantTemplates` filtré par `doctorIds`/`secondaryDoctorIds`/`backupDoctorId` du template.
+
+**Ajout nécessaire** : une **seconde passe** après les RCPs standard pour trouver les RCPs exceptionnelles :
+
 ```typescript
-// Affiche seulement les RCPs où le médecin est dans doctorIds/secondaryDoctorIds/backupDoctorId
+// Second pass: find exceptional RCPs where doctor is PRESENT in rcpAttendance
+// but NOT in the template's doctor lists
+const exceptionalRcps: Array<{slot: ScheduleSlot, rcpDef: RcpDefinition}> = [];
+
+rcpTypes.forEach(rcpDef => {
+    // For each template that generates RCPs this week
+    const relevantTemplates = template.filter(t =>
+        t.type === SlotType.RCP && t.location === rcpDef.name
+    );
+
+    relevantTemplates.forEach(t => {
+        const dateStr = getDateForDayOfWeek(weekMonday, t.day);
+        const slotKey = `${t.id}-${dateStr}`;
+        const attendanceMap = rcpAttendance[slotKey] || {};
+
+        // Check if current doctor has PRESENT status
+        if (attendanceMap[currentDoctor.id] === 'PRESENT') {
+            // Check if doctor is NOT in the template's standard assignments
+            const templateDoctorIds = [
+                ...(t.doctorIds || []),
+                ...(t.secondaryDoctorIds || []),
+                ...(t.backupDoctorId ? [t.backupDoctorId] : []),
+                ...(t.defaultDoctorId ? [t.defaultDoctorId] : []),
+            ];
+
+            if (!templateDoctorIds.includes(currentDoctor.id)) {
+                // This is an exceptional assignment
+                exceptionalRcps.push({ /* slot info + rcpDef */ });
+            }
+        }
+    });
+});
 ```
 
-**Logique ajoutée** :
-```typescript
-// AUSSI inclure les RCPs où le médecin a PRESENT dans rcpAttendance
-// mais n'est PAS dans le template (= remplacement exceptionnel)
-const slotKey = `${templateSlotId}-${dateStr}`;
-const attendanceMap = rcpAttendance[slotKey] || {};
-const isExceptionalPresent = attendanceMap[currentDoctor.id] === 'PRESENT'
-    && !templateDoctorIds.includes(currentDoctor.id);
-```
-
-Ces RCPs exceptionnelles s'affichent avec un badge "Exceptionnel" (orange) dans la liste.
+Ces RCPs exceptionnelles s'affichent avec un badge "Exceptionnel" (orange) dans la liste, après les RCPs standard.
 
 **Comportement** (déjà garanti par le code existant via `rcpAttendance`) :
 - Demi-journée bloquée (`isBlocking = true`, `isUnconfirmed = false` dans `generateScheduleForWeek`)
@@ -230,10 +272,12 @@ Ces RCPs exceptionnelles s'affichent avec un badge "Exceptionnel" (orange) dans 
 
 ### 4.1 Fix AM/PM inversé
 
-**Fichier**: `pages/Dashboard.tsx` ligne 826
+**Fichier 1**: `pages/Dashboard.tsx` ligne 826
 
 **Avant**: `{slot?.period === Period.MORNING ? 'Matin' : 'AM'}`
 **Après**: `{slot?.period === Period.MORNING ? 'Matin' : 'Après-midi'}`
+
+**Fichier 2**: `pages/admin/TeamManagement.tsx` — vérifier et corriger les patterns AM/PM similaires.
 
 ### 4.2 Fix dedup DOUBLE_BOOKING
 
@@ -256,13 +300,13 @@ Ainsi les 2 entrées d'une paire double-booking survivent (elles référencent 2
 
 | Fichier | Chantier | Changement |
 |---------|----------|------------|
-| `pages/admin/TeamManagement.tsx` | 1 | Fix double insertion → `syncUnavailability()` |
+| `pages/admin/TeamManagement.tsx` | 1, 4 | Fix double insertion → `syncUnavailability()` + fix AM/PM |
 | `App.tsx` | 1 | Ajouter `syncUnavailability()` au contexte |
-| `types.ts` | 1, 2 | Ajouter `syncUnavailability` au type AppContextType |
-| `supabase/migrations/20_fix_duplicate_unavailabilities.sql` | 1 | Nettoyage + contrainte UNIQUE |
-| `services/unavailabilityService.ts` | 1 | Upsert / dedup côté service |
-| `pages/Profile.tsx` | 2, 3 | Onglet conflits + RCPs exceptionnelles dans onglet RCP |
-| `components/ConflictResolverModal.tsx` | 3 | Séparation référents/exceptionnels |
+| `types.ts` | 1 | Ajouter `syncUnavailability` au type `AppContextType` |
+| `supabase/migrations/21_fix_duplicate_unavailabilities.sql` | 1 | Nettoyage + period NOT NULL + contrainte UNIQUE |
+| `services/unavailabilityService.ts` | 1 | Upsert avec `onConflict` plain column |
+| `pages/Profile.tsx` | 2, 3 | Onglet conflits + RCPs exceptionnelles (seconde passe) |
+| `components/ConflictResolverModal.tsx` | 3 | Ajouter `rcpTypes` au destructuring + séparation référents/exceptionnels |
 | `pages/Dashboard.tsx` | 4 | Fix AM/PM |
 | `services/scheduleService.ts` | 4 | Fix dedup DOUBLE_BOOKING |
 
