@@ -823,7 +823,7 @@ const Dashboard: React.FC = () => {
                                                         ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
                                                         : slot?.day?.substring(0, 3)
                                                     }
-                                                    {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'AM'}
+                                                    {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'Après-midi'}
                                                 </span>
                                             </div>
                                             <div className="flex items-center mt-2">
