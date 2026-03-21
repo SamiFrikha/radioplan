@@ -21,7 +21,7 @@ interface Props {
 }
 
 const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots, unavailabilities, onClose, onResolve, onCloseSlot }) => {
-    const { effectiveHistory, activityDefinitions, rcpAttendance, setRcpAttendance } = useContext(AppContext);
+    const { effectiveHistory, activityDefinitions, rcpAttendance, setRcpAttendance, rcpTypes } = useContext(AppContext);
     const { profile, isAdmin, isDoctor } = useAuth();
     const [loading, setLoading] = useState(false);
     const [requestSent, setRequestSent] = useState(false);
@@ -36,6 +36,18 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
     // Is this an RCP conflict? (doctor is absent/double-booked on an RCP slot)
     const isRcpConflict = slot.type === SlotType.RCP && !!conflict;
+
+    // Compute referent doctor IDs from the RCP definition (not from slot.doctorIds which may be stale)
+    const referentDoctorIds = useMemo(() => {
+        if (!isRcpConflict) return new Set<string>();
+        const rcpDef = rcpTypes.find(r => r.name === slot.location);
+        if (!rcpDef) return new Set<string>();
+        return new Set<string>([
+            ...(rcpDef.doctorIds || []),
+            ...(rcpDef.secondaryDoctorIds || []),
+            ...(rcpDef.backupDoctorId ? [rcpDef.backupDoctorId] : []),
+        ].filter(Boolean));
+    }, [isRcpConflict, rcpTypes, slot.location]);
 
     // Double Booking Logic
     const assignedDoctor = doctors.find(d => d.id === slot.assignedDoctorId);
@@ -401,22 +413,52 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
-                                            {doctors.filter(d => d.id !== assignedDoctor?.id).map(doc => (
-                                                <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-lg hover:border-blue-300 transition">
-                                                    <span className="text-sm font-medium text-slate-700">{doc.name}</span>
-                                                    {/* flag exceptional */}
-                                                    {!slot.doctorIds?.includes(doc.id) && (
-                                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 mr-2">Exceptionnel</span>
-                                                    )}
-                                                    <button
-                                                        onClick={() => handleRequestReplacement(doc.id)}
-                                                        disabled={sendingRequestTo === doc.id}
-                                                        className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50 font-medium"
-                                                    >
-                                                        {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
-                                                    </button>
+                                            {/* Referent doctors first */}
+                                            {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).length > 0 && (
+                                                <div className="mb-1">
+                                                    <p className="text-[10px] uppercase font-bold text-green-700 mb-1.5">
+                                                        Médecins référents ({doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).length})
+                                                    </p>
+                                                    {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).map(doc => (
+                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-green-200 rounded-lg hover:border-green-400 transition mb-1.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleRequestReplacement(doc.id)}
+                                                                disabled={sendingRequestTo === doc.id}
+                                                                className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50 font-medium"
+                                                            >
+                                                                {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
+                                                            </button>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
+                                            )}
+                                            {/* Exceptional doctors */}
+                                            {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] uppercase font-bold text-amber-700 mb-1.5">
+                                                        Autres médecins — sélection exceptionnelle ({doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).length})
+                                                    </p>
+                                                    {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).map(doc => (
+                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-amber-200 rounded-lg hover:border-amber-400 transition mb-1.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                                <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleRequestReplacement(doc.id)}
+                                                                disabled={sendingRequestTo === doc.id}
+                                                                className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50 font-medium"
+                                                            >
+                                                                {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -437,16 +479,24 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         onChange={e => setRcpDirectDoctorId(e.target.value)}
                                     >
                                         <option value="">-- Choisir un médecin --</option>
-                                        {doctors.filter(d => d.id !== assignedDoctor?.id).map(doc => {
-                                            const exceptional = !slot.doctorIds?.includes(doc.id);
-                                            return (
+                                        {referentDoctorIds.size > 0 && (
+                                            <optgroup label="Médecins référents">
+                                                {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).map(doc => (
+                                                    <option key={doc.id} value={doc.id}>
+                                                        ✓ {doc.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        )}
+                                        <optgroup label="Autres — sélection exceptionnelle">
+                                            {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).map(doc => (
                                                 <option key={doc.id} value={doc.id}>
-                                                    {exceptional ? '⚠️ ' : '✓ '}{doc.name}{exceptional ? ' (remplacement exceptionnel)' : ''}
+                                                    ⚠️ {doc.name} (exceptionnel)
                                                 </option>
-                                            );
-                                        })}
+                                            ))}
+                                        </optgroup>
                                     </select>
-                                    {rcpDirectDoctorId && !slot.doctorIds?.includes(rcpDirectDoctorId) && (
+                                    {rcpDirectDoctorId && !referentDoctorIds.has(rcpDirectDoctorId) && (
                                         <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800">
                                             ⚠️ Ce médecin n'est pas dans l'affectation initiale de la RCP. Il sera ajouté exceptionnellement et bloqué sur cette demi-journée.
                                         </div>
