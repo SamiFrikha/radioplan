@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo, useContext } from 'react';
-import { Conflict, Doctor, ScheduleSlot, ReplacementSuggestion, SlotType } from '../types';
+import { Conflict, Doctor, ScheduleSlot, ReplacementSuggestion, SlotType, RcpAttendance } from '../types';
 import { getAvailableDoctors, getAlgorithmicReplacementSuggestion, findConflictingSlot, getDoctorWorkRate } from '../services/scheduleService';
-import { X, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ArrowRight, Activity, Calendar, ShieldAlert } from 'lucide-react';
+import { X, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ArrowRight, Activity, Calendar, ShieldAlert, UserX, UserPlus, Send } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
@@ -21,7 +21,7 @@ interface Props {
 }
 
 const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots, unavailabilities, onClose, onResolve, onCloseSlot }) => {
-    const { effectiveHistory, activityDefinitions } = useContext(AppContext);
+    const { effectiveHistory, activityDefinitions, rcpAttendance, setRcpAttendance } = useContext(AppContext);
     const { profile, isAdmin, isDoctor } = useAuth();
     const [loading, setLoading] = useState(false);
     const [requestSent, setRequestSent] = useState(false);
@@ -29,6 +29,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const [suggestions, setSuggestions] = useState<ReplacementSuggestion[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [manualDoctorId, setManualDoctorId] = useState<string>("");
+    // RCP-specific mode: which of the 3 options is the user choosing?
+    const [rcpMode, setRcpMode] = useState<'CHOICE' | 'REQUEST' | 'DIRECT' | null>(null);
+    const [rcpDirectDoctorId, setRcpDirectDoctorId] = useState<string>("");
+    const [rcpActionLoading, setRcpActionLoading] = useState(false);
+
+    // Is this an RCP conflict? (doctor is absent/double-booked on an RCP slot)
+    const isRcpConflict = slot.type === SlotType.RCP && !!conflict;
 
     // Double Booking Logic
     const assignedDoctor = doctors.find(d => d.id === slot.assignedDoctorId);
@@ -150,6 +157,69 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
         }
     };
 
+    // --- RCP-SPECIFIC HANDLERS ---
+
+    // 🅰️ Leave empty: mark conflicting doctor ABSENT in RCP → slot becomes unconfirmed
+    // The conflict remains visible (UNAVAILABILITY conflict stays since template still lists that doctor)
+    const handleRcpLeaveEmpty = async () => {
+        const effectiveSlot = targetSlotForReplacement ?? slot;
+        const doctorToRemove = conflict?.doctorId ?? slot.assignedDoctorId;
+        if (!doctorToRemove) { onClose(); return; }
+        setRcpActionLoading(true);
+        try {
+            const currentMap = rcpAttendance[effectiveSlot.id] || {};
+            const newMap: Record<string, 'PRESENT' | 'ABSENT'> = { ...currentMap, [doctorToRemove]: 'ABSENT' };
+            setRcpAttendance({ ...rcpAttendance, [effectiveSlot.id]: newMap });
+            await supabase.from('rcp_attendance').upsert({
+                slot_id: effectiveSlot.id,
+                doctor_id: doctorToRemove,
+                status: 'ABSENT',
+            });
+        } catch (e) {
+            console.error('[RCP] handleRcpLeaveEmpty failed:', e);
+        } finally {
+            setRcpActionLoading(false);
+        }
+        onClose(); // Close modal — slot now shows "À confirmer" (unresolved but visible)
+    };
+
+    // 🅾️ Direct replacement: mark old doctor ABSENT + new doctor PRESENT
+    // If the new doctor is not in the template, flag as exceptional replacement
+    const handleRcpDirectReplacement = async () => {
+        if (!rcpDirectDoctorId) return;
+        const effectiveSlot = targetSlotForReplacement ?? slot;
+        const doctorToRemove = conflict?.doctorId ?? slot.assignedDoctorId;
+        const isExceptional = !effectiveSlot.doctorIds?.includes(rcpDirectDoctorId);
+        setRcpActionLoading(true);
+        try {
+            const currentMap = rcpAttendance[effectiveSlot.id] || {};
+            const newMap: Record<string, 'PRESENT' | 'ABSENT'> = { ...currentMap };
+            if (doctorToRemove) newMap[doctorToRemove] = 'ABSENT';
+            newMap[rcpDirectDoctorId] = 'PRESENT';
+            setRcpAttendance({ ...rcpAttendance, [effectiveSlot.id]: newMap });
+
+            const ops: Promise<any>[] = [];
+            if (doctorToRemove) {
+                ops.push(supabase.from('rcp_attendance').upsert({
+                    slot_id: effectiveSlot.id, doctor_id: doctorToRemove, status: 'ABSENT',
+                }));
+            }
+            ops.push(supabase.from('rcp_attendance').upsert({
+                slot_id: effectiveSlot.id, doctor_id: rcpDirectDoctorId, status: 'PRESENT',
+            }));
+            await Promise.all(ops);
+
+            if (isExceptional) {
+                console.log(`[RCP] Remplacement exceptionnel : Dr ${rcpDirectDoctorId} hors affectation initiale`);
+            }
+        } catch (e) {
+            console.error('[RCP] handleRcpDirectReplacement failed:', e);
+        } finally {
+            setRcpActionLoading(false);
+        }
+        onClose();
+    };
+
     const getSlotColor = (s: ScheduleSlot) => {
         if (s.type === SlotType.RCP) return 'bg-purple-100 border-purple-200 text-purple-800';
         if (s.type === SlotType.ACTIVITY) return 'bg-orange-100 border-orange-200 text-orange-800';
@@ -250,8 +320,151 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
                 <div className="flex-1 overflow-y-auto p-6">
 
-                    {/* --- DOUBLE BOOKING DECISION UI --- */}
-                    {conflict?.type === 'DOUBLE_BOOKING' && otherSlot && assignedDoctor && (
+                    {/* ══════════════════════════════════════════════════
+                        RCP CONFLICT — 3-option resolution panel
+                        Shown whenever the conflicting slot IS an RCP.
+                    ════════════════════════════════════════════════════ */}
+                    {isRcpConflict && (
+                        <div className="mb-6">
+                            {/* Intro */}
+                            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-5">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <UserCheck className="w-5 h-5 text-purple-600" />
+                                    <span className="font-bold text-purple-800">Conflit sur une RCP</span>
+                                </div>
+                                <p className="text-sm text-purple-700">
+                                    Ce médecin est indisponible ou en double réservation sur une RCP confirmée.
+                                    La RCP bloque la demi-journée entière. Choisissez comment résoudre ce conflit.
+                                </p>
+                            </div>
+
+                            {/* Choice panel — 3 cards */}
+                            {rcpMode === 'CHOICE' || rcpMode === null ? (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                                    {/* 🅰️ Leave empty */}
+                                    <button
+                                        onClick={handleRcpLeaveEmpty}
+                                        disabled={rcpActionLoading}
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-orange-200 bg-orange-50 hover:border-orange-400 hover:bg-orange-100 transition-all disabled:opacity-50 group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center mb-2">
+                                            <UserX className="w-5 h-5 text-orange-600" />
+                                        </div>
+                                        <span className="font-bold text-sm text-orange-800">Laisser vide</span>
+                                        <span className="text-[11px] text-orange-600 mt-1 leading-tight">
+                                            Aucun médecin assigné — la RCP reste visible comme non résolue
+                                        </span>
+                                    </button>
+
+                                    {/* 🅱️ Request replacement */}
+                                    <button
+                                        onClick={() => setRcpMode('REQUEST')}
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-all group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center mb-2">
+                                            <Send className="w-5 h-5 text-blue-600" />
+                                        </div>
+                                        <span className="font-bold text-sm text-blue-800">Demander remplacement</span>
+                                        <span className="text-[11px] text-blue-600 mt-1 leading-tight">
+                                            Envoyer une demande à un médecin — il sera marqué présent s'il accepte
+                                        </span>
+                                    </button>
+
+                                    {/* 🅾️ Direct replacement */}
+                                    <button
+                                        onClick={() => setRcpMode('DIRECT')}
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-all group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 flex items-center justify-center mb-2">
+                                            <UserPlus className="w-5 h-5 text-green-600" />
+                                        </div>
+                                        <span className="font-bold text-sm text-green-800">Remplacement direct</span>
+                                        <span className="text-[11px] text-green-600 mt-1 leading-tight">
+                                            Assigner immédiatement un médecin — il est marqué présent et bloqué
+                                        </span>
+                                    </button>
+                                </div>
+                            ) : null}
+
+                            {/* 🅱️ REQUEST mode — pick a doctor to request */}
+                            {rcpMode === 'REQUEST' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
+                                    <button onClick={() => setRcpMode(null)} className="text-xs text-slate-500 hover:text-slate-700 mb-3 flex items-center gap-1">
+                                        ← Retour
+                                    </button>
+                                    <h4 className="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2">
+                                        <Send className="w-4 h-4 text-blue-600" /> Choisir un médecin à qui demander
+                                    </h4>
+                                    {requestSent ? (
+                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700 font-medium">
+                                            ✓ Demande envoyée — le médecin recevra une notification
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {doctors.filter(d => d.id !== assignedDoctor?.id).map(doc => (
+                                                <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-lg hover:border-blue-300 transition">
+                                                    <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                    {/* flag exceptional */}
+                                                    {!slot.doctorIds?.includes(doc.id) && (
+                                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 mr-2">Exceptionnel</span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleRequestReplacement(doc.id)}
+                                                        disabled={sendingRequestTo === doc.id}
+                                                        className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50 font-medium"
+                                                    >
+                                                        {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* 🅾️ DIRECT mode — pick a doctor + confirm */}
+                            {rcpMode === 'DIRECT' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
+                                    <button onClick={() => setRcpMode(null)} className="text-xs text-slate-500 hover:text-slate-700 mb-3 flex items-center gap-1">
+                                        ← Retour
+                                    </button>
+                                    <h4 className="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2">
+                                        <UserPlus className="w-4 h-4 text-green-600" /> Choisir le médecin remplaçant
+                                    </h4>
+                                    <select
+                                        className="w-full text-sm border-slate-300 rounded-lg shadow-sm focus:border-green-500 focus:ring-1 focus:ring-green-500 p-2.5 mb-3"
+                                        value={rcpDirectDoctorId}
+                                        onChange={e => setRcpDirectDoctorId(e.target.value)}
+                                    >
+                                        <option value="">-- Choisir un médecin --</option>
+                                        {doctors.filter(d => d.id !== assignedDoctor?.id).map(doc => {
+                                            const exceptional = !slot.doctorIds?.includes(doc.id);
+                                            return (
+                                                <option key={doc.id} value={doc.id}>
+                                                    {exceptional ? '⚠️ ' : '✓ '}{doc.name}{exceptional ? ' (remplacement exceptionnel)' : ''}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    {rcpDirectDoctorId && !slot.doctorIds?.includes(rcpDirectDoctorId) && (
+                                        <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800">
+                                            ⚠️ Ce médecin n'est pas dans l'affectation initiale de la RCP. Il sera ajouté exceptionnellement et bloqué sur cette demi-journée.
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={handleRcpDirectReplacement}
+                                        disabled={!rcpDirectDoctorId || rcpActionLoading}
+                                        className="w-full py-2.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        {rcpActionLoading ? 'Enregistrement…' : 'Confirmer le remplacement'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* --- DOUBLE BOOKING DECISION UI (non-RCP) --- */}
+                    {!isRcpConflict && conflict?.type === 'DOUBLE_BOOKING' && otherSlot && assignedDoctor && (
                         <div className="mb-8">
                             <h3 className="text-md font-bold text-slate-700 mb-4 text-center">
                                 {assignedDoctor.name} est assigné à deux activités simultanément. Que souhaitez-vous faire ?
@@ -320,8 +533,8 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                         </div>
                     )}
 
-                    {/* --- REPLACEMENT SUGGESTIONS --- */}
-                    {resolutionStrategy && targetSlotForReplacement && (
+                    {/* --- REPLACEMENT SUGGESTIONS (non-RCP only) --- */}
+                    {!isRcpConflict && resolutionStrategy && targetSlotForReplacement && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-md font-bold text-slate-800 flex items-center">

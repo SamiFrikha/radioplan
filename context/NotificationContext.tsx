@@ -69,8 +69,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const clearAll = async () => {
     if (!userId) return;
-    await deleteAllNotifications(userId);
+    // Optimistic update: clear immediately so the UI feels instant
+    const previous = notifications;
     setNotifications([]);
+    try {
+      await deleteAllNotifications(userId);
+    } catch (err) {
+      // Revert if the backend delete failed
+      console.error('[notifications] clearAll failed:', err);
+      setNotifications(previous);
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;

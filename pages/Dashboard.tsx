@@ -310,14 +310,26 @@ const Dashboard: React.FC = () => {
         const filledSlots = filteredSlots.filter(s => s.assignedDoctorId).length;
         const occupancy = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
 
+        // Build the strict date range for the currently displayed period so
+        // conflicts from a previous navigation state can never bleed through.
+        const weekEnd = new Date(currentWeekStart);
+        weekEnd.setDate(weekEnd.getDate() + 4);
+        const weekStartStr = currentWeekStart.toISOString().split('T')[0];
+        const weekEndStr = weekEnd.toISOString().split('T')[0];
+
         let relevantConflicts = [];
         if (viewMode === 'DAY') {
+            // Only conflicts whose slot falls on the exact selected day
             relevantConflicts = conflicts.filter(c => {
                 const slot = schedule.find(s => s.id === c.slotId);
                 return slot && slot.date === dateStr;
             });
         } else {
-            relevantConflicts = conflicts;
+            // Only conflicts whose slot falls within the displayed week (Mon–Fri)
+            relevantConflicts = conflicts.filter(c => {
+                const slot = schedule.find(s => s.id === c.slotId);
+                return slot && slot.date >= weekStartStr && slot.date <= weekEndStr;
+            });
         }
 
         let absentees = [];
@@ -809,8 +821,12 @@ const Dashboard: React.FC = () => {
                                                 <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase">
                                                     {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : 'Indisponibilité'}
                                                 </span>
-                                                <span className="text-[10px] text-slate-400 font-mono">
-                                                    {slot?.day.substring(0, 3)} {slot?.period === Period.MORNING ? 'AM' : 'PM'}
+                                                <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                                                    {slot?.date
+                                                        ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+                                                        : slot?.day?.substring(0, 3)
+                                                    }
+                                                    {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'AM'}
                                                 </span>
                                             </div>
                                             <div className="flex items-center mt-2">
