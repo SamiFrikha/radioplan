@@ -20,19 +20,45 @@ export const unavailabilityService = {
     },
 
     async create(unavailability: Omit<Unavailability, 'id'>): Promise<Unavailability> {
+        const payload = {
+            doctor_id: unavailability.doctorId,
+            start_date: unavailability.startDate,
+            end_date: unavailability.endDate,
+            period: unavailability.period || 'ALL_DAY',
+            reason: unavailability.reason
+        };
+
+        // Try insert first; if duplicate (UNIQUE violation), fetch the existing row
         const { data, error } = await supabase
             .from('unavailabilities')
-            .insert({
-                doctor_id: unavailability.doctorId,
-                start_date: unavailability.startDate,
-                end_date: unavailability.endDate,
-                period: unavailability.period,
-                reason: unavailability.reason
-            })
+            .insert(payload)
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            // 23505 = unique_violation — duplicate already exists, fetch it
+            if (error.code === '23505') {
+                const { data: existing } = await supabase
+                    .from('unavailabilities')
+                    .select('*')
+                    .eq('doctor_id', payload.doctor_id)
+                    .eq('start_date', payload.start_date)
+                    .eq('end_date', payload.end_date)
+                    .eq('period', payload.period)
+                    .single();
+                if (existing) {
+                    return {
+                        id: existing.id,
+                        doctorId: existing.doctor_id,
+                        startDate: existing.start_date,
+                        endDate: existing.end_date,
+                        period: existing.period,
+                        reason: existing.reason
+                    };
+                }
+            }
+            throw error;
+        }
 
         return {
             id: data.id,
