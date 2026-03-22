@@ -47,7 +47,12 @@ const NotificationSection: React.FC<{
 
     const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
         const requestId = n.data?.requestId as string | undefined;
-        if (!requestId) return;
+        console.log('%c[REPLACEMENT] ▶ start', 'color:cyan;font-weight:bold', { status, requestId, notifData: n.data, currentDoctorId });
+
+        if (!requestId) {
+            console.error('[REPLACEMENT] ❌ STOP — no requestId in notification.data', n.data);
+            return;
+        }
         setActionLoading(requestId);
         try {
             let slotId: string | undefined;
@@ -57,40 +62,51 @@ const NotificationSection: React.FC<{
             let period: string | undefined;
 
             if (status === 'ACCEPTED') {
-                if (!currentDoctorId) throw new Error('No doctor profile linked to this account');
+                if (!currentDoctorId) {
+                    console.error('[REPLACEMENT] ❌ STOP — currentDoctorId is null/undefined. Profile has no doctor linked.');
+                    throw new Error('No doctor profile linked to this account');
+                }
 
-                // Call backend RPC — atomically marks ACCEPTED + assigns slot (SECURITY DEFINER bypasses RLS)
+                console.log('[REPLACEMENT] 1️⃣ calling RPC accept_replacement …', { requestId, currentDoctorId });
                 const { data: result, error: rpcError } = await supabase.rpc('accept_replacement', {
                     p_request_id: requestId,
                     p_acceptor_doctor_id: currentDoctorId,
                 });
+                console.log('[REPLACEMENT] 1️⃣ RPC result:', { result, rpcError });
+
                 if (rpcError) throw rpcError;
                 if (result?.error) throw new Error(result.error as string);
 
                 slotId            = result.slot_id as string;
                 slotType          = (result.slot_type as string) ?? '';
                 requesterDoctorId = result.requester_doctor_id as string;
+                console.log('[REPLACEMENT] 1️⃣ RPC success — slot assigned in DB ✅', { slotId, slotType, requesterDoctorId });
 
-                // DB already updated — just sync React state
+                console.log('[REPLACEMENT] 2️⃣ syncing React state via onAccepted …', { slotId, slotType });
                 if (slotId) {
                     await onAccepted?.(slotId, currentDoctorId, requesterDoctorId ?? '', slotType);
+                    console.log('[REPLACEMENT] 2️⃣ React state synced ✅');
+                } else {
+                    console.warn('[REPLACEMENT] 2️⃣ slotId missing in RPC result — state NOT synced');
                 }
             } else {
-                // REJECTED: fetch info first (for notification), then mark resolved
-                const { data: reqRow } = await supabase
+                console.log('[REPLACEMENT] 1️⃣ REJECTED — fetching request info …');
+                const { data: reqRow, error: selErr } = await supabase
                     .from('replacement_requests')
                     .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
                     .eq('id', requestId)
                     .single();
+                console.log('[REPLACEMENT] 1️⃣ SELECT result:', { reqRow, selErr });
                 slotId            = reqRow?.slot_id;
                 slotType          = reqRow?.slot_type ?? '';
                 requesterDoctorId = reqRow?.requester_doctor_id;
                 slotDate          = reqRow?.slot_date;
                 period            = reqRow?.period;
                 await markReplacementResolved(requestId, 'REJECTED');
+                console.log('[REPLACEMENT] 1️⃣ marked REJECTED ✅');
             }
 
-            // Notify the original requester
+            console.log('[REPLACEMENT] 3️⃣ notifying requester …', { requesterDoctorId });
             if (requesterDoctorId) {
                 const { data: requesterProfile } = await supabase
                     .from('profiles').select('id').eq('doctor_id', requesterDoctorId).single();
@@ -103,16 +119,21 @@ const NotificationSection: React.FC<{
                         data: { requestId, slotId, slotType },
                         read: false,
                     });
+                    console.log('[REPLACEMENT] 3️⃣ requester notified ✅');
+                } else {
+                    console.warn('[REPLACEMENT] 3️⃣ requester profile not found for doctor_id:', requesterDoctorId);
                 }
+            } else {
+                console.warn('[REPLACEMENT] 3️⃣ no requesterDoctorId — skipping notification');
             }
 
-            // Stamp notification with resolution result
             await supabase.from('notifications')
                 .update({ data: { ...n.data, resolution: status }, read: true })
                 .eq('id', n.id);
             setResolvedMap(prev => ({ ...prev, [n.id]: status }));
+            console.log('%c[REPLACEMENT] ✅ DONE', 'color:lime;font-weight:bold');
         } catch (e) {
-            console.error('[handleReplacement] error:', e);
+            console.error('%c[REPLACEMENT] ❌ CAUGHT ERROR', 'color:red;font-weight:bold', e);
         } finally {
             setActionLoading(null);
         }
