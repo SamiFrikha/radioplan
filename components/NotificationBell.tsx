@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../context/NotificationContext';
 import { supabase } from '../services/supabaseClient';
 import { AppNotification } from '../types';
-import { resolveReplacementRequest } from '../services/replacementService';
+import { markReplacementResolved } from '../services/replacementService';
 import { createNotification } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import { AppContext } from '../App';
@@ -30,43 +30,88 @@ const ReplacementActions: React.FC<{
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState<'ACCEPTED' | 'REJECTED' | null>(null);
   const { profile } = useAuth();
-  const { doctors } = useContext(AppContext);
+  const { doctors, manualOverrides, setManualOverrides, rcpAttendance, setRcpAttendance } = useContext(AppContext);
   const { refresh } = useNotifications();
-  const currentDoctorName = doctors.find(d => d.id === profile?.doctor_id)?.name;
+  const currentDoctorId = profile?.doctor_id ?? undefined;
+  const currentDoctorName = doctors.find(d => d.id === currentDoctorId)?.name;
 
   const handle = async (status: 'ACCEPTED' | 'REJECTED') => {
     setLoading(true);
     try {
-      const resolved = await resolveReplacementRequest(requestId, status);
+      let slotId: string | undefined;
+      let slotType = '';
+      let requesterDoctorId: string | undefined;
+      let slotDate: string | undefined;
+      let period: string | undefined;
 
-      const { data: requesterProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('doctor_id', resolved.requesterDoctorId)
-        .single();
+      if (status === 'ACCEPTED') {
+        if (!currentDoctorId) throw new Error('No doctor profile linked to this account');
 
-      if (requesterProfile) {
-        await createNotification({
-          user_id: requesterProfile.id,
-          type: status === 'ACCEPTED' ? 'REPLACEMENT_ACCEPTED' : 'REPLACEMENT_REJECTED',
-          title: status === 'ACCEPTED' ? 'Remplacement accepté ✅' : 'Remplacement refusé ❌',
-          body: `${currentDoctorName ? `Dr. ${currentDoctorName} a ` : ''}${status === 'ACCEPTED' ? 'accepté' : 'refusé'} votre demande de remplacement pour le ${resolved.slotDate} (${resolved.period}).`,
-          data: { requestId, slotId: resolved.slotId },
-          read: false,
+        // Atomically marks ACCEPTED + assigns slot in DB (SECURITY DEFINER bypasses RLS)
+        const { data: result, error: rpcError } = await supabase.rpc('accept_replacement', {
+          p_request_id: requestId,
+          p_acceptor_doctor_id: currentDoctorId,
         });
+        if (rpcError) throw rpcError;
+        if (result?.error) throw new Error(result.error as string);
+
+        slotId            = result.slot_id as string;
+        slotType          = (result.slot_type as string) ?? '';
+        requesterDoctorId = result.requester_doctor_id as string;
+
+        // Sync React state so the UI reflects the change immediately
+        if (slotId) {
+          if (slotType === 'RCP') {
+            const currentMap = rcpAttendance[slotId] ?? {};
+            const newMap: Record<string, 'PRESENT' | 'ABSENT'> = { ...currentMap };
+            if (requesterDoctorId) newMap[requesterDoctorId] = 'ABSENT';
+            newMap[currentDoctorId] = 'PRESENT';
+            setRcpAttendance({ ...rcpAttendance, [slotId]: newMap });
+          } else {
+            setManualOverrides({ ...manualOverrides, [slotId]: currentDoctorId });
+          }
+        }
+      } else {
+        // REJECTED: fetch info for notification, then mark resolved
+        const { data: reqRow } = await supabase
+          .from('replacement_requests')
+          .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
+          .eq('id', requestId)
+          .single();
+        slotId            = reqRow?.slot_id;
+        slotType          = reqRow?.slot_type ?? '';
+        requesterDoctorId = reqRow?.requester_doctor_id;
+        slotDate          = reqRow?.slot_date;
+        period            = reqRow?.period;
+        await markReplacementResolved(requestId, 'REJECTED');
       }
 
-      // Persist resolution in DB so Profile tab picks it up
+      // Notify requester
+      if (requesterDoctorId) {
+        const { data: requesterProfile } = await supabase
+          .from('profiles').select('id').eq('doctor_id', requesterDoctorId).single();
+        if (requesterProfile) {
+          await createNotification({
+            user_id: requesterProfile.id,
+            type: status === 'ACCEPTED' ? 'REPLACEMENT_ACCEPTED' : 'REPLACEMENT_REJECTED',
+            title: status === 'ACCEPTED' ? 'Remplacement accepté ✅' : 'Remplacement refusé ❌',
+            body: `${currentDoctorName ? `Dr. ${currentDoctorName} a ` : ''}${status === 'ACCEPTED' ? 'accepté' : 'refusé'} votre demande de remplacement${slotDate ? ` pour le ${slotDate}` : ''}${period ? ` (${period})` : ''}.`,
+            data: { requestId, slotId, slotType },
+            read: false,
+          });
+        }
+      }
+
+      // Stamp notification resolved
       await supabase.from('notifications')
         .update({ data: { requestId, resolution: status }, read: true })
         .eq('id', notificationId);
 
       setConfirmed(status);
       onResolved();
-      // Refresh full notification list so Profile reflects the new data.resolution
       await refresh();
     } catch (e) {
-      console.error(e);
+      console.error('[NotificationBell] handleReplacement error:', e);
     } finally {
       setLoading(false);
     }
