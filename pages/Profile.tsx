@@ -35,8 +35,9 @@ const NotificationSection: React.FC<{
     currentDoctorName?: string;
     userId?: string;
     currentDoctorId?: string;
-    onAssigned?: (slotId: string, doctorId: string, slotType: string) => void;
-}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId, currentDoctorId, onAssigned }) => {
+    // Called after ACCEPTED — caller owns AppContext update (mirrors ConflictResolverModal)
+    onAccepted?: (slotId: string, acceptorDoctorId: string, requesterDoctorId: string, slotType: string) => void;
+}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId, currentDoctorId, onAccepted }) => {
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [clearing, setClearing] = useState(false);
@@ -50,15 +51,16 @@ const NotificationSection: React.FC<{
         if (!requestId) return;
         setActionLoading(requestId);
         try {
-            let resolved;
+            // Always resolve the request first (gets us requesterDoctorId)
+            const resolved = await resolveReplacementRequest(requestId, status);
+
             if (status === 'ACCEPTED' && slotId && currentDoctorId) {
-                // Assign accepting doctor directly to the slot
-                resolved = await acceptAndAssignReplacement(requestId, slotId, currentDoctorId, slotType);
-                // Refresh AppContext so planning views update immediately
-                onAssigned?.(slotId, currentDoctorId, slotType ?? '');
-            } else {
-                resolved = await resolveReplacementRequest(requestId, status);
+                // Delegate AppContext + DB assignment to the parent — same logic
+                // as ConflictResolverModal's handleRcpDirectReplacement / handleResolve
+                onAccepted?.(slotId, currentDoctorId, resolved.requesterDoctorId, slotType ?? '');
             }
+
+            // Notify the original requester of the outcome
             const { data: requesterProfile } = await supabase
                 .from('profiles').select('id').eq('doctor_id', resolved.requesterDoctorId).single();
             if (requesterProfile) {
@@ -71,7 +73,7 @@ const NotificationSection: React.FC<{
                     read: false,
                 });
             }
-            // Persist resolution in notification's data so it survives page refresh
+            // Stamp the notification with resolution so it survives page refresh
             await supabase.from('notifications')
                 .update({ data: { requestId, slotId: resolved.slotId, slotType, resolution: status }, read: true })
                 .eq('id', n.id);
@@ -1035,23 +1037,31 @@ const Profile: React.FC = () => {
                             currentDoctorName={doctors.find(d => d.id === profile?.doctor_id)?.name}
                             userId={profile?.id}
                             currentDoctorId={profile?.doctor_id ?? undefined}
-                            onAssigned={(slotId, doctorId, slotType) => {
+                            onAccepted={async (slotId, acceptorId, requesterId, slotType) => {
                                 if (slotType === 'RCP') {
-                                    // Update rcpAttendance slice in AppContext so Mon Planning
-                                    // re-renders and shows the RCP for the replacement doctor.
-                                    // DB persistence was already done in acceptAndAssignReplacement.
-                                    setRcpAttendance({
-                                        ...rcpAttendance,
-                                        [slotId]: {
-                                            ...(rcpAttendance[slotId] ?? {}),
-                                            [doctorId]: 'PRESENT',
-                                        },
-                                    });
+                                    // Mirror handleRcpDirectReplacement in ConflictResolverModal:
+                                    // mark requester ABSENT + acceptor PRESENT
+                                    const currentMap = rcpAttendance[slotId] ?? {};
+                                    const newMap = {
+                                        ...currentMap,
+                                        [requesterId]: 'ABSENT' as const,
+                                        [acceptorId]:  'PRESENT' as const,
+                                    };
+                                    setRcpAttendance({ ...rcpAttendance, [slotId]: newMap });
+                                    await Promise.all([
+                                        supabase.from('rcp_attendance').upsert(
+                                            { slot_id: slotId, doctor_id: requesterId, status: 'ABSENT' },
+                                            { onConflict: 'slot_id,doctor_id' }
+                                        ),
+                                        supabase.from('rcp_attendance').upsert(
+                                            { slot_id: slotId, doctor_id: acceptorId, status: 'PRESENT' },
+                                            { onConflict: 'slot_id,doctor_id' }
+                                        ),
+                                    ]);
                                 } else {
-                                    // For consultation/activity: setManualOverrides (AppContext wrapper)
-                                    // updates local state AND persists via settingsService.
-                                    const newOverrides = { ...manualOverrides, [slotId]: doctorId };
-                                    setManualOverrides(newOverrides);
+                                    // Mirror handleResolve in Dashboard:
+                                    // setManualOverrides wrapper updates AppContext + persists to DB
+                                    setManualOverrides({ ...manualOverrides, [slotId]: acceptorId });
                                 }
                             }}
                         />
