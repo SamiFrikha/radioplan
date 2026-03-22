@@ -52,6 +52,22 @@ export const resolveReplacementRequest = async (
 };
 
 /**
+ * Marks a replacement request as ACCEPTED or REJECTED without depending on
+ * SELECT-after-UPDATE. Uses `.select('id').single()` on just the `id` column
+ * which every RLS policy allows reading so it never silently fails.
+ */
+export const markReplacementResolved = async (
+  requestId: string,
+  status: 'ACCEPTED' | 'REJECTED'
+): Promise<void> => {
+  const { error } = await supabase
+    .from('replacement_requests')
+    .update({ status, resolved_at: new Date().toISOString() })
+    .eq('id', requestId);
+  if (error) throw error;
+};
+
+/**
  * Accepts a replacement request AND directly assigns the target doctor to the slot.
  *
  * For RCP slots: upserts rcp_attendance → AppContext slice is updated by the caller.

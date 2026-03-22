@@ -177,7 +177,14 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     type: 'REPLACEMENT_REQUEST',
                     title: 'Demande de remplacement',
                     body: `Dr ${requesterDoctor?.name ?? 'Inconnu'} vous demande de le remplacer : ${effectiveSlot.subType ?? effectiveSlot.location} le ${effectiveSlot.date} (${effectiveSlot.period})`,
-                    data: { requestId, slotId: effectiveSlot.id, slotType: effectiveSlot.type },
+                    data: {
+                        requestId,
+                        slotId: effectiveSlot.id,
+                        slotType: effectiveSlot.type,
+                        requesterDoctorId: conflictDoctorId,
+                        slotDate: effectiveSlot.date,
+                        period: effectiveSlot.period,
+                    },
                     read: false,
                 });
             }
