@@ -50,31 +50,47 @@ const NotificationSection: React.FC<{
         if (!requestId) return;
         setActionLoading(requestId);
         try {
-            // Always fetch slot info from replacement_requests table directly —
-            // notification.data may not have slotId/slotType for older notifications.
-            // The RLS policy allows both requester and target doctor to SELECT their rows.
-            const { data: reqRow } = await supabase
-                .from('replacement_requests')
-                .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
-                .eq('id', requestId)
-                .single();
+            let slotId: string | undefined;
+            let slotType = '';
+            let requesterDoctorId: string | undefined;
+            let slotDate: string | undefined;
+            let period: string | undefined;
 
-            const slotId            = (reqRow?.slot_id            ?? n.data?.slotId)            as string | undefined;
-            const slotType          = (reqRow?.slot_type           ?? n.data?.slotType          ?? '') as string;
-            const requesterDoctorId = (reqRow?.requester_doctor_id ?? n.data?.requesterDoctorId) as string | undefined;
-            const slotDate          = (reqRow?.slot_date           ?? n.data?.slotDate)          as string | undefined;
-            const period            = (reqRow?.period              ?? n.data?.period)            as string | undefined;
+            if (status === 'ACCEPTED') {
+                if (!currentDoctorId) throw new Error('No doctor profile linked to this account');
 
-            // 1. Mark the request resolved — pure UPDATE, no SELECT dependency
-            await markReplacementResolved(requestId, status);
+                // Call backend RPC — atomically marks ACCEPTED + assigns slot (SECURITY DEFINER bypasses RLS)
+                const { data: result, error: rpcError } = await supabase.rpc('accept_replacement', {
+                    p_request_id: requestId,
+                    p_acceptor_doctor_id: currentDoctorId,
+                });
+                if (rpcError) throw rpcError;
+                if (result?.error) throw new Error(result.error as string);
 
-            // 2. Apply the slot assignment (ACCEPTED only)
-            if (status === 'ACCEPTED' && slotId && currentDoctorId) {
-                await onAccepted?.(slotId, currentDoctorId, requesterDoctorId ?? '', slotType);
-                console.log('[replacement] accepted:', { slotId, slotType, acceptorId: currentDoctorId, requesterDoctorId });
+                slotId            = result.slot_id as string;
+                slotType          = (result.slot_type as string) ?? '';
+                requesterDoctorId = result.requester_doctor_id as string;
+
+                // DB already updated — just sync React state
+                if (slotId) {
+                    await onAccepted?.(slotId, currentDoctorId, requesterDoctorId ?? '', slotType);
+                }
+            } else {
+                // REJECTED: fetch info first (for notification), then mark resolved
+                const { data: reqRow } = await supabase
+                    .from('replacement_requests')
+                    .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
+                    .eq('id', requestId)
+                    .single();
+                slotId            = reqRow?.slot_id;
+                slotType          = reqRow?.slot_type ?? '';
+                requesterDoctorId = reqRow?.requester_doctor_id;
+                slotDate          = reqRow?.slot_date;
+                period            = reqRow?.period;
+                await markReplacementResolved(requestId, 'REJECTED');
             }
 
-            // 3. Notify the original requester
+            // Notify the original requester
             if (requesterDoctorId) {
                 const { data: requesterProfile } = await supabase
                     .from('profiles').select('id').eq('doctor_id', requesterDoctorId).single();
@@ -90,7 +106,7 @@ const NotificationSection: React.FC<{
                 }
             }
 
-            // 4. Stamp notification with resolution result
+            // Stamp notification with resolution result
             await supabase.from('notifications')
                 .update({ data: { ...n.data, resolution: status }, read: true })
                 .eq('id', n.id);
@@ -1055,28 +1071,17 @@ const Profile: React.FC = () => {
                             userId={profile?.id}
                             currentDoctorId={profile?.doctor_id ?? undefined}
                             onAccepted={async (slotId, acceptorId, requesterId, slotType) => {
+                                // DB already updated atomically by the accept_replacement RPC.
+                                // Here we only sync React state so the UI reflects the change immediately.
                                 if (slotType === 'RCP') {
-                                    // Mark requester ABSENT (if known) + acceptor PRESENT
                                     const currentMap = rcpAttendance[slotId] ?? {};
                                     const newMap: Record<string, 'PRESENT' | 'ABSENT'> = { ...currentMap };
                                     if (requesterId) newMap[requesterId] = 'ABSENT';
                                     newMap[acceptorId] = 'PRESENT';
                                     setRcpAttendance({ ...rcpAttendance, [slotId]: newMap });
-                                    await supabase.from('rcp_attendance').upsert(
-                                        { slot_id: slotId, doctor_id: acceptorId, status: 'PRESENT' },
-                                        { onConflict: 'slot_id,doctor_id' }
-                                    );
-                                    if (requesterId) {
-                                        await supabase.from('rcp_attendance').upsert(
-                                            { slot_id: slotId, doctor_id: requesterId, status: 'ABSENT' },
-                                            { onConflict: 'slot_id,doctor_id' }
-                                        );
-                                    }
                                 } else {
-                                    // Consultation/Activity: update manual override in state + DB
-                                    const newOverrides = { ...manualOverrides, [slotId]: acceptorId };
-                                    setManualOverrides(newOverrides); // React state (wrapper also persists)
-                                    await settingsService.update({ manualOverrides: newOverrides });
+                                    // setManualOverrides is the AppContext wrapper — also persists to DB (idempotent)
+                                    setManualOverrides({ ...manualOverrides, [slotId]: acceptorId });
                                 }
                             }}
                         />
