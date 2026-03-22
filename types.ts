@@ -234,6 +234,7 @@ export interface ReplacementRequest {
   period: Period;
   activityName: string;
   slotId: string;
+  slotType?: string;        // SlotType enum value stored for reliable accept logic
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
   created_at: string;
   resolved_at?: string;

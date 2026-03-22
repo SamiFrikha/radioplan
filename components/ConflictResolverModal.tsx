@@ -161,6 +161,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                 period: effectiveSlot.period,
                 activityName: effectiveSlot.subType ?? effectiveSlot.location,
                 slotId: effectiveSlot.id,
+                slotType: effectiveSlot.type,
             });
 
             const { data: targetProfile } = await supabase

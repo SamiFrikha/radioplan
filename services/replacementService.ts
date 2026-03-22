@@ -10,6 +10,7 @@ const mapRow = (r: any): ReplacementRequest => ({
   period: r.period as Period,
   activityName: r.activity_name,
   slotId: r.slot_id,
+  slotType: r.slot_type ?? undefined,
   status: r.status,
   created_at: r.created_at,
   resolved_at: r.resolved_at,
@@ -27,6 +28,7 @@ export const sendReplacementRequest = async (
       period: req.period,
       activity_name: req.activityName,
       slot_id: req.slotId,
+      slot_type: req.slotType ?? null,
       status: 'PENDING',
     })
     .select('id')

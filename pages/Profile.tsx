@@ -46,18 +46,20 @@ const NotificationSection: React.FC<{
 
     const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
         const requestId = n.data?.requestId as string | undefined;
-        const slotId = n.data?.slotId as string | undefined;
-        const slotType = n.data?.slotType as string | undefined;
         if (!requestId) return;
         setActionLoading(requestId);
         try {
-            // Always resolve the request first (gets us requesterDoctorId)
+            // Resolve first — response contains slotId + slotType from DB (always reliable)
             const resolved = await resolveReplacementRequest(requestId, status);
 
+            // slotId and slotType come from the DB row, never from notification.data
+            // (old notifications may not have these fields in their data)
+            const slotId = resolved.slotId;
+            const slotType = resolved.slotType ?? '';
+
             if (status === 'ACCEPTED' && slotId && currentDoctorId) {
-                // Delegate AppContext + DB assignment to the parent — same logic
-                // as ConflictResolverModal's handleRcpDirectReplacement / handleResolve
-                onAccepted?.(slotId, currentDoctorId, resolved.requesterDoctorId, slotType ?? '');
+                // Delegate AppContext + DB assignment to parent — mirrors ConflictResolverModal
+                onAccepted?.(slotId, currentDoctorId, resolved.requesterDoctorId, slotType);
             }
 
             // Notify the original requester of the outcome
@@ -75,7 +77,7 @@ const NotificationSection: React.FC<{
             }
             // Stamp the notification with resolution so it survives page refresh
             await supabase.from('notifications')
-                .update({ data: { requestId, slotId: resolved.slotId, slotType, resolution: status }, read: true })
+                .update({ data: { requestId, slotId: resolved.slotId, slotType: resolved.slotType, resolution: status }, read: true })
                 .eq('id', n.id);
             setResolvedMap(prev => ({ ...prev, [n.id]: status }));
         } catch (e) {
