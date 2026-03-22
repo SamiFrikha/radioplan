@@ -50,14 +50,20 @@ const NotificationSection: React.FC<{
         if (!requestId) return;
         setActionLoading(requestId);
         try {
-            // Use notification.data as the primary source of truth for slot info —
-            // it is written at notification-creation time and never depends on a
-            // SELECT-after-UPDATE that can fail silently under RLS policies.
-            const slotId           = n.data?.slotId           as string | undefined;
-            const slotType         = (n.data?.slotType        as string | undefined) ?? '';
-            const requesterDoctorId = n.data?.requesterDoctorId as string | undefined;
-            const slotDate         = n.data?.slotDate         as string | undefined;
-            const period           = n.data?.period           as string | undefined;
+            // Always fetch slot info from replacement_requests table directly —
+            // notification.data may not have slotId/slotType for older notifications.
+            // The RLS policy allows both requester and target doctor to SELECT their rows.
+            const { data: reqRow } = await supabase
+                .from('replacement_requests')
+                .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
+                .eq('id', requestId)
+                .single();
+
+            const slotId            = (reqRow?.slot_id            ?? n.data?.slotId)            as string | undefined;
+            const slotType          = (reqRow?.slot_type           ?? n.data?.slotType          ?? '') as string;
+            const requesterDoctorId = (reqRow?.requester_doctor_id ?? n.data?.requesterDoctorId) as string | undefined;
+            const slotDate          = (reqRow?.slot_date           ?? n.data?.slotDate)          as string | undefined;
+            const period            = (reqRow?.period              ?? n.data?.period)            as string | undefined;
 
             // 1. Mark the request resolved — pure UPDATE, no SELECT dependency
             await markReplacementResolved(requestId, status);
