@@ -8,7 +8,8 @@ import {
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
     Plus, Loader2, Tag
 } from 'lucide-react';
-import { resolveReplacementRequest, acceptAndAssignReplacement } from '../services/replacementService';
+import { markReplacementResolved } from '../services/replacementService';
+import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
 import { createNotification } from '../services/notificationService';
 import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot } from '../types';
@@ -36,7 +37,7 @@ const NotificationSection: React.FC<{
     userId?: string;
     currentDoctorId?: string;
     // Called after ACCEPTED — caller owns AppContext update (mirrors ConflictResolverModal)
-    onAccepted?: (slotId: string, acceptorDoctorId: string, requesterDoctorId: string, slotType: string) => void;
+    onAccepted?: (slotId: string, acceptorDoctorId: string, requesterDoctorId: string, slotType: string) => Promise<void>;
 }> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId, currentDoctorId, onAccepted }) => {
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -49,39 +50,47 @@ const NotificationSection: React.FC<{
         if (!requestId) return;
         setActionLoading(requestId);
         try {
-            // Resolve first — response contains slotId + slotType from DB (always reliable)
-            const resolved = await resolveReplacementRequest(requestId, status);
+            // Use notification.data as the primary source of truth for slot info —
+            // it is written at notification-creation time and never depends on a
+            // SELECT-after-UPDATE that can fail silently under RLS policies.
+            const slotId           = n.data?.slotId           as string | undefined;
+            const slotType         = (n.data?.slotType        as string | undefined) ?? '';
+            const requesterDoctorId = n.data?.requesterDoctorId as string | undefined;
+            const slotDate         = n.data?.slotDate         as string | undefined;
+            const period           = n.data?.period           as string | undefined;
 
-            // slotId and slotType come from the DB row, never from notification.data
-            // (old notifications may not have these fields in their data)
-            const slotId = resolved.slotId;
-            const slotType = resolved.slotType ?? '';
+            // 1. Mark the request resolved — pure UPDATE, no SELECT dependency
+            await markReplacementResolved(requestId, status);
 
+            // 2. Apply the slot assignment (ACCEPTED only)
             if (status === 'ACCEPTED' && slotId && currentDoctorId) {
-                // Delegate AppContext + DB assignment to parent — mirrors ConflictResolverModal
-                onAccepted?.(slotId, currentDoctorId, resolved.requesterDoctorId, slotType);
+                await onAccepted?.(slotId, currentDoctorId, requesterDoctorId ?? '', slotType);
+                console.log('[replacement] accepted:', { slotId, slotType, acceptorId: currentDoctorId, requesterDoctorId });
             }
 
-            // Notify the original requester of the outcome
-            const { data: requesterProfile } = await supabase
-                .from('profiles').select('id').eq('doctor_id', resolved.requesterDoctorId).single();
-            if (requesterProfile) {
-                await createNotification({
-                    user_id: requesterProfile.id,
-                    type: status === 'ACCEPTED' ? 'REPLACEMENT_ACCEPTED' : 'REPLACEMENT_REJECTED',
-                    title: status === 'ACCEPTED' ? 'Remplacement accepté ✅' : 'Remplacement refusé ❌',
-                    body: `${currentDoctorName ? `Dr. ${currentDoctorName} a ` : ''}${status === 'ACCEPTED' ? 'accepté' : 'refusé'} votre demande de remplacement pour le ${resolved.slotDate} (${resolved.period}).`,
-                    data: { requestId, slotId: resolved.slotId },
-                    read: false,
-                });
+            // 3. Notify the original requester
+            if (requesterDoctorId) {
+                const { data: requesterProfile } = await supabase
+                    .from('profiles').select('id').eq('doctor_id', requesterDoctorId).single();
+                if (requesterProfile) {
+                    await createNotification({
+                        user_id: requesterProfile.id,
+                        type: status === 'ACCEPTED' ? 'REPLACEMENT_ACCEPTED' : 'REPLACEMENT_REJECTED',
+                        title: status === 'ACCEPTED' ? 'Remplacement accepté ✅' : 'Remplacement refusé ❌',
+                        body: `${currentDoctorName ? `Dr. ${currentDoctorName} a ` : ''}${status === 'ACCEPTED' ? 'accepté' : 'refusé'} votre demande de remplacement${slotDate ? ` pour le ${slotDate}` : ''}${period ? ` (${period})` : ''}.`,
+                        data: { requestId, slotId, slotType },
+                        read: false,
+                    });
+                }
             }
-            // Stamp the notification with resolution so it survives page refresh
+
+            // 4. Stamp notification with resolution result
             await supabase.from('notifications')
-                .update({ data: { requestId, slotId: resolved.slotId, slotType: resolved.slotType, resolution: status }, read: true })
+                .update({ data: { ...n.data, resolution: status }, read: true })
                 .eq('id', n.id);
             setResolvedMap(prev => ({ ...prev, [n.id]: status }));
         } catch (e) {
-            console.error(e);
+            console.error('[handleReplacement] error:', e);
         } finally {
             setActionLoading(null);
         }
@@ -1041,29 +1050,27 @@ const Profile: React.FC = () => {
                             currentDoctorId={profile?.doctor_id ?? undefined}
                             onAccepted={async (slotId, acceptorId, requesterId, slotType) => {
                                 if (slotType === 'RCP') {
-                                    // Mirror handleRcpDirectReplacement in ConflictResolverModal:
-                                    // mark requester ABSENT + acceptor PRESENT
+                                    // Mark requester ABSENT (if known) + acceptor PRESENT
                                     const currentMap = rcpAttendance[slotId] ?? {};
-                                    const newMap = {
-                                        ...currentMap,
-                                        [requesterId]: 'ABSENT' as const,
-                                        [acceptorId]:  'PRESENT' as const,
-                                    };
+                                    const newMap: Record<string, 'PRESENT' | 'ABSENT'> = { ...currentMap };
+                                    if (requesterId) newMap[requesterId] = 'ABSENT';
+                                    newMap[acceptorId] = 'PRESENT';
                                     setRcpAttendance({ ...rcpAttendance, [slotId]: newMap });
-                                    await Promise.all([
-                                        supabase.from('rcp_attendance').upsert(
+                                    await supabase.from('rcp_attendance').upsert(
+                                        { slot_id: slotId, doctor_id: acceptorId, status: 'PRESENT' },
+                                        { onConflict: 'slot_id,doctor_id' }
+                                    );
+                                    if (requesterId) {
+                                        await supabase.from('rcp_attendance').upsert(
                                             { slot_id: slotId, doctor_id: requesterId, status: 'ABSENT' },
                                             { onConflict: 'slot_id,doctor_id' }
-                                        ),
-                                        supabase.from('rcp_attendance').upsert(
-                                            { slot_id: slotId, doctor_id: acceptorId, status: 'PRESENT' },
-                                            { onConflict: 'slot_id,doctor_id' }
-                                        ),
-                                    ]);
+                                        );
+                                    }
                                 } else {
-                                    // Mirror handleResolve in Dashboard:
-                                    // setManualOverrides wrapper updates AppContext + persists to DB
-                                    setManualOverrides({ ...manualOverrides, [slotId]: acceptorId });
+                                    // Consultation/Activity: update manual override in state + DB
+                                    const newOverrides = { ...manualOverrides, [slotId]: acceptorId };
+                                    setManualOverrides(newOverrides); // React state (wrapper also persists)
+                                    await settingsService.update({ manualOverrides: newOverrides });
                                 }
                             }}
                         />
