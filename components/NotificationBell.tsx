@@ -36,6 +36,7 @@ const ReplacementActions: React.FC<{
   const currentDoctorName = doctors.find(d => d.id === currentDoctorId)?.name;
 
   const handle = async (status: 'ACCEPTED' | 'REJECTED') => {
+    console.log('%c[BELL] ▶ handle click', 'color:cyan;font-weight:bold', { status, requestId, currentDoctorId, notificationId });
     setLoading(true);
     try {
       let slotId: string | undefined;
@@ -45,48 +46,60 @@ const ReplacementActions: React.FC<{
       let period: string | undefined;
 
       if (status === 'ACCEPTED') {
-        if (!currentDoctorId) throw new Error('No doctor profile linked to this account');
+        if (!currentDoctorId) {
+          console.error('[BELL] ❌ currentDoctorId is null — profile has no doctor linked');
+          throw new Error('No doctor profile linked to this account');
+        }
 
-        // Atomically marks ACCEPTED + assigns slot in DB (SECURITY DEFINER bypasses RLS)
+        console.log('[BELL] 1️⃣ calling RPC accept_replacement…', { requestId, currentDoctorId });
         const { data: result, error: rpcError } = await supabase.rpc('accept_replacement', {
           p_request_id: requestId,
           p_acceptor_doctor_id: currentDoctorId,
         });
+        console.log('[BELL] 1️⃣ RPC response:', { result, rpcError });
+
         if (rpcError) throw rpcError;
         if (result?.error) throw new Error(result.error as string);
 
         slotId            = result.slot_id as string;
         slotType          = (result.slot_type as string) ?? '';
         requesterDoctorId = result.requester_doctor_id as string;
+        console.log('[BELL] 1️⃣ RPC success ✅', { slotId, slotType, requesterDoctorId });
 
-        // Sync React state so the UI reflects the change immediately
         if (slotId) {
+          console.log('[BELL] 2️⃣ syncing React state…', { slotType });
           if (slotType === 'RCP') {
             const currentMap = rcpAttendance[slotId] ?? {};
             const newMap: Record<string, 'PRESENT' | 'ABSENT'> = { ...currentMap };
             if (requesterDoctorId) newMap[requesterDoctorId] = 'ABSENT';
             newMap[currentDoctorId] = 'PRESENT';
             setRcpAttendance({ ...rcpAttendance, [slotId]: newMap });
+            console.log('[BELL] 2️⃣ rcpAttendance updated ✅', newMap);
           } else {
             setManualOverrides({ ...manualOverrides, [slotId]: currentDoctorId });
+            console.log('[BELL] 2️⃣ manualOverrides updated ✅', { [slotId]: currentDoctorId });
           }
+        } else {
+          console.warn('[BELL] 2️⃣ slotId missing in RPC result — state NOT synced');
         }
       } else {
-        // REJECTED: fetch info for notification, then mark resolved
-        const { data: reqRow } = await supabase
+        console.log('[BELL] 1️⃣ REJECTED — fetching request info…');
+        const { data: reqRow, error: selErr } = await supabase
           .from('replacement_requests')
           .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
           .eq('id', requestId)
           .single();
+        console.log('[BELL] 1️⃣ SELECT:', { reqRow, selErr });
         slotId            = reqRow?.slot_id;
         slotType          = reqRow?.slot_type ?? '';
         requesterDoctorId = reqRow?.requester_doctor_id;
         slotDate          = reqRow?.slot_date;
         period            = reqRow?.period;
         await markReplacementResolved(requestId, 'REJECTED');
+        console.log('[BELL] 1️⃣ marked REJECTED ✅');
       }
 
-      // Notify requester
+      console.log('[BELL] 3️⃣ notifying requester…', { requesterDoctorId });
       if (requesterDoctorId) {
         const { data: requesterProfile } = await supabase
           .from('profiles').select('id').eq('doctor_id', requesterDoctorId).single();
@@ -99,19 +112,22 @@ const ReplacementActions: React.FC<{
             data: { requestId, slotId, slotType },
             read: false,
           });
+          console.log('[BELL] 3️⃣ requester notified ✅');
+        } else {
+          console.warn('[BELL] 3️⃣ requester profile not found for doctor_id:', requesterDoctorId);
         }
       }
 
-      // Stamp notification resolved
       await supabase.from('notifications')
         .update({ data: { requestId, resolution: status }, read: true })
         .eq('id', notificationId);
 
       setConfirmed(status);
       onResolved();
+      console.log('%c[BELL] ✅ DONE', 'color:lime;font-weight:bold');
       await refresh();
     } catch (e) {
-      console.error('[NotificationBell] handleReplacement error:', e);
+      console.error('%c[BELL] ❌ ERROR', 'color:red;font-weight:bold', e);
     } finally {
       setLoading(false);
     }
