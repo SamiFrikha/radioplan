@@ -749,32 +749,28 @@ const Dashboard: React.FC = () => {
             {/* Dynamic Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
                 <StatCard
-                    title={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
+                    label={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
                     value={stats.presentDoctorsCount}
                     icon={Users}
-                    color="bg-blue-500"
-                    description={`Disponibles sur ${doctors.length} effectifs`}
+                    color="blue"
                 />
                 <StatCard
-                    title={viewMode === 'DAY' ? "Conflits (Jour)" : "Conflits (Semaine)"}
+                    label={viewMode === 'DAY' ? "Conflits (Jour)" : "Conflits (Semaine)"}
                     value={stats.conflictCount}
                     icon={AlertTriangle}
-                    color={stats.conflictCount > 0 ? "bg-red-500" : "bg-green-500"}
-                    description={stats.conflictCount > 0 ? "Action requise" : "Tout est calme"}
+                    color={stats.conflictCount > 0 ? "red" : "green"}
                 />
                 <StatCard
-                    title={viewMode === 'DAY' ? "Activités Prévues" : "Total Créneaux"}
+                    label={viewMode === 'DAY' ? "Activités Prévues" : "Total Créneaux"}
                     value={stats.totalActivities}
                     icon={Activity}
-                    color="bg-orange-500"
-                    description={viewMode === 'DAY' ? "Consultations & RCP" : "Charge globale"}
+                    color="amber"
                 />
                 <StatCard
-                    title="Taux de Remplissage"
+                    label="Taux de Remplissage"
                     value={`${stats.occupancy}%`}
                     icon={Clock}
-                    color="bg-purple-500"
-                    description="Créneaux assignés"
+                    color="blue"
                 />
             </div>
 

@@ -1,24 +1,32 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
 
+type StatCardColor = 'blue' | 'red' | 'green' | 'amber';
+
+const colorClasses: Record<StatCardColor, { icon: string; value: string }> = {
+  blue:  { icon: 'bg-[#EFF6FF] text-primary',       value: 'text-text-base' },
+  red:   { icon: 'bg-[#FEF2F2] text-accent-red',    value: 'text-accent-red' },
+  green: { icon: 'bg-[#F0FDF4] text-accent-green',  value: 'text-accent-green' },
+  amber: { icon: 'bg-[#FFFBEB] text-accent-amber',  value: 'text-accent-amber' },
+};
+
 interface StatCardProps {
-  title: string;
-  value: string | number;
   icon: LucideIcon;
-  color: string;
-  description?: string;
+  value: string | number;
+  label: string;
+  color?: StatCardColor;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, description }) => {
+const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label, color = 'blue' }) => {
+  const colors = colorClasses[color];
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 md:p-6 flex items-start space-x-3 md:space-x-4">
-      <div className={`p-2 md:p-3 rounded-lg ${color} bg-opacity-10`}>
-        <Icon className={`w-4 h-4 md:w-6 md:h-6 ${color.replace('bg-', 'text-')}`} />
+    <div className="bg-surface border border-border rounded-card shadow-card p-4 flex items-center gap-3.5">
+      <div className={`w-10 h-10 rounded-card flex items-center justify-center flex-shrink-0 ${colors.icon}`}>
+        <Icon className="w-5 h-5" aria-hidden="true" />
       </div>
-      <div className="min-w-0">
-        <h3 className="text-slate-500 text-[10px] md:text-sm font-medium uppercase tracking-wide truncate">{title}</h3>
-        <div className="mt-0.5 md:mt-1 text-lg md:text-2xl font-bold text-slate-900">{value}</div>
-        {description && <p className="mt-0.5 md:mt-1 text-[10px] md:text-sm text-slate-400 hidden sm:block">{description}</p>}
+      <div>
+        <p className={`font-heading font-bold text-[26px] leading-none ${colors.value}`}>{value}</p>
+        <p className="text-[12px] text-text-muted mt-0.5">{label}</p>
       </div>
     </div>
   );
