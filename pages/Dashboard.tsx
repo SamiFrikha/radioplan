@@ -8,6 +8,7 @@ import { Users, AlertTriangle, Calendar, Activity, Clock, ChevronLeft, ChevronRi
 import { DayOfWeek, Period, SlotType, Doctor, ScheduleSlot, Conflict, RcpException } from '../types';
 import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConflicts, isFrenchHoliday, getFrenchHolidays } from '../services/scheduleService';
 import { getDoctorHexColor } from '../components/DoctorBadge';
+import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
 
 const Dashboard: React.FC = () => {
     const {
@@ -394,7 +395,7 @@ const Dashboard: React.FC = () => {
 
         const renderSlotList = (slots: typeof daySlots) => (
             <div className="space-y-2">
-                {slots.length === 0 ? <p className="text-sm text-slate-400 italic">Aucune activité prévue.</p> :
+                {slots.length === 0 ? <p className="text-sm text-text-muted italic">Aucune activité prévue.</p> :
                     slots.map(s => {
                         const doc = doctors.find(d => d.id === s.assignedDoctorId);
                         const isRcpUnconfirmed = s.type === SlotType.RCP && s.isUnconfirmed;
@@ -417,13 +418,13 @@ const Dashboard: React.FC = () => {
                         }
 
                         return (
-                            <div key={s.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
+                            <div key={s.id} className="flex items-center justify-between p-2 bg-muted rounded-lg border border-border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
                                 <div className="flex items-center flex-1 min-w-0">
                                     {isRcpUnconfirmed ? (
                                         <div className="flex flex-col">
                                             <span className="text-[10px] text-yellow-700 bg-yellow-100 px-1 rounded font-bold mb-1 w-fit">⚠️ À confirmer</span>
-                                            <div className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Référents :</div>
-                                            <div className="text-xs text-slate-500 italic">
+                                            <div className="text-[9px] text-text-muted uppercase font-bold mb-0.5">Référents :</div>
+                                            <div className="text-xs text-text-muted italic">
                                                 {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].map(id => doctors.find(d => d.id === id)?.name).filter(Boolean).join(', ')}
                                             </div>
                                         </div>
@@ -459,15 +460,15 @@ const Dashboard: React.FC = () => {
                                                 {doc ? doc.name.substring(0, 2) : '?'}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="text-sm font-bold text-slate-700 flex items-center truncate">
+                                                <div className="text-sm font-bold text-text-base flex items-center truncate">
                                                     {doc ? doc.name : 'Non assigné'}
                                                 </div>
-                                                <div className="text-xs text-slate-500">{s.type} {s.subType && `• ${s.subType}`}</div>
+                                                <div className="text-xs text-text-muted">{s.type} {s.subType && `• ${s.subType}`}</div>
                                             </div>
                                         </>
                                     )}
                                 </div>
-                                <div className="text-xs font-bold bg-white px-2 py-1 rounded border border-slate-200 text-slate-600 flex-shrink-0 ml-2">
+                                <div className="text-xs font-bold bg-white px-2 py-1 rounded border border-border text-text-muted flex-shrink-0 ml-2">
                                     {s.location}
                                 </div>
                             </div>
@@ -479,7 +480,7 @@ const Dashboard: React.FC = () => {
 
         return (
             <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6 h-full overflow-auto">
-                <div className="bg-white rounded-xl border border-slate-200 flex flex-col">
+                <div className="bg-white rounded-xl border border-border flex flex-col">
                     <div className="p-2 md:p-3 bg-yellow-50 border-b border-yellow-100 text-yellow-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
                         <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Matin
                     </div>
@@ -487,7 +488,7 @@ const Dashboard: React.FC = () => {
                         {renderSlotList(morningSlots)}
                     </div>
                 </div>
-                <div className="bg-white rounded-xl border border-slate-200 flex flex-col">
+                <div className="bg-white rounded-xl border border-border flex flex-col">
                     <div className="p-2 md:p-3 bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
                         <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Après-midi
                     </div>
@@ -526,30 +527,30 @@ const Dashboard: React.FC = () => {
                         const rcps = daySlots.filter(s => s.type === SlotType.RCP);
 
                         return (
-                            <div key={day} className={`flex flex-col border rounded-lg overflow-hidden ${isToday ? 'ring-2 ring-blue-400 border-blue-400' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className={`text-[9px] md:text-xs font-bold text-center py-1 md:py-2 uppercase ${isToday ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                            <div key={day} className={`flex flex-col border rounded-lg overflow-hidden ${isToday ? 'ring-2 ring-blue-400 border-blue-400' : 'bg-muted border-border'}`}>
+                                <div className={`text-[9px] md:text-xs font-bold text-center py-1 md:py-2 uppercase ${isToday ? 'bg-blue-500 text-white' : 'bg-border text-text-base'}`}>
                                     {day.substring(0, 3)} <span className="block text-[8px] md:text-[9px] font-normal opacity-80">{date.split('-').slice(1).reverse().join('/')}</span>
                                 </div>
                                 <div className="p-1 md:p-2 space-y-1 md:space-y-2 flex-1 bg-white">
                                     {/* Key Roles Summary - Only show activities that have assignments */}
                                     {(docAstreinte || docUnity) && (
-                                        <div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">Clés</div>
+                                        <div className="text-[8px] md:text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5 md:mb-1">Clés</div>
                                     )}
 
                                     {astreinte?.assignedDoctorId && docAstreinte && (
                                         <div className="flex items-center justify-between bg-red-50 p-1 md:p-1.5 rounded border border-red-200 border-l-4 border-l-red-500">
                                             <span className="text-[8px] md:text-[9px] text-red-700 font-bold">Astr.</span>
-                                            <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
+                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
                                         </div>
                                     )}
                                     {unity?.assignedDoctorId && docUnity && (
                                         <div className="flex items-center justify-between bg-orange-50 p-1 md:p-1.5 rounded border border-orange-200 border-l-4 border-l-orange-500">
                                             <span className="text-[8px] md:text-[9px] text-orange-700 font-bold">UNITY</span>
-                                            <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
+                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
                                         </div>
                                     )}
 
-                                    {(docAstreinte || docUnity) && <div className="h-px bg-slate-100 my-1 md:my-2"></div>}
+                                    {(docAstreinte || docUnity) && <div className="h-px bg-border my-1 md:my-2"></div>}
 
                                     {/* Workflow if applicable */}
                                     {(() => {
@@ -563,16 +564,16 @@ const Dashboard: React.FC = () => {
                                             <>
                                                 <div className="flex items-center justify-between bg-emerald-50 p-1 md:p-1.5 rounded border border-emerald-200 border-l-4 border-l-emerald-500">
                                                     <span className="text-[8px] md:text-[9px] text-emerald-700 font-bold">Wrkflw</span>
-                                                    <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
+                                                    <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
                                                 </div>
-                                                <div className="h-px bg-slate-100 my-1 md:my-2"></div>
+                                                <div className="h-px bg-border my-1 md:my-2"></div>
                                             </>
                                         ) : null;
                                     })()}
 
                                     {/* RCPs Summary */}
-                                    <div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">RCPs</div>
-                                    {rcps.length === 0 ? <span className="text-[9px] text-slate-300 italic">Aucune</span> : (
+                                    <div className="text-[8px] md:text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5 md:mb-1">RCPs</div>
+                                    {rcps.length === 0 ? <span className="text-[9px] text-text-muted italic">Aucune</span> : (
                                         <div className="space-y-1">
                                             {rcps.map(rcp => {
                                                 if (rcp.isUnconfirmed) {
@@ -587,10 +588,10 @@ const Dashboard: React.FC = () => {
                                                                 <span className="text-[8px] text-purple-700 font-bold truncate max-w-[50px]">{rcp.location}</span>
                                                                 <span className="text-[8px] text-yellow-700 font-bold">⚠️ À confirmer</span>
                                                             </div>
-                                                            <div className="text-[6px] text-slate-400 uppercase font-bold mb-0.5">Référents :</div>
+                                                            <div className="text-[6px] text-text-muted uppercase font-bold mb-0.5">Référents :</div>
                                                             <div className="flex flex-wrap gap-0.5">
                                                                 {referentNames.map(name => (
-                                                                    <span key={name} className="text-[7px] bg-white border border-slate-200 px-1 rounded text-slate-500 italic">
+                                                                    <span key={name} className="text-[7px] bg-white border border-border px-1 rounded text-text-muted italic">
                                                                         {name}
                                                                     </span>
                                                                 ))}
@@ -627,11 +628,11 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     )}
 
-                                    <div className="h-px bg-slate-100 my-2"></div>
+                                    <div className="h-px bg-border my-2"></div>
 
                                     {/* Consult Activity Count - Blue for consultations (Box 1-3) */}
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] text-slate-500">Consultations</span>
+                                        <span className="text-[10px] text-text-muted">Consultations</span>
                                         <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 rounded border border-blue-200">
                                             {daySlots.filter(s => s.type === SlotType.CONSULTATION).length}
                                         </span>
@@ -695,59 +696,55 @@ const Dashboard: React.FC = () => {
 
 
     return (
-        <div className="space-y-4 md:space-y-6 h-full flex flex-col">
-            {/* Header Controls */}
-            <div className="flex flex-col gap-3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                            <button
-                                onClick={() => setViewMode('DAY')}
-                                className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'DAY' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <LayoutList className="w-4 h-4 md:mr-2" />
-                                <span className="hidden md:inline">Vue Jour</span>
-                            </button>
-                            <button
-                                onClick={() => setViewMode('WEEK')}
-                                className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'WEEK' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <LayoutGrid className="w-4 h-4 md:mr-2" />
-                                <span className="hidden md:inline">Vue Semaine</span>
-                            </button>
-                        </div>
-                        <div>
-                            <h1 className="text-sm md:text-xl font-bold text-slate-800 capitalize">
-                                {viewMode === 'DAY'
-                                    ? selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                                    : `Semaine du ${currentWeekStart.toLocaleDateString('fr-FR')}`
-                                }
-                            </h1>
-                        </div>
+        <div className="space-y-4 lg:space-y-6">
+            {/* Page header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="flex bg-muted p-1 rounded-lg">
+                        <button
+                            onClick={() => setViewMode('DAY')}
+                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'DAY' ? 'bg-white shadow text-primary' : 'text-text-muted hover:bg-border'}`}
+                        >
+                            <LayoutList className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Vue Jour</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('WEEK')}
+                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'WEEK' ? 'bg-white shadow text-primary' : 'text-text-muted hover:bg-border'}`}
+                        >
+                            <LayoutGrid className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Vue Semaine</span>
+                        </button>
                     </div>
+                    <h1 className="font-heading font-bold text-xl lg:text-[22px] text-text-base capitalize">
+                        {viewMode === 'DAY'
+                            ? selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                            : `Semaine du ${currentWeekStart.toLocaleDateString('fr-FR')}`
+                        }
+                    </h1>
+                </div>
 
-                    <div className="flex items-center space-x-2">
-                        <button onClick={() => handleTimeChange('prev')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
-                            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
-                        </button>
-                        <div className="relative">
-                            <input
-                                type="date"
-                                className="pl-7 md:pl-8 pr-2 py-1 md:py-1.5 border border-slate-300 rounded-md text-xs md:text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 md:w-auto"
-                                value={selectedDate.toISOString().split('T')[0]}
-                                onChange={handleDateChange}
-                            />
-                            <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 absolute left-2 md:left-2.5 top-2 md:top-2.5 pointer-events-none" />
-                        </div>
-                        <button onClick={() => handleTimeChange('next')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
-                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-                        </button>
+                <div className="flex items-center space-x-2">
+                    <button onClick={() => handleTimeChange('prev')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border">
+                        <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
+                    <div className="relative">
+                        <input
+                            type="date"
+                            className="pl-7 md:pl-8 pr-2 py-1 md:py-1.5 border border-border rounded-md text-xs md:text-sm text-text-base focus:outline-none focus:ring-2 focus:ring-primary w-32 md:w-auto"
+                            value={selectedDate.toISOString().split('T')[0]}
+                            onChange={handleDateChange}
+                        />
+                        <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-text-muted absolute left-2 md:left-2.5 top-2 md:top-2.5 pointer-events-none" />
                     </div>
+                    <button onClick={() => handleTimeChange('next')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border">
+                        <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                    </button>
                 </div>
             </div>
 
             {/* Dynamic Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
                 <StatCard
                     label={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
                     value={stats.presentDoctorsCount}
@@ -774,24 +771,24 @@ const Dashboard: React.FC = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
                 {/* Left: Alerts, Absences & UNASSIGNED */}
-                <div className="lg:col-span-1 flex flex-col gap-3 md:gap-4 overflow-hidden max-h-[250px] md:max-h-[600px] overflow-y-auto">
+                <div className="lg:col-span-1 flex flex-col gap-3 lg:gap-4">
 
                     {/* ALERTES */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
-                        <div className="p-3 md:p-4 border-b border-slate-100 bg-red-50/50">
-                            <h2 className="font-bold text-slate-800 flex items-center justify-between text-sm md:text-base">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
                                 <span className="flex items-center">
-                                    <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+                                    <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
                                     Alertes {viewMode === 'DAY' ? 'du jour' : 'de la semaine'}
                                 </span>
-                                <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">{stats.filteredConflicts.length}</span>
-                            </h2>
-                        </div>
-                        <div className="p-3 md:p-4 max-h-48 md:max-h-80 overflow-y-auto space-y-2 md:space-y-3">
+                            </CardTitle>
+                            <Badge variant={stats.filteredConflicts.length > 0 ? 'red' : 'gray'}>{stats.filteredConflicts.length}</Badge>
+                        </CardHeader>
+                        <CardBody className="max-h-48 md:max-h-80 overflow-y-auto space-y-2 md:space-y-3">
                             {stats.filteredConflicts.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-20 text-slate-400">
+                                <div className="flex flex-col items-center justify-center h-20 text-text-muted">
                                     <span className="text-sm">Aucun conflit détecté.</span>
                                 </div>
                             ) : (
@@ -811,10 +808,10 @@ const Dashboard: React.FC = () => {
                                             className="p-3 bg-white border border-red-100 rounded-lg shadow-sm hover:border-red-300 hover:shadow-md transition-all cursor-pointer relative group"
                                         >
                                             <div className="flex justify-between items-start mb-1">
-                                                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase">
+                                                <Badge variant="red">
                                                     {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : 'Indisponibilité'}
-                                                </span>
-                                                <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                                                </Badge>
+                                                <span className="text-[10px] text-text-muted font-mono flex items-center gap-1">
                                                     {slot?.date
                                                         ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
                                                         : slot?.day?.substring(0, 3)
@@ -829,143 +826,138 @@ const Dashboard: React.FC = () => {
                                                 >
                                                     Dr
                                                 </div>
-                                                <p className="text-sm font-bold text-slate-700">{doc?.name || 'Inconnu'}</p>
+                                                <p className="text-sm font-bold text-text-base">{doc?.name || 'Inconnu'}</p>
                                             </div>
-                                            <p className="text-xs text-slate-500 mt-1 pl-8">{conflict.description}</p>
+                                            <p className="text-xs text-text-muted mt-1 pl-8">{conflict.description}</p>
                                             {locationDetail && (
                                                 <div className="mt-2 pl-8">
-                                                    <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                                                    <span className="text-[10px] font-medium text-text-muted bg-muted px-2 py-1 rounded">
                                                         {locationDetail}
                                                     </span>
                                                 </div>
                                             )}
 
                                             <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 rounded-lg transition-colors pointer-events-none" />
-                                            <div className="absolute right-2 bottom-2 text-xs text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="absolute right-2 bottom-2 text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                                                 Résoudre →
                                             </div>
                                         </div>
                                     );
                                 })
                             )}
-                        </div>
-                    </div>
+                        </CardBody>
+                    </Card>
 
                     {/* RCPs ON HOLIDAYS ALERT */}
                     {rcpsOnHolidays.length > 0 && (
-                        <div className="bg-white rounded-xl shadow-sm border border-orange-200 flex flex-col shrink-0">
-                            <div className="p-4 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50">
-                                <h2 className="font-bold text-slate-800 flex items-center justify-between">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
                                     <span className="flex items-center">
-                                        <CalendarX2 className="w-5 h-5 mr-2 text-orange-500" />
+                                        <CalendarX2 className="w-4 h-4 mr-2 text-orange-500" />
                                         RCP sur Jour Férié
                                     </span>
-                                    <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold">
-                                        {rcpsOnHolidays.length}
-                                    </span>
-                                </h2>
-                                <p className="text-[10px] text-orange-600 mt-1">
+                                </CardTitle>
+                                <Badge variant="amber">{rcpsOnHolidays.length}</Badge>
+                            </CardHeader>
+                            <CardBody>
+                                <p className="text-[10px] text-orange-600 mb-3">
                                     Ces RCP tombent sur un jour férié ({selectedDate.toLocaleDateString('fr-FR', { month: 'long' })} & {new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1).toLocaleDateString('fr-FR', { month: 'long' })}). Cliquez pour les déplacer.
                                 </p>
-                            </div>
-                            <div className="p-3 max-h-80 overflow-y-auto space-y-2">
-                                {rcpsOnHolidays.map(({ slot, holiday, weekStart }) => {
-                                    const allDoctorIds = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean);
-                                    const formattedDate = new Date(slot.date).toLocaleDateString('fr-FR', {
-                                        weekday: 'long',
-                                        day: 'numeric',
-                                        month: 'long',
-                                        year: 'numeric'
-                                    });
-                                    const isConfirmed = !slot.isUnconfirmed;
+                                <div className="max-h-80 overflow-y-auto space-y-2">
+                                    {rcpsOnHolidays.map(({ slot, holiday, weekStart }) => {
+                                        const allDoctorIds = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean);
+                                        const formattedDate = new Date(slot.date).toLocaleDateString('fr-FR', {
+                                            weekday: 'long',
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric'
+                                        });
+                                        const isConfirmed = !slot.isUnconfirmed;
 
-                                    return (
-                                        <div
-                                            key={slot.id}
-                                            onClick={() => setRcpExceptionSlot(slot)}
-                                            className="p-3 bg-gradient-to-r from-orange-50 to-white border border-orange-200 rounded-lg hover:border-orange-400 hover:shadow-md transition-all cursor-pointer relative group"
-                                        >
-                                            {/* Top row: Holiday badge + Status */}
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-200">
-                                                    ⚠️ {holiday.name}
-                                                </span>
-                                                {/* Status badge */}
-                                                {isConfirmed ? (
-                                                    <span className="text-[9px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded border border-green-200">
-                                                        ✓ Confirmée
+                                        return (
+                                            <div
+                                                key={slot.id}
+                                                onClick={() => setRcpExceptionSlot(slot)}
+                                                className="p-3 bg-gradient-to-r from-orange-50 to-white border border-orange-200 rounded-lg hover:border-orange-400 hover:shadow-md transition-all cursor-pointer relative group"
+                                            >
+                                                {/* Top row: Holiday badge + Status */}
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <Badge variant="amber">⚠️ {holiday.name}</Badge>
+                                                    {isConfirmed ? (
+                                                        <Badge variant="green">✓ Confirmée</Badge>
+                                                    ) : (
+                                                        <Badge variant="amber">⚠ À confirmer</Badge>
+                                                    )}
+                                                </div>
+
+                                                {/* RCP Name & Date */}
+                                                <div className="flex items-center mb-1">
+                                                    <MapPin className="w-4 h-4 text-purple-500 mr-2" />
+                                                    <span className="font-bold text-sm text-text-base">{slot.location}</span>
+                                                    <span className="ml-2 text-[9px] text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
+                                                        RCP
                                                     </span>
-                                                ) : (
-                                                    <span className="text-[9px] font-bold text-yellow-700 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-200">
-                                                        ⚠ À confirmer
-                                                    </span>
-                                                )}
-                                            </div>
+                                                </div>
 
-                                            {/* RCP Name & Date */}
-                                            <div className="flex items-center mb-1">
-                                                <MapPin className="w-4 h-4 text-purple-500 mr-2" />
-                                                <span className="font-bold text-sm text-slate-800">{slot.location}</span>
-                                                <span className="ml-2 text-[9px] text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
-                                                    RCP
-                                                </span>
-                                            </div>
+                                                <div className="text-xs text-text-muted mb-2 pl-6 capitalize">
+                                                    📅 {formattedDate} à {slot.time || '--:--'}
+                                                </div>
 
-                                            <div className="text-xs text-slate-600 mb-2 pl-6 capitalize">
-                                                📅 {formattedDate} à {slot.time || '--:--'}
-                                            </div>
-
-                                            {/* Doctors */}
-                                            <div className="flex flex-wrap gap-1 pl-6">
-                                                {allDoctorIds.slice(0, 3).map(id => {
-                                                    const d = doctors.find(doc => doc.id === id);
-                                                    if (!d) return null;
-                                                    return (
-                                                        <div
-                                                            key={id}
-                                                            className="flex items-center bg-white px-1.5 py-0.5 rounded border border-slate-200"
-                                                        >
+                                                {/* Doctors */}
+                                                <div className="flex flex-wrap gap-1 pl-6">
+                                                    {allDoctorIds.slice(0, 3).map(id => {
+                                                        const d = doctors.find(doc => doc.id === id);
+                                                        if (!d) return null;
+                                                        return (
                                                             <div
-                                                                className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold mr-1 text-white"
-                                                                style={{ backgroundColor: getDoctorHexColor(d.color) }}
+                                                                key={id}
+                                                                className="flex items-center bg-white px-1.5 py-0.5 rounded border border-border"
                                                             >
-                                                                {d.name.substring(0, 2)}
+                                                                <div
+                                                                    className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold mr-1 text-white"
+                                                                    style={{ backgroundColor: getDoctorHexColor(d.color) }}
+                                                                >
+                                                                    {d.name.substring(0, 2)}
+                                                                </div>
+                                                                <span className="text-[9px] text-text-base">{d.name}</span>
                                                             </div>
-                                                            <span className="text-[9px] text-slate-700">{d.name}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {allDoctorIds.length > 3 && (
-                                                    <span className="text-[9px] text-slate-400">+{allDoctorIds.length - 3}</span>
-                                                )}
-                                            </div>
+                                                        );
+                                                    })}
+                                                    {allDoctorIds.length > 3 && (
+                                                        <span className="text-[9px] text-text-muted">+{allDoctorIds.length - 3}</span>
+                                                    )}
+                                                </div>
 
-                                            {/* Hover action hint */}
-                                            <div className="absolute right-2 bottom-2 text-xs text-orange-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Déplacer →
+                                                {/* Hover action hint */}
+                                                <div className="absolute right-2 bottom-2 text-xs text-orange-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Déplacer →
+                                                </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardBody>
+                        </Card>
                     )}
 
                     {/* NON-POSTED DOCTORS */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
-                        <div className="p-3 border-b border-slate-100 bg-slate-50">
-                            <h2 className="font-bold text-slate-700 flex items-center text-sm">
-                                <UserMinus className="w-4 h-4 mr-2 text-slate-500" />
-                                Médecins Non Postés (Ce jour)
-                            </h2>
-                        </div>
-                        <div className="p-3 space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                <span className="flex items-center">
+                                    <UserMinus className="w-4 h-4 mr-2 text-text-muted" />
+                                    Médecins Non Postés (Ce jour)
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardBody className="space-y-4 p-4">
                             <div>
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Matin</h4>
+                                <h4 className="text-[10px] font-bold text-text-muted uppercase mb-2">Matin</h4>
                                 <div className="flex flex-wrap gap-2">
-                                    {unassignedDoctors[Period.MORNING].length === 0 ? <span className="text-xs text-slate-400 italic">Tous occupés</span> :
+                                    {unassignedDoctors[Period.MORNING].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.MORNING].map(d => (
-                                            <div key={d.id} className={`text-[10px] px-2 py-1 rounded border bg-white text-slate-600 border-slate-200`}>
+                                            <div key={d.id} className="text-[10px] px-2 py-1 rounded border bg-white text-text-muted border-border">
                                                 {d.name}
                                             </div>
                                         ))
@@ -973,38 +965,40 @@ const Dashboard: React.FC = () => {
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Après-Midi</h4>
+                                <h4 className="text-[10px] font-bold text-text-muted uppercase mb-2">Après-Midi</h4>
                                 <div className="flex flex-wrap gap-2">
-                                    {unassignedDoctors[Period.AFTERNOON].length === 0 ? <span className="text-xs text-slate-400 italic">Tous occupés</span> :
+                                    {unassignedDoctors[Period.AFTERNOON].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.AFTERNOON].map(d => (
-                                            <div key={d.id} className={`text-[10px] px-2 py-1 rounded border bg-white text-slate-600 border-slate-200`}>
+                                            <div key={d.id} className="text-[10px] px-2 py-1 rounded border bg-white text-text-muted border-border">
                                                 {d.name}
                                             </div>
                                         ))
                                     }
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </CardBody>
+                    </Card>
 
                     {/* ABSENCES */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
-                        <div className="p-3 border-b border-slate-100 bg-slate-50">
-                            <h2 className="font-bold text-slate-700 flex items-center text-sm">
-                                <UserX className="w-4 h-4 mr-2 text-slate-500" />
-                                Médecins Absents
-                            </h2>
-                        </div>
-                        <div className="p-3 max-h-40 overflow-y-auto space-y-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                <span className="flex items-center">
+                                    <UserX className="w-4 h-4 mr-2 text-text-muted" />
+                                    Médecins Absents
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardBody className="max-h-40 overflow-y-auto space-y-2 p-4">
                             {stats.absentees.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                <div className="flex flex-col items-center justify-center h-full text-text-muted">
                                     <span className="text-xs">Tout le monde est présent.</span>
                                 </div>
                             ) : (
                                 stats.absentees.map(abs => {
                                     const doc = doctors.find(d => d.id === abs.doctorId);
                                     return (
-                                        <div key={abs.id} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
+                                        <div key={abs.id} className="flex items-center justify-between p-2 bg-muted rounded border border-border">
                                             <div className="flex items-center">
                                                 <div
                                                     className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold mr-2 opacity-50 text-white"
@@ -1013,26 +1007,26 @@ const Dashboard: React.FC = () => {
                                                     Dr
                                                 </div>
                                                 <div>
-                                                    <div className="text-xs font-bold text-slate-600">{doc?.name}</div>
-                                                    <div className="text-[10px] text-slate-400 uppercase font-bold flex items-center">
+                                                    <div className="text-xs font-bold text-text-base">{doc?.name}</div>
+                                                    <div className="text-[10px] text-text-muted uppercase font-bold flex items-center">
                                                         {abs.reason}
                                                         {abs.period && abs.period !== 'ALL_DAY' && (
-                                                            <span className="ml-1 text-[9px] bg-slate-100 text-slate-500 px-1 rounded uppercase">
+                                                            <span className="ml-1 text-[9px] bg-muted text-text-muted px-1 rounded uppercase">
                                                                 {abs.period === 'Matin' ? 'AM' : 'PM'}
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-[10px] text-slate-500 bg-white px-2 py-1 rounded border">
+                                            <div className="text-[10px] text-text-muted bg-white px-2 py-1 rounded border border-border">
                                                 {abs.startDate === abs.endDate ? abs.startDate : `Jusqu'au ${abs.endDate.split('-').slice(1).reverse().join('/')}`}
                                             </div>
                                         </div>
                                     )
                                 })
                             )}
-                        </div>
-                    </div>
+                        </CardBody>
+                    </Card>
                 </div>
 
                 {/* Right: Main Content (Day or Week View) */}
