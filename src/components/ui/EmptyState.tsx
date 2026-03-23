@@ -11,7 +11,7 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({ icon: Icon, title, description, actionLabel, onAction }) => (
-  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+  <div className="flex flex-col items-center justify-center py-12 px-4 text-center" role="status">
     <Icon className="w-12 h-12 text-text-muted mb-3" aria-hidden="true" />
     <h3 className="font-heading font-semibold text-base text-text-base mb-1">{title}</h3>
     {description && <p className="text-sm text-text-muted mb-4 max-w-xs">{description}</p>}
