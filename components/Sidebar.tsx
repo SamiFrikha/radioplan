@@ -8,11 +8,6 @@ import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 
-interface SidebarProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-}
-
 interface NavItemDef {
   to: string;
   icon: React.ElementType;
@@ -47,7 +42,7 @@ function SidebarNavLink({ item }: { item: NavItemDef }) {
   );
 }
 
-const Sidebar: React.FC<SidebarProps> = () => {
+const Sidebar: React.FC = () => {
   const { setCurrentUser } = useContext(AppContext);
   const { hasPermission, signOut, profile } = useAuth();
   const navigate = useNavigate();

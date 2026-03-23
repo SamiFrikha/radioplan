@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Planning from './pages/Planning';
 import Profile from './pages/Profile';
@@ -8,10 +8,11 @@ import Configuration from './pages/Configuration';
 import DataAdministration from './pages/DataAdministration';
 import Activities from './pages/Activities';
 import Sidebar from './components/Sidebar';
+import BottomNav from './components/BottomNav';
+import TopBar from './components/TopBar';
 import { DEFAULT_TEMPLATE, INITIAL_DOCTORS, INITIAL_ACTIVITIES } from './constants';
 import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, ActivityDefinition, RcpDefinition, AppContextType, ShiftHistory, ManualOverrides, RcpAttendance, RcpException, GlobalBackupData } from './types';
 import { detectConflicts, generateScheduleForWeek, computeHistoryFromDate, getDateForDayOfWeek } from './services/scheduleService';
-import { Menu } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Login from './pages/Login';
@@ -44,26 +45,33 @@ const RequirePermission = ({ permission, children }: { permission: string, child
 export const AppContext = React.createContext<AppContextType>({} as AppContextType);
 
 // Defined OUTSIDE App to prevent remounting on every App re-render
-const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AppLayout: React.FC = () => {
     const { session } = useAuth();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    if (!session) return <>{children}</>;
+    if (!session) return <Outlet />;
 
     return (
-        <div className="flex h-screen overflow-hidden print:overflow-visible print:h-auto print:block">
-            <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 text-white flex items-center justify-between px-4 z-50 shadow-md">
-                <span className="font-bold tracking-wider text-blue-400">RadioPlan AI</span>
-                <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded hover:bg-slate-800">
-                    <Menu className="w-6 h-6" />
-                </button>
-            </div>
-            <Sidebar isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-            <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible print:h-auto print:block pt-14 md:pt-0 transition-all duration-300">
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 md:p-6 print:overflow-visible print:h-auto print:bg-white print:p-0">
-                    {children}
+        <div className="flex min-h-dvh bg-app-bg">
+            {/* Sidebar: hidden on mobile (handled by CSS inside Sidebar component) */}
+            <Sidebar />
+
+            {/* Main content column */}
+            <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
+                {/* Mobile top bar */}
+                <TopBar />
+
+                {/* Page content — offset for fixed TopBar on mobile, fixed BottomNav on mobile */}
+                <main
+                    className="flex-1 p-4 md:p-6
+                               pt-[calc(56px+env(safe-area-inset-top)+1rem)] lg:pt-6
+                               pb-[calc(64px+env(safe-area-inset-bottom)+1rem)] lg:pb-6"
+                >
+                    <Outlet />
                 </main>
             </div>
+
+            {/* Mobile bottom navigation */}
+            <BottomNav />
         </div>
     );
 };
@@ -72,7 +80,6 @@ const App: React.FC = () => {
     const [currentReferenceDate] = useState<Date>(new Date());
     const { session, profile } = useAuth();
     const [currentUser, setCurrentUser] = useState<Doctor | null>(null);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [loadingData, setLoadingData] = useState(true);
 
     // State
@@ -687,33 +694,28 @@ const App: React.FC = () => {
                 <Routes>
                     <Route path="/login" element={<Login />} />
 
-                    <Route path="/" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
-                    <Route path="/planning" element={<ProtectedRoute><AppLayout><Planning /></AppLayout></ProtectedRoute>} />
-                    <Route path="/activities" element={<ProtectedRoute><AppLayout><Activities /></AppLayout></ProtectedRoute>} />
-                    <Route path="/configuration" element={<ProtectedRoute><AppLayout><Configuration /></AppLayout></ProtectedRoute>} />
-                    <Route path="/data" element={<ProtectedRoute><AppLayout><DataAdministration /></AppLayout></ProtectedRoute>} />
-                    <Route path="/profile" element={<ProtectedRoute><AppLayout><Profile /></AppLayout></ProtectedRoute>} />
-                    <Route path="/mon-planning" element={<ProtectedRoute><AppLayout><MonPlanning /></AppLayout></ProtectedRoute>} />
+                    {/* Protected layout shell */}
+                    <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/planning" element={<Planning />} />
+                        <Route path="/activities" element={<Activities />} />
+                        <Route path="/configuration" element={<Configuration />} />
+                        <Route path="/data" element={<DataAdministration />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/mon-planning" element={<MonPlanning />} />
 
-                    {/* Admin Routes */}
-                    <Route path="/admin/roles" element={
-                        <ProtectedRoute>
-                            <AppLayout>
-                                <RequirePermission permission="manage_users">
-                                    <RoleManagement />
-                                </RequirePermission>
-                            </AppLayout>
-                        </ProtectedRoute>
-                    } />
-                    <Route path="/admin/team" element={
-                        <ProtectedRoute>
-                            <AppLayout>
-                                <RequirePermission permission="manage_users">
-                                    <TeamManagement />
-                                </RequirePermission>
-                            </AppLayout>
-                        </ProtectedRoute>
-                    } />
+                        {/* Admin Routes */}
+                        <Route path="/admin/roles" element={
+                            <RequirePermission permission="manage_users">
+                                <RoleManagement />
+                            </RequirePermission>
+                        } />
+                        <Route path="/admin/team" element={
+                            <RequirePermission permission="manage_users">
+                                <TeamManagement />
+                            </RequirePermission>
+                        } />
+                    </Route>
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
