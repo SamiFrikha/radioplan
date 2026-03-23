@@ -808,6 +808,7 @@ const BottomNav: React.FC = () => (
            transition-colors duration-150
            ${isActive ? 'text-primary' : 'text-[#94A3B8]'}`
         }
+        aria-current={undefined} // set below via render prop
       >
         {({ isActive }) => (
           <>
@@ -815,6 +816,8 @@ const BottomNav: React.FC = () => (
             <span className={`text-[10px] font-heading font-medium leading-none ${isActive ? 'text-primary' : ''}`}>
               {label}
             </span>
+            {/* aria-current must be set on the anchor element itself */}
+            {isActive && <span className="sr-only" aria-current="page" />}
           </>
         )}
       </NavLink>
