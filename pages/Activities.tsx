@@ -2,7 +2,9 @@ import React, { useContext, useState, useMemo, useRef, useEffect, useCallback } 
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { DayOfWeek, Period, SlotType, Conflict, ScheduleSlot, Doctor, ActivityDefinition } from '../types';
-import { Activity, Plus, Settings, User, Wand2, ChevronLeft, ChevronRight, Calendar, LayoutGrid, AlertTriangle, Minimize2, Maximize2, Printer, Loader2, X, FileText, Trash2, Edit, Save, Layers, Lock, CheckCircle, Shield, History, Clock, UserCircle, ChevronDown } from 'lucide-react';
+import { Activity as ActivityIcon, Plus, Settings, User, Wand2, ChevronLeft, ChevronRight, Calendar, LayoutGrid, AlertTriangle, Minimize2, Maximize2, Printer, Loader2, X, FileText, Trash2, Edit, Save, Layers, Lock, CheckCircle, Shield, History, Clock, UserCircle, ChevronDown } from 'lucide-react';
+import { Drawer } from 'vaul';
+import { Card, CardHeader, CardTitle, CardBody, Badge, Button, EmptyState } from '../src/components/ui';
 import { generateMonthSchedule, getDateForDayOfWeek, generateScheduleForWeek, detectConflicts, getDoctorWorkRate, computeHistoryFromDate, isFrenchHoliday } from '../services/scheduleService';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import html2canvas from 'html2canvas';
@@ -362,6 +364,9 @@ const Activities: React.FC = () => {
     const [editActivityName, setEditActivityName] = useState('');
     const [editActivityEquityGroup, setEditActivityEquityGroup] = useState<string>('custom');
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+    // Mobile detail sheet state
+    const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
 
     // PDF Report State
     const [showPdfModal, setShowPdfModal] = useState(false);
@@ -1199,6 +1204,13 @@ const Activities: React.FC = () => {
     };
     const screenStats = calculateScreenStats();
 
+    // Helper to pick a Badge variant for an activity equity group
+    const activityVariant = (equityGroup?: string): 'green' | 'blue' | 'amber' | 'gray' => {
+        if (equityGroup === 'workflow') return 'green';
+        if (equityGroup === 'unity_astreinte') return 'amber';
+        return 'gray';
+    };
+
     const renderSlot = (day: DayOfWeek, period: Period, weekDate?: Date) => {
         const dateStr = weekDate
             ? weekDate.toISOString().split('T')[0]
@@ -1348,125 +1360,18 @@ const Activities: React.FC = () => {
     }
 
     return (
-        <div className="h-full flex flex-col space-y-3 md:space-y-4">
-            <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center">
-                        <Activity className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-orange-600" />
-                        <span className="hidden sm:inline">Activités & Astreintes</span>
-                        <span className="sm:hidden">Activités</span>
-                    </h1>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-
-                    {/* View Toggle */}
-                    <div className="flex bg-slate-200 p-1 rounded-lg">
-                        <button
-                            onClick={() => setViewMode('WEEK')}
-                            className={`px-2 md:px-3 py-1 text-xs font-bold rounded ${viewMode === 'WEEK' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
-                        >
-                            Semaine
-                        </button>
-                        <button
-                            onClick={() => setViewMode('MONTH')}
-                            className={`px-2 md:px-3 py-1 text-xs font-bold rounded ${viewMode === 'MONTH' ? 'bg-white shadow text-slate-800' : 'text-slate-500'}`}
-                        >
-                            Mois
-                        </button>
-                    </div>
-
-                    <div className="flex items-center bg-white rounded-lg shadow-sm border border-slate-200 p-1">
-                        <button
-                            onClick={() => handleWeekChange('prev')}
-                            disabled={!canNavigatePrevious}
-                            className={`p-1 rounded ${canNavigatePrevious ? 'hover:bg-slate-100' : 'opacity-30 cursor-not-allowed'}`}
-                            title={!canNavigatePrevious ? 'Date minimum atteinte' : 'Semaine précédente'}
-                        >
-                            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-600" />
-                        </button>
-
-                        {viewMode === 'WEEK' ? (
-                            <input
-                                type="date"
-                                className="border-none text-slate-700 font-medium text-xs md:text-sm focus:ring-0 bg-transparent mx-1 w-28 md:w-32"
-                                value={`${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`}
-                                onChange={handleDateChange}
-                                min={activitiesStartDate || undefined}
-                            />
-                        ) : (
-                            <span className="px-2 md:px-4 text-xs md:text-sm font-bold text-slate-700 capitalize w-24 md:w-32 text-center">
-                                {currentWeekStart.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                            </span>
-                        )}
-
-                        <button onClick={() => handleWeekChange('next')} className="p-1 hover:bg-slate-100 rounded">
-                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-600" />
-                        </button>
-                    </div>
-
-                    {/* Week Validation Status & Button (Admin Only) */}
-                    {isAdmin && viewMode === 'WEEK' && (
-                        <button
-                            onClick={handleValidateWeek}
-                            className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${isCurrentWeekValidated
-                                ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
-                                : 'bg-orange-100 text-orange-700 border border-orange-300 hover:bg-orange-200'
-                                }`}
-                            title={isCurrentWeekValidated ? 'Semaine validée - Cliquer pour déverrouiller' : 'Cliquer pour valider cette semaine'}
-                        >
-                            {isCurrentWeekValidated ? (
-                                <>
-                                    <Lock className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">Semaine verrouillée</span>
-                                </>
-                            ) : (
-                                <>
-                                    <CheckCircle className="w-4 h-4 md:mr-2" />
-                                    <span className="hidden md:inline">Valider la semaine</span>
-                                </>
-                            )}
-                        </button>
-                    )}
-
-                    {/* Show validation badge for non-admins */}
-                    {!isAdmin && isCurrentWeekValidated && viewMode === 'WEEK' && (
-                        <div className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-green-50 text-green-700 rounded text-xs md:text-sm font-medium border border-green-200">
-                            <Lock className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">Semaine validée</span>
-                        </div>
-                    )}
-
-                    {/* Recalculate Auto Button (Admin Only) */}
-                    {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
-                        <button
-                            onClick={handleRecalculateAuto}
-                            className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${autoFillTriggered
-                                ? 'bg-green-100 text-green-700 border border-green-300'
-                                : 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200'}`}
-                            title="Recalculer les affectations automatiques pour cette semaine"
-                        >
-                            <Wand2 className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">{autoFillTriggered ? 'Auto calculé ✓' : 'Recalculer Auto'}</span>
-                        </button>
-                    )}
-
-                    {/* Clear All Choices Button (Admin Only) */}
-                    {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
-                        <button
-                            onClick={handleClearAllChoices}
-                            className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-xs md:text-sm font-medium transition-all"
-                            title="Effacer tous les choix de cette semaine"
-                        >
-                            <Trash2 className="w-4 h-4 md:mr-1" />
-                            <span className="hidden md:inline">Effacer</span>
-                        </button>
-                    )}
-
+        <div className="h-full flex flex-col gap-4">
+            {/* PAGE HEADER */}
+            <div className="flex items-center justify-between">
+                <h1 className="font-heading font-bold text-xl text-text-base flex items-center gap-2">
+                    <ActivityIcon className="w-5 h-5 text-orange-500" />
+                    Activités
+                </h1>
+                <div className="flex items-center gap-2">
                     {/* Activity Log History Button */}
                     <button
                         onClick={() => setShowLogPanel(!showLogPanel)}
-                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-medium transition-all ${showLogPanel ? 'bg-violet-100 text-violet-700 border border-violet-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200'}`}
+                        className={`flex items-center px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition-all ${showLogPanel ? 'bg-violet-100 text-violet-700 border border-violet-300' : 'bg-muted hover:bg-border text-text-muted border border-border'}`}
                         title="Historique des modifications"
                     >
                         <History className="w-4 h-4 md:mr-2" />
@@ -1476,7 +1381,7 @@ const Activities: React.FC = () => {
                     {isAdmin && (
                         <button
                             onClick={() => setShowSettings(!showSettings)}
-                            className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 text-xs md:text-sm font-medium"
+                            className="flex items-center px-2 md:px-3 py-1.5 bg-muted hover:bg-border rounded text-text-muted text-xs md:text-sm font-medium border border-border"
                         >
                             <Settings className="w-4 h-4 md:mr-2" />
                             <span className="hidden md:inline">Gérer</span>
@@ -1485,8 +1390,9 @@ const Activities: React.FC = () => {
                 </div>
             </div>
 
+            {/* SETTINGS PANEL */}
             {showSettings && (
-                <div className="bg-white p-3 md:p-4 rounded-lg shadow border border-slate-200 mb-3 md:mb-4 animate-in fade-in slide-in-from-top-2 space-y-3 md:space-y-4">
+                <div className="bg-surface p-3 md:p-4 rounded-card shadow-card border border-border animate-in fade-in slide-in-from-top-2 space-y-3 md:space-y-4">
                     {/* Create New Activity */}
                     <div>
                         <h3 className="font-bold text-xs md:text-sm mb-2 md:mb-3 flex items-center">
@@ -1494,47 +1400,47 @@ const Activities: React.FC = () => {
                         </h3>
                         <form onSubmit={handleCreateActivity} className="flex flex-col sm:flex-row flex-wrap gap-2 md:gap-4 sm:items-end">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Nom</label>
+                                <label className="block text-xs font-bold text-text-muted mb-1">Nom</label>
                                 <input
                                     type="text"
                                     value={newActName}
                                     onChange={e => setNewActName(e.target.value)}
-                                    className="border rounded px-2 py-1 text-sm"
+                                    className="border border-border rounded px-2 py-1 text-sm"
                                     placeholder="Ex: Consult Douleur"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Rythme</label>
+                                <label className="block text-xs font-bold text-text-muted mb-1">Rythme</label>
                                 <select
                                     value={newActType}
                                     onChange={e => setNewActType(e.target.value as any)}
-                                    className="border rounded px-2 py-1 text-sm"
+                                    className="border border-border rounded px-2 py-1 text-sm"
                                 >
                                     <option value="HALF_DAY">Demi-journée</option>
                                     <option value="WEEKLY">Semaine entière</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Groupe d'Équité</label>
+                                <label className="block text-xs font-bold text-text-muted mb-1">Groupe d'Équité</label>
                                 <select
                                     value={newActEquityGroup}
                                     onChange={e => setNewActEquityGroup(e.target.value)}
-                                    className="border rounded px-2 py-1 text-sm"
+                                    className="border border-border rounded px-2 py-1 text-sm"
                                 >
                                     {EQUITY_GROUPS.map(g => (
                                         <option key={g.id} value={g.id}>{g.name}</option>
                                     ))}
                                 </select>
                             </div>
-                            <button type="submit" className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm flex items-center font-bold hover:bg-blue-700 transition-colors">
+                            <button type="submit" className="bg-primary text-white px-3 py-1.5 rounded text-sm flex items-center font-bold hover:bg-primary-hover transition-colors">
                                 <Plus className="w-4 h-4 mr-1" /> Ajouter
                             </button>
                         </form>
                     </div>
 
                     {/* Activity List */}
-                    <div className="border-t pt-4">
+                    <div className="border-t border-border pt-4">
                         <h3 className="font-bold text-sm mb-3 flex items-center">
                             <Layers className="w-4 h-4 mr-2 text-purple-600" /> Gérer les activités existantes
                         </h3>
@@ -1545,20 +1451,20 @@ const Activities: React.FC = () => {
                                 const equityGrp = EQUITY_GROUPS.find(g => g.id === (act.equityGroup || 'custom'));
 
                                 return (
-                                    <div key={act.id} className={`p-3 border rounded-lg ${isEditing ? 'bg-blue-50 border-blue-300' : 'bg-slate-50'}`}>
+                                    <div key={act.id} className={`p-3 border rounded-card ${isEditing ? 'bg-blue-50 border-blue-300' : 'bg-muted border-border'}`}>
                                         {isEditing ? (
                                             <div className="space-y-2">
                                                 <input
                                                     type="text"
                                                     value={editActivityName}
                                                     onChange={e => setEditActivityName(e.target.value)}
-                                                    className="w-full border rounded px-2 py-1 text-sm"
+                                                    className="w-full border border-border rounded px-2 py-1 text-sm"
                                                     autoFocus
                                                 />
                                                 <select
                                                     value={editActivityEquityGroup}
                                                     onChange={e => setEditActivityEquityGroup(e.target.value)}
-                                                    className="w-full border rounded px-2 py-1 text-sm"
+                                                    className="w-full border border-border rounded px-2 py-1 text-sm"
                                                 >
                                                     {EQUITY_GROUPS.map(g => (
                                                         <option key={g.id} value={g.id}>{g.name}</option>
@@ -1573,7 +1479,7 @@ const Activities: React.FC = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => setEditingActivityId(null)}
-                                                        className="flex-1 bg-slate-300 text-slate-700 px-2 py-1 rounded text-xs"
+                                                        className="flex-1 bg-muted text-text-muted px-2 py-1 rounded text-xs border border-border"
                                                     >
                                                         Annuler
                                                     </button>
@@ -1583,18 +1489,18 @@ const Activities: React.FC = () => {
                                             <div>
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
-                                                        <div className="font-bold text-sm text-slate-800">{act.name}</div>
+                                                        <div className="font-bold text-sm text-text-base">{act.name}</div>
                                                         <div className="flex items-center gap-2 mt-1">
-                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${equityGrp?.color || 'bg-gray-100 text-gray-600'}`}>
+                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${equityGrp?.color || 'bg-muted text-text-muted'}`}>
                                                                 {equityGrp?.name || 'Aucun groupe'}
                                                             </span>
-                                                            <span className="text-[10px] text-slate-400">
+                                                            <span className="text-[10px] text-text-muted">
                                                                 {act.granularity === 'WEEKLY' ? 'Hebdo' : '½ jour'}
                                                             </span>
                                                         </div>
                                                     </div>
                                                     {act.isSystem && (
-                                                        <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase">Système</span>
+                                                        <span className="text-[9px] bg-muted text-text-muted px-1.5 py-0.5 rounded font-bold uppercase border border-border">Système</span>
                                                     )}
                                                 </div>
                                                 <div className="flex gap-2 mt-2">
@@ -1608,8 +1514,8 @@ const Activities: React.FC = () => {
                                                         <button
                                                             onClick={() => handleDeleteActivity(act.id)}
                                                             className={`flex-1 text-xs px-2 py-1 rounded flex items-center justify-center transition-colors ${isConfirmDelete
-                                                                ? 'bg-red-600 text-white font-bold'
-                                                                : 'text-red-600 hover:bg-red-100'
+                                                                ? 'bg-accent-red text-white font-bold'
+                                                                : 'text-accent-red hover:bg-red-100'
                                                                 }`}
                                                         >
                                                             <Trash2 className="w-3 h-3 mr-1" />
@@ -1627,535 +1533,686 @@ const Activities: React.FC = () => {
                 </div>
             )}
 
-            {/* TABS */}
-            <div className="flex gap-1 md:gap-2 border-b border-slate-200 pb-1 overflow-x-auto shrink-0 -mx-0.5 px-0.5">
-                {activityDefinitions.map(act => {
-                    const equityGrp = EQUITY_GROUPS.find(g => g.id === (act.equityGroup || 'custom'));
-                    return (
-                        <button
-                            key={act.id}
-                            onClick={() => setActiveTabId(act.id)}
-                            className={`px-2 md:px-4 py-1.5 md:py-2 text-[11px] md:text-sm font-medium rounded-t-lg transition-colors border-t border-l border-r whitespace-nowrap flex-shrink-0 ${activeTabId === act.id
-                                ? 'bg-white border-slate-300 text-blue-700 -mb-px'
-                                : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'
-                                }`}
-                        >
-                            <span>{act.name}</span>
-                            {equityGrp && equityGrp.id !== 'custom' && (
-                                <span className={`ml-1 md:ml-2 text-[9px] px-1 py-0.5 rounded ${equityGrp.color}`}>
-                                    {equityGrp.id === 'unity_astreinte' ? '⚡' : '🔄'}
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* CONTENT */}
-            <div className="flex-1 bg-white border border-slate-300 rounded-b-lg p-2 md:p-4 shadow-sm overflow-auto min-h-0">
-                {viewMode === 'MONTH' ? (
-                    renderMonthGrid()
-                ) : currentActivity?.granularity === 'WEEKLY' ? (
-                    // Weekly Single Assign View
-                    <div className="flex flex-col items-center">
-                        <div className="w-full flex justify-end mb-2">
-                            <button onClick={() => setChoiceSectionExpanded(!choiceSectionExpanded)} className="text-slate-400 hover:text-slate-600">
-                                {choiceSectionExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {/* MAIN LAYOUT: 2-col desktop, single col mobile */}
+            <div className="grid lg:grid-cols-[320px_1fr] gap-4 flex-1 min-h-0">
+                {/* LEFT: Activity list */}
+                <Card className="flex flex-col overflow-hidden">
+                    <CardHeader>
+                        <CardTitle>Liste des activités</CardTitle>
+                        {activityDefinitions.length === 0 && isAdmin && (
+                            <button
+                                onClick={() => setShowSettings(true)}
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                            >
+                                <Plus className="w-3 h-3" /> Ajouter
                             </button>
-                        </div>
-
-                        {choiceSectionExpanded && (
-                            <div className="bg-slate-50 p-3 md:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center max-w-md w-full transition-all">
-
-                                <div className="flex items-center space-x-4 mb-6 bg-white p-2 rounded-lg border border-slate-200">
-                                    <button
-                                        onClick={() => setWeeklyAssignmentMode('AUTO')}
-                                        disabled={isWeekInPast}
-                                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${weeklyAssignmentMode === 'AUTO' && !isWeekInPast ? 'bg-blue-100 text-blue-800' : 'text-slate-500 hover:bg-slate-50'} ${isWeekInPast ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        title={isWeekInPast ? 'Le choix auto est désactivé pour les semaines passées' : ''}
-                                    >
-                                        <Wand2 className="w-4 h-4 inline-block mr-1" /> Auto / IA
-                                    </button>
-                                    <button
-                                        onClick={() => setWeeklyAssignmentMode('MANUAL')}
-                                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${weeklyAssignmentMode === 'MANUAL' || isWeekInPast ? 'bg-blue-100 text-blue-800' : 'text-slate-500 hover:bg-slate-50'}`}
-                                    >
-                                        <User className="w-4 h-4 inline-block mr-1" /> Manuel
-                                    </button>
-                                </div>
-                                {isWeekInPast && (
-                                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center">
-                                        <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
-                                        <span>Cette semaine est passée. Seul le mode manuel est autorisé pour éviter de modifier l'historique.</span>
+                        )}
+                    </CardHeader>
+                    <CardBody className="flex-1 overflow-y-auto">
+                        {activityDefinitions.length === 0 ? (
+                            <EmptyState
+                                icon={ActivityIcon}
+                                title="Aucune activité"
+                                description="Ajoutez des activités pour les voir ici."
+                                actionLabel={isAdmin ? "Ajouter" : undefined}
+                                onAction={isAdmin ? () => setShowSettings(true) : undefined}
+                            />
+                        ) : (
+                            activityDefinitions.map(act => (
+                                <button
+                                    key={act.id}
+                                    onClick={() => {
+                                        setActiveTabId(act.id);
+                                        setMobileDetailOpen(true);
+                                    }}
+                                    className={`w-full text-left p-3 flex items-center gap-3 hover:bg-muted border-b border-border last:border-0 transition-colors ${activeTabId === act.id ? 'bg-muted' : ''}`}
+                                >
+                                    <Badge variant={activityVariant(act.equityGroup)} className="flex-shrink-0">
+                                        {act.equityGroup === 'workflow' ? 'WF' : act.equityGroup === 'unity_astreinte' ? 'U+A' : 'Ind.'}
+                                    </Badge>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm text-text-base truncate">{act.name}</p>
+                                        <p className="text-[11px] text-text-muted">{act.granularity === 'WEEKLY' ? 'Hebdomadaire' : 'Demi-journée'}</p>
                                     </div>
-                                )}
+                                </button>
+                            ))
+                        )}
+                    </CardBody>
+                </Card>
 
-                                <h3 className="text-lg font-bold text-slate-800 mb-4">Responsable de la Semaine</h3>
-                                <div className="w-full">
-                                    {/* We use the first generated slot for this activity to control the logic */}
-                                    {(() => {
-                                        const sampleSlot = schedule.find(s => s.activityId === activeTabId);
-                                        if (!sampleSlot) return <div>Pas de créneau généré.</div>;
-
-                                        return (
-                                            <select
-                                                className={`w-full p-3 border rounded-lg text-lg text-center font-bold outline-none ring-2 ${sampleSlot.isLocked ? 'ring-blue-500 bg-white text-blue-800' : 'ring-transparent bg-slate-100 text-slate-500'}`}
-                                                value={sampleSlot.isLocked ? sampleSlot.assignedDoctorId || "" : ""}
-                                                onChange={(e) => handleWeeklyAssign(e.target.value)}
-                                            >
-                                                <option value="">-- {weeklyAssignmentMode === 'AUTO' ? 'Calcul Automatique' : 'Sélectionner'} --</option>
-                                                {doctors.map(d => (
-                                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                                ))}
-                                            </select>
-                                        )
-                                    })()}
+                {/* RIGHT: Detail panel — desktop only */}
+                <div className="hidden lg:flex lg:flex-col lg:overflow-y-auto lg:gap-4">
+                    {currentActivity ? (
+                        <>
+                            {/* Toolbar: view toggle, week nav, actions */}
+                            <div className="flex flex-wrap items-center gap-2">
+                                {/* View Toggle */}
+                                <div className="flex bg-muted p-1 rounded-lg">
+                                    <button
+                                        onClick={() => setViewMode('WEEK')}
+                                        className={`px-2 md:px-3 py-1 text-xs font-bold rounded ${viewMode === 'WEEK' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
+                                    >
+                                        Semaine
+                                    </button>
+                                    <button
+                                        onClick={() => setViewMode('MONTH')}
+                                        className={`px-2 md:px-3 py-1 text-xs font-bold rounded ${viewMode === 'MONTH' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
+                                    >
+                                        Mois
+                                    </button>
                                 </div>
 
-                                <div className="mt-4 text-sm text-slate-500 text-center">
-                                    {weeklyAssignmentMode === 'AUTO' ? (
-                                        <p className="flex items-center justify-center text-green-600 font-medium">
-                                            <Wand2 className="w-4 h-4 mr-1" />
-                                            L'algorithme choisit automatiquement en équilibrant sur l'année.
-                                        </p>
+                                <div className="flex items-center bg-surface rounded-lg shadow-card border border-border p-1">
+                                    <button
+                                        onClick={() => handleWeekChange('prev')}
+                                        disabled={!canNavigatePrevious}
+                                        className={`p-1 rounded ${canNavigatePrevious ? 'hover:bg-muted' : 'opacity-30 cursor-not-allowed'}`}
+                                        title={!canNavigatePrevious ? 'Date minimum atteinte' : 'Semaine précédente'}
+                                    >
+                                        <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-text-muted" />
+                                    </button>
+
+                                    {viewMode === 'WEEK' ? (
+                                        <input
+                                            type="date"
+                                            className="border-none text-text-muted font-medium text-xs md:text-sm focus:ring-0 bg-transparent mx-1 w-28 md:w-32"
+                                            value={`${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`}
+                                            onChange={handleDateChange}
+                                            min={activitiesStartDate || undefined}
+                                        />
                                     ) : (
-                                        <p className="text-blue-600">
-                                            Vous avez la main. Cette affectation s'appliquera à toute la semaine et bloquera les choix auto.
-                                        </p>
+                                        <span className="px-2 md:px-4 text-xs md:text-sm font-bold text-text-base capitalize w-24 md:w-32 text-center">
+                                            {currentWeekStart.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                        </span>
                                     )}
 
-                                    {(() => {
-                                        const sampleSlot = schedule.find(s => s.activityId === activeTabId);
-                                        if (sampleSlot && !sampleSlot.isLocked && sampleSlot.assignedDoctorId) {
-                                            const doc = doctors.find(d => d.id === sampleSlot.assignedDoctorId);
-                                            return (
-                                                <div className="mt-2 text-slate-400 font-bold text-xs">
-                                                    (Actuellement assigné : {doc?.name})
-                                                </div>
-                                            )
-                                        }
-                                    })()}
+                                    <button onClick={() => handleWeekChange('next')} className="p-1 hover:bg-muted rounded">
+                                        <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-text-muted" />
+                                    </button>
                                 </div>
 
-                                {/* Explicit AUTO trigger */}
-                                {weeklyAssignmentMode === 'AUTO' && (
-                                    <div className="mt-2">
-                                        <button
-                                            onClick={() => handleWeeklyAssign("")} // Clear Overrides
-                                            className="text-xs underline text-slate-400 hover:text-blue-600"
-                                        >
-                                            Forcer le recalcul Auto
-                                        </button>
+                                {isAdmin && viewMode === 'WEEK' && (
+                                    <button
+                                        onClick={handleValidateWeek}
+                                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${isCurrentWeekValidated
+                                            ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
+                                            : 'bg-orange-100 text-orange-700 border border-orange-300 hover:bg-orange-200'
+                                            }`}
+                                        title={isCurrentWeekValidated ? 'Semaine validée - Cliquer pour déverrouiller' : 'Cliquer pour valider cette semaine'}
+                                    >
+                                        {isCurrentWeekValidated ? (
+                                            <>
+                                                <Lock className="w-4 h-4 md:mr-2" />
+                                                <span className="hidden md:inline">Semaine verrouillée</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CheckCircle className="w-4 h-4 md:mr-2" />
+                                                <span className="hidden md:inline">Valider la semaine</span>
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+
+                                {!isAdmin && isCurrentWeekValidated && viewMode === 'WEEK' && (
+                                    <div className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-green-50 text-green-700 rounded text-xs md:text-sm font-medium border border-green-200">
+                                        <Lock className="w-4 h-4 md:mr-2" />
+                                        <span className="hidden md:inline">Semaine validée</span>
+                                    </div>
+                                )}
+
+                                {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
+                                    <button
+                                        onClick={handleRecalculateAuto}
+                                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${autoFillTriggered
+                                            ? 'bg-green-100 text-green-700 border border-green-300'
+                                            : 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200'}`}
+                                        title="Recalculer les affectations automatiques pour cette semaine"
+                                    >
+                                        <Wand2 className="w-4 h-4 md:mr-2" />
+                                        <span className="hidden md:inline">{autoFillTriggered ? 'Auto calculé ✓' : 'Recalculer Auto'}</span>
+                                    </button>
+                                )}
+
+                                {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
+                                    <button
+                                        onClick={handleClearAllChoices}
+                                        className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-xs md:text-sm font-medium transition-all"
+                                        title="Effacer tous les choix de cette semaine"
+                                    >
+                                        <Trash2 className="w-4 h-4 md:mr-1" />
+                                        <span className="hidden md:inline">Effacer</span>
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* CONTENT */}
+                            <div className="bg-surface border border-border rounded-card p-2 md:p-4 shadow-card overflow-auto">
+                                {viewMode === 'MONTH' ? (
+                                    renderMonthGrid()
+                                ) : currentActivity?.granularity === 'WEEKLY' ? (
+                                    <div className="flex flex-col items-center">
+                                        <div className="w-full flex justify-end mb-2">
+                                            <button onClick={() => setChoiceSectionExpanded(!choiceSectionExpanded)} className="text-text-muted hover:text-text-base">
+                                                {choiceSectionExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+
+                                        {choiceSectionExpanded && (
+                                            <div className="bg-muted p-3 md:p-6 rounded-xl border border-border shadow-card flex flex-col items-center justify-center max-w-md w-full transition-all">
+                                                <div className="flex items-center space-x-4 mb-6 bg-surface p-2 rounded-lg border border-border">
+                                                    <button
+                                                        onClick={() => setWeeklyAssignmentMode('AUTO')}
+                                                        disabled={isWeekInPast}
+                                                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${weeklyAssignmentMode === 'AUTO' && !isWeekInPast ? 'bg-blue-100 text-blue-800' : 'text-text-muted hover:bg-muted'} ${isWeekInPast ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        title={isWeekInPast ? 'Le choix auto est désactivé pour les semaines passées' : ''}
+                                                    >
+                                                        <Wand2 className="w-4 h-4 inline-block mr-1" /> Auto / IA
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setWeeklyAssignmentMode('MANUAL')}
+                                                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${weeklyAssignmentMode === 'MANUAL' || isWeekInPast ? 'bg-blue-100 text-blue-800' : 'text-text-muted hover:bg-muted'}`}
+                                                    >
+                                                        <User className="w-4 h-4 inline-block mr-1" /> Manuel
+                                                    </button>
+                                                </div>
+                                                {isWeekInPast && (
+                                                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center">
+                                                        <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
+                                                        <span>Cette semaine est passée. Seul le mode manuel est autorisé pour éviter de modifier l'historique.</span>
+                                                    </div>
+                                                )}
+
+                                                <h3 className="text-lg font-bold text-text-base mb-4">Responsable de la Semaine</h3>
+                                                <div className="w-full">
+                                                    {(() => {
+                                                        const sampleSlot = schedule.find(s => s.activityId === activeTabId);
+                                                        if (!sampleSlot) return <div>Pas de créneau généré.</div>;
+                                                        return (
+                                                            <select
+                                                                className={`w-full p-3 border rounded-lg text-lg text-center font-bold outline-none ring-2 ${sampleSlot.isLocked ? 'ring-blue-500 bg-surface text-blue-800' : 'ring-transparent bg-muted text-text-muted'}`}
+                                                                value={sampleSlot.isLocked ? sampleSlot.assignedDoctorId || "" : ""}
+                                                                onChange={(e) => handleWeeklyAssign(e.target.value)}
+                                                            >
+                                                                <option value="">-- {weeklyAssignmentMode === 'AUTO' ? 'Calcul Automatique' : 'Sélectionner'} --</option>
+                                                                {doctors.map(d => (
+                                                                    <option key={d.id} value={d.id}>{d.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        )
+                                                    })()}
+                                                </div>
+
+                                                <div className="mt-4 text-sm text-text-muted text-center">
+                                                    {weeklyAssignmentMode === 'AUTO' ? (
+                                                        <p className="flex items-center justify-center text-green-600 font-medium">
+                                                            <Wand2 className="w-4 h-4 mr-1" />
+                                                            L'algorithme choisit automatiquement en équilibrant sur l'année.
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-blue-600">
+                                                            Vous avez la main. Cette affectation s'appliquera à toute la semaine et bloquera les choix auto.
+                                                        </p>
+                                                    )}
+                                                    {(() => {
+                                                        const sampleSlot = schedule.find(s => s.activityId === activeTabId);
+                                                        if (sampleSlot && !sampleSlot.isLocked && sampleSlot.assignedDoctorId) {
+                                                            const doc = doctors.find(d => d.id === sampleSlot.assignedDoctorId);
+                                                            return (
+                                                                <div className="mt-2 text-text-muted font-bold text-xs">
+                                                                    (Actuellement assigné : {doc?.name})
+                                                                </div>
+                                                            )
+                                                        }
+                                                    })()}
+                                                </div>
+
+                                                {weeklyAssignmentMode === 'AUTO' && (
+                                                    <div className="mt-2">
+                                                        <button onClick={() => handleWeeklyAssign("")} className="text-xs underline text-text-muted hover:text-blue-600">
+                                                            Forcer le recalcul Auto
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="min-w-[450px] md:min-w-[700px]">
+                                        <table className="w-full border-collapse table-fixed">
+                                            <thead>
+                                                <tr>
+                                                    <th className="p-1 md:p-2 border bg-muted text-[9px] md:text-xs font-bold text-text-muted uppercase w-12 md:w-24">
+                                                        <span className="hidden md:inline">P&eacute;riode</span>
+                                                        <span className="md:hidden">P&eacute;r.</span>
+                                                    </th>
+                                                    {days.map(d => {
+                                                        const date = getDateForDayOfWeek(currentWeekStart, d);
+                                                        const [, month, day] = date.split('-');
+                                                        return (
+                                                            <th key={d} className="p-1 md:p-2 border bg-muted text-[10px] md:text-sm font-bold text-text-base">
+                                                                <span className="md:hidden">{d.substring(0, 3)}</span>
+                                                                <span className="hidden md:inline">{d}</span>
+                                                                <span className="block text-[8px] md:text-xs font-normal text-text-muted">{day}/{month}</span>
+                                                            </th>
+                                                        )
+                                                    })}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td className="p-1 md:p-2 border bg-muted text-[9px] md:text-xs font-bold text-center align-middle">
+                                                        <span className="hidden md:inline">Matin</span>
+                                                        <span className="md:hidden">AM</span>
+                                                    </td>
+                                                    {days.map(d => (
+                                                        <td key={`m-${d}`} className="p-0.5 md:p-2 border align-top h-auto">
+                                                            {renderSlot(d, Period.MORNING)}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                                <tr>
+                                                    <td className="p-1 md:p-2 border bg-muted text-[9px] md:text-xs font-bold text-center align-middle">
+                                                        <span className="hidden md:inline">Apr&egrave;s-midi</span>
+                                                        <span className="md:hidden">PM</span>
+                                                    </td>
+                                                    {days.map(d => (
+                                                        <td key={`am-${d}`} className="p-0.5 md:p-2 border align-top h-auto">
+                                                            {renderSlot(d, Period.AFTERNOON)}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </div>
-                ) : (
-                    // Standard Weekly Grid
-                    <div className="min-w-[450px] md:min-w-[700px]">
-                        <table className="w-full border-collapse table-fixed">
-                            <thead>
-                                <tr>
-                                    <th className="p-1 md:p-2 border bg-slate-100 text-[9px] md:text-xs font-bold text-slate-500 uppercase w-12 md:w-24">
-                                        <span className="hidden md:inline">P&eacute;riode</span>
-                                        <span className="md:hidden">P&eacute;r.</span>
-                                    </th>
-                                    {days.map(d => {
-                                        const date = getDateForDayOfWeek(currentWeekStart, d);
-                                        const [year, month, day] = date.split('-');
-                                        return (
-                                            <th key={d} className="p-1 md:p-2 border bg-slate-50 text-[10px] md:text-sm font-bold text-slate-700">
-                                                <span className="md:hidden">{d.substring(0, 3)}</span>
-                                                <span className="hidden md:inline">{d}</span>
-                                                <span className="block text-[8px] md:text-xs font-normal text-slate-500">{day}/{month}</span>
-                                            </th>
-                                        )
-                                    })}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td className="p-1 md:p-2 border bg-slate-50 text-[9px] md:text-xs font-bold text-center align-middle">
-                                        <span className="hidden md:inline">Matin</span>
-                                        <span className="md:hidden">AM</span>
-                                    </td>
-                                    {days.map(d => (
-                                        <td key={`m-${d}`} className="p-0.5 md:p-2 border align-top h-auto">
-                                            {renderSlot(d, Period.MORNING)}
-                                        </td>
-                                    ))}
-                                </tr>
-                                <tr>
-                                    <td className="p-1 md:p-2 border bg-slate-50 text-[9px] md:text-xs font-bold text-center align-middle">
-                                        <span className="hidden md:inline">Apr&egrave;s-midi</span>
-                                        <span className="md:hidden">PM</span>
-                                    </td>
-                                    {days.map(d => (
-                                        <td key={`am-${d}`} className="p-0.5 md:p-2 border align-top h-auto">
-                                            {renderSlot(d, Period.AFTERNOON)}
-                                        </td>
-                                    ))}
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
 
-            {/* COMPREHENSIVE ALERTS SECTION - COLLAPSIBLE */}
-            <div className="bg-red-50 rounded-lg border border-red-100 p-4 mt-4 shrink-0 shadow-sm">
-                <h3
-                    className="font-bold text-red-800 text-sm flex items-center justify-between cursor-pointer"
-                    onClick={() => setConflictsSectionExpanded(!conflictsSectionExpanded)}
-                >
-                    <span className="flex items-center">
-                        <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
-                        Conflits Détectés ({currentActivity?.name})
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">{activityConflicts.length}</span>
-                        {conflictsSectionExpanded ? <Minimize2 className="w-4 h-4 text-red-400" /> : <Maximize2 className="w-4 h-4 text-red-400" />}
-                    </div>
-                </h3>
-                {conflictsSectionExpanded && (
-                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1 mt-3">
-                        {activityConflicts.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-4 text-slate-500 italic">
-                                <span className="text-sm">Aucun conflit avec d'autres activités ou RCP pour le moment.</span>
-                                <span className="text-xs opacity-70 mt-1">L'application détecte en temps réel les chevauchements avec les Postes, RCP confirmées et autres activités.</span>
-                            </div>
-                        ) : (
-                            activityConflicts.map(conf => {
-                                const doc = doctors.find(d => d.id === conf.doctorId);
-                                const slot = schedule.find(s => s.id === conf.slotId);
-                                return (
-                                    <div
-                                        key={conf.id}
-                                        onClick={() => handleAlertClick(conf)}
-                                        className="group flex items-start bg-white p-3 rounded-lg border border-red-200 shadow-sm hover:shadow-md hover:border-red-400 cursor-pointer transition-all"
-                                    >
-                                        <div className="mr-3 mt-0.5">
-                                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                                                <AlertTriangle className="w-4 h-4" />
-                                            </div>
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start">
-                                                <span className="font-bold text-red-700 text-sm">
-                                                    {conf.type === 'DOUBLE_BOOKING' ? 'DOUBLE RÉSERVATION' : conf.type}
-                                                </span>
-                                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-mono">
-                                                    {slot?.day} {slot?.period === 'Matin' ? 'AM' : 'PM'}
-                                                </span>
-                                            </div>
-                                            <div className="text-xs text-slate-700 mt-1">
-                                                <span className="font-bold">{doc?.name}</span> : {conf.description}
-                                            </div>
-                                            <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
-                                                <span className="text-xs font-bold text-blue-600 flex items-center">
-                                                    Résoudre <ChevronRight className="w-3 h-3 ml-1" />
-                                                </span>
-                                            </div>
-                                        </div>
+                            {/* CONFLICTS */}
+                            <div className="bg-red-50 rounded-card border border-red-100 p-4 shrink-0 shadow-card">
+                                <h3
+                                    className="font-bold text-red-800 text-sm flex items-center justify-between cursor-pointer"
+                                    onClick={() => setConflictsSectionExpanded(!conflictsSectionExpanded)}
+                                >
+                                    <span className="flex items-center">
+                                        <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
+                                        Conflits Détectés ({currentActivity?.name})
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">{activityConflicts.length}</span>
+                                        {conflictsSectionExpanded ? <Minimize2 className="w-4 h-4 text-red-400" /> : <Maximize2 className="w-4 h-4 text-red-400" />}
                                     </div>
-                                )
-                            })
-                        )}
-                    </div>
-                )}
-            </div>
+                                </h3>
+                                {conflictsSectionExpanded && (
+                                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1 mt-3">
+                                        {activityConflicts.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center p-4 text-text-muted italic">
+                                                <span className="text-sm">Aucun conflit avec d'autres activités ou RCP pour le moment.</span>
+                                                <span className="text-xs opacity-70 mt-1">L'application détecte en temps réel les chevauchements avec les Postes, RCP confirmées et autres activités.</span>
+                                            </div>
+                                        ) : (
+                                            activityConflicts.map(conf => {
+                                                const doc = doctors.find(d => d.id === conf.doctorId);
+                                                const slot = schedule.find(s => s.id === conf.slotId);
+                                                return (
+                                                    <div
+                                                        key={conf.id}
+                                                        onClick={() => handleAlertClick(conf)}
+                                                        className="group flex items-start bg-surface p-3 rounded-lg border border-red-200 shadow-card hover:shadow-card-hover hover:border-red-400 cursor-pointer transition-all"
+                                                    >
+                                                        <div className="mr-3 mt-0.5">
+                                                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                                                                <AlertTriangle className="w-4 h-4" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <div className="flex justify-between items-start">
+                                                                <span className="font-bold text-red-700 text-sm">
+                                                                    {conf.type === 'DOUBLE_BOOKING' ? 'DOUBLE RÉSERVATION' : conf.type}
+                                                                </span>
+                                                                <span className="text-[10px] bg-muted text-text-muted px-2 py-0.5 rounded font-mono">
+                                                                    {slot?.day} {slot?.period === 'Matin' ? 'AM' : 'PM'}
+                                                                </span>
+                                                            </div>
+                                                            <div className="text-xs text-text-base mt-1">
+                                                                <span className="font-bold">{doc?.name}</span> : {conf.description}
+                                                            </div>
+                                                            <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
+                                                                <span className="text-xs font-bold text-blue-600 flex items-center">
+                                                                    Résoudre <ChevronRight className="w-3 h-3 ml-1" />
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
-            {/* STATS TABLE with Global Equity */}
-            <div className="bg-white rounded-lg shadow border border-slate-200 p-2 md:p-4 mt-3 md:mt-4 shrink-0 transition-all overflow-x-auto">
-                <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-slate-800 text-sm flex items-center cursor-pointer" onClick={() => setStatsSectionExpanded(!statsSectionExpanded)}>
-                        <span className="flex items-center">
-                            <Layers className="w-4 h-4 mr-2 text-purple-600" />
-                            Équité & Répartition par Groupe
-                        </span>
-                        <div className="ml-3 flex items-center space-x-2">
-                            {currentActivity?.equityGroup && (
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${EQUITY_GROUPS.find(g => g.id === currentActivity.equityGroup)?.color || 'bg-gray-100'
-                                    }`}>
-                                    {EQUITY_GROUPS.find(g => g.id === currentActivity.equityGroup)?.name || currentActivity.equityGroup}
-                                </span>
-                            )}
-                            {activitiesStartDate && (
-                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
-                                    Depuis {new Date(activitiesStartDate).toLocaleDateString()}
-                                </span>
-                            )}
-                            {statsSectionExpanded ? <Minimize2 className="w-4 h-4 text-slate-400" /> : <Maximize2 className="w-4 h-4 text-slate-400" />}
-                        </div>
-                    </h3>
+                            {/* STATS TABLE */}
+                            <div className="bg-surface rounded-card shadow-card border border-border p-2 md:p-4 shrink-0 transition-all overflow-x-auto">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className="font-bold text-text-base text-sm flex items-center cursor-pointer" onClick={() => setStatsSectionExpanded(!statsSectionExpanded)}>
+                                        <span className="flex items-center">
+                                            <Layers className="w-4 h-4 mr-2 text-purple-600" />
+                                            Équité & Répartition par Groupe
+                                        </span>
+                                        <div className="ml-3 flex items-center space-x-2">
+                                            {currentActivity?.equityGroup && (
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${EQUITY_GROUPS.find(g => g.id === currentActivity.equityGroup)?.color || 'bg-muted'}`}>
+                                                    {EQUITY_GROUPS.find(g => g.id === currentActivity.equityGroup)?.name || currentActivity.equityGroup}
+                                                </span>
+                                            )}
+                                            {activitiesStartDate && (
+                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
+                                                    Depuis {new Date(activitiesStartDate).toLocaleDateString()}
+                                                </span>
+                                            )}
+                                            {statsSectionExpanded ? <Minimize2 className="w-4 h-4 text-text-muted" /> : <Maximize2 className="w-4 h-4 text-text-muted" />}
+                                        </div>
+                                    </h3>
+                                    {statsSectionExpanded && (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={handleDownloadCurrentView}
+                                                disabled={isGeneratingStatsPdf}
+                                                className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded flex items-center transition-colors disabled:opacity-50"
+                                            >
+                                                {isGeneratingStatsPdf ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <FileText className="w-3 h-3 mr-1" />}
+                                                Vue actuelle
+                                            </button>
+                                            <button
+                                                onClick={() => setShowPdfModal(true)}
+                                                className="text-xs bg-muted hover:bg-border text-text-muted px-3 py-1.5 rounded flex items-center transition-colors"
+                                            >
+                                                <Printer className="w-3 h-3 mr-1" />
+                                                Rapport période
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
 
-                    {statsSectionExpanded && (
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleDownloadCurrentView}
-                                disabled={isGeneratingStatsPdf}
-                                className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded flex items-center transition-colors disabled:opacity-50"
-                                title="Télécharger un snapshot de la vue actuelle"
-                            >
-                                {isGeneratingStatsPdf ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <FileText className="w-3 h-3 mr-1" />}
-                                Vue actuelle
-                            </button>
-                            <button
-                                onClick={() => setShowPdfModal(true)}
-                                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded flex items-center transition-colors"
-                            >
-                                <Printer className="w-3 h-3 mr-1" />
-                                Rapport période
-                            </button>
-                        </div>
+                                {statsSectionExpanded && (
+                                    <div className="space-y-6">
+                                        {(currentActivity?.equityGroup === 'unity_astreinte' || !currentActivity?.equityGroup) && !isWorkflowTab && (
+                                            <div>
+                                                <h4 className="text-xs font-bold text-orange-600 uppercase mb-2 border-b border-orange-200 pb-1 flex items-center justify-between">
+                                                    <span>Équité : Groupe Unity + Astreinte</span>
+                                                    <span className="text-[10px] normal-case font-normal text-text-muted">
+                                                        {activityDefinitions.filter(a => a.equityGroup === 'unity_astreinte').map(a => a.name).join(', ') || 'Astreinte, Unity'}
+                                                    </span>
+                                                </h4>
+                                                <div className="overflow-x-auto max-h-48">
+                                                    <table className="min-w-full text-xs text-left">
+                                                        <thead className="bg-orange-50 border-b sticky top-0 z-10">
+                                                            <tr>
+                                                                <th className="p-2 font-bold text-text-muted">Médecin</th>
+                                                                <th className="p-2 font-bold text-text-muted">Taux</th>
+                                                                <th className="p-2 font-bold text-orange-500">Sem./Mois</th>
+                                                                <th className="p-2 font-bold text-orange-700">Total U+A</th>
+                                                                <th className="p-2 font-bold text-blue-600">Score Pondéré</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {[...doctors].sort((a, b) => (screenStats[a.id]?.weighted || 0) - (screenStats[b.id]?.weighted || 0)).map(d => {
+                                                                const stats = screenStats[d.id];
+                                                                const weekTotal = (stats?.unityWeek || 0) + (stats?.astreinteWeek || 0);
+                                                                const cumulTotal = (stats?.unityTotal || 0) + (stats?.astreinteTotal || 0);
+                                                                return (
+                                                                    <tr key={d.id} className="border-b hover:bg-muted">
+                                                                        <td className="p-2 font-medium text-text-base flex items-center">
+                                                                            <div className={`w-5 h-5 rounded-full mr-2 ${d.color} flex items-center justify-center text-[8px]`}>{d.name.substring(0, 2)}</div>
+                                                                            {d.name}
+                                                                        </td>
+                                                                        <td className="p-2 text-text-muted">{Math.round((stats?.rate || 1) * 100)}%</td>
+                                                                        <td className="p-2 text-orange-500 bg-orange-50/30">{weekTotal}</td>
+                                                                        <td className="p-2 font-bold text-orange-700 bg-orange-50/50">{cumulTotal}</td>
+                                                                        <td className="p-2 font-bold text-blue-600">{(stats?.weighted || 0).toFixed(1)}</td>
+                                                                    </tr>
+                                                                )
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(currentActivity?.equityGroup === 'workflow' || isWorkflowTab) && (
+                                            <div>
+                                                <h4 className="text-xs font-bold text-emerald-600 uppercase mb-2 border-b border-emerald-200 pb-1 flex items-center justify-between">
+                                                    <span>Équité : Supervision Workflow</span>
+                                                    <span className="text-[10px] normal-case font-normal text-text-muted">
+                                                        {activityDefinitions.filter(a => a.equityGroup === 'workflow').map(a => a.name).join(', ') || 'Supervision Workflow'}
+                                                    </span>
+                                                </h4>
+                                                <div className="overflow-x-auto max-h-48">
+                                                    <table className="min-w-full text-xs text-left">
+                                                        <thead className="bg-emerald-50 border-b sticky top-0 z-10">
+                                                            <tr>
+                                                                <th className="p-2 font-bold text-text-muted">Médecin</th>
+                                                                <th className="p-2 font-bold text-text-muted">Taux</th>
+                                                                <th className="p-2 font-bold text-emerald-500">Sem.</th>
+                                                                <th className="p-2 font-bold text-emerald-700">Cumul{activitiesStartDate && <span className="block text-[8px] font-normal text-emerald-500">depuis {new Date(activitiesStartDate).toLocaleDateString('fr-FR')}</span>}</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {[...doctors].sort((a, b) => (screenStats[a.id]?.workflowTotal || 0) - (screenStats[b.id]?.workflowTotal || 0)).map(d => {
+                                                                const stats = screenStats[d.id];
+                                                                return (
+                                                                    <tr key={d.id} className="border-b hover:bg-muted">
+                                                                        <td className="p-2 font-medium text-text-base flex items-center">
+                                                                            <div className={`w-5 h-5 rounded-full mr-2 ${d.color} flex items-center justify-center text-[8px]`}>{d.name.substring(0, 2)}</div>
+                                                                            {d.name}
+                                                                        </td>
+                                                                        <td className="p-2 text-text-muted">{Math.round((stats?.rate || 1) * 100)}%</td>
+                                                                        <td className="p-2 text-emerald-500 bg-emerald-50/30">{stats?.workflowWeek || 0}</td>
+                                                                        <td className="p-2 font-bold text-emerald-700 bg-emerald-50/50">{stats?.workflowTotal || 0}</td>
+                                                                    </tr>
+                                                                )
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {currentActivity?.equityGroup === 'custom' && (
+                                            <div>
+                                                <h4 className="text-xs font-bold text-purple-600 uppercase mb-2 border-b border-purple-200 pb-1 flex items-center justify-between">
+                                                    <span>Équité : {currentActivity.name} (Indépendante)</span>
+                                                    <span className="text-[10px] normal-case font-normal text-text-muted">Cette activité est comptabilisée séparément</span>
+                                                </h4>
+                                                <div className="overflow-x-auto max-h-48">
+                                                    <table className="min-w-full text-xs text-left">
+                                                        <thead className="bg-purple-50 border-b sticky top-0 z-10">
+                                                            <tr>
+                                                                <th className="p-2 font-bold text-text-muted">Médecin</th>
+                                                                <th className="p-2 font-bold text-text-muted">Taux Travail</th>
+                                                                <th className="p-2 font-bold text-purple-600">{currentActivity.name} (Total)</th>
+                                                                <th className="p-2 font-bold text-purple-800">Score Pondéré</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {[...doctors].sort((a, b) => {
+                                                                const src = viewMode === 'WEEK' ? schedule : monthSchedule;
+                                                                const cA = src.filter(s => s.assignedDoctorId === a.id && s.activityId === activeTabId).length;
+                                                                const cB = src.filter(s => s.assignedDoctorId === b.id && s.activityId === activeTabId).length;
+                                                                return (cA / getDoctorWorkRate(a)) - (cB / getDoctorWorkRate(b));
+                                                            }).map(d => {
+                                                                const src = viewMode === 'WEEK' ? schedule : monthSchedule;
+                                                                const count = src.filter(s => s.assignedDoctorId === d.id && s.activityId === activeTabId).length;
+                                                                const total = count + (effectiveHistory[d.id]?.[activeTabId] || 0);
+                                                                const rate = getDoctorWorkRate(d);
+                                                                return (
+                                                                    <tr key={d.id} className="border-b hover:bg-muted">
+                                                                        <td className="p-2 font-medium text-text-base flex items-center">
+                                                                            <div className={`w-5 h-5 rounded-full mr-2 ${d.color} flex items-center justify-center text-[8px]`}>{d.name.substring(0, 2)}</div>
+                                                                            {d.name}
+                                                                        </td>
+                                                                        <td className="p-2 text-text-muted">{Math.round(rate * 100)}%</td>
+                                                                        <td className="p-2 font-bold text-purple-600 bg-purple-50/30">{total}</td>
+                                                                        <td className="p-2 font-bold text-purple-800">{(total / rate).toFixed(1)}</td>
+                                                                    </tr>
+                                                                )
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <EmptyState
+                            icon={ActivityIcon}
+                            title="Aucune activité sélectionnée"
+                            description="Sélectionnez une activité dans la liste pour voir son planning."
+                        />
                     )}
                 </div>
-
-                {statsSectionExpanded && (
-                    <div className="space-y-6">
-                        {/* Show equity table based on current activity's equity group */}
-
-                        {/* UNITY + ASTREINTE GROUP */}
-                        {(currentActivity?.equityGroup === 'unity_astreinte' || !currentActivity?.equityGroup) && !isWorkflowTab && (
-                            <div>
-                                <h4 className="text-xs font-bold text-orange-600 uppercase mb-2 border-b border-orange-200 pb-1 flex items-center justify-between">
-                                    <span>Équité : Groupe Unity + Astreinte</span>
-                                    <span className="text-[10px] normal-case font-normal text-slate-500">
-                                        Activités regroupées : {
-                                            activityDefinitions
-                                                .filter(a => a.equityGroup === 'unity_astreinte')
-                                                .map(a => a.name)
-                                                .join(', ') || 'Astreinte, Unity'
-                                        }
-                                    </span>
-                                </h4>
-                                <div className="overflow-x-auto max-h-48 transition-all">
-                                    <table className="min-w-full text-xs text-left">
-                                        <thead className="bg-orange-50 border-b sticky top-0 z-10">
-                                            <tr>
-                                                <th className="p-2 font-bold text-slate-600">Médecin</th>
-                                                <th className="p-2 font-bold text-slate-500">Taux</th>
-                                                <th className="p-2 font-bold text-orange-500" title="Points UNIQUEMENT dans la période affichée (Sem./Mois)">Sem./Mois</th>
-                                                <th className="p-2 font-bold text-orange-700" title={activitiesStartDate ? `Points total depuis le ${new Date(activitiesStartDate).toLocaleDateString('fr-FR')}` : 'Points total (historique complet)'}>
-                                                    Total U+A
-                                                    {activitiesStartDate && (
-                                                        <span className="block text-[8px] font-normal text-orange-500">depuis le {new Date(activitiesStartDate).toLocaleDateString('fr-FR')}</span>
-                                                    )}
-                                                </th>
-                                                <th className="p-2 font-bold text-blue-600" title="Score pondéré = Total / Taux">Score Pondéré</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[...doctors].sort((a, b) => {
-                                                const scoreA = screenStats[a.id]?.weighted || 0;
-                                                const scoreB = screenStats[b.id]?.weighted || 0;
-                                                return scoreA - scoreB;
-                                            }).map(d => {
-                                                const stats = screenStats[d.id];
-                                                const weekTotal = (stats?.unityWeek || 0) + (stats?.astreinteWeek || 0);
-                                                const cumulTotal = (stats?.unityTotal || 0) + (stats?.astreinteTotal || 0);
-
-                                                return (
-                                                    <tr key={d.id} className="border-b hover:bg-slate-50">
-                                                        <td className="p-2 font-medium text-slate-700 flex items-center">
-                                                            <div className={`w-5 h-5 rounded-full mr-2 ${d.color} flex items-center justify-center text-[8px]`}>
-                                                                {d.name.substring(0, 2)}
-                                                            </div>
-                                                            {d.name}
-                                                        </td>
-                                                        <td className="p-2 text-slate-500">
-                                                            {Math.round((stats?.rate || 1) * 100)}%
-                                                        </td>
-                                                        <td className="p-2 text-orange-500 bg-orange-50/30">
-                                                            {weekTotal}
-                                                        </td>
-                                                        <td className="p-2 font-bold text-orange-700 bg-orange-50/50">
-                                                            {cumulTotal}
-                                                        </td>
-                                                        <td className="p-2 font-bold text-blue-600">
-                                                            {(stats?.weighted || 0).toFixed(1)}
-                                                        </td>
-                                                    </tr>
-                                                )
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* WORKFLOW GROUP */}
-                        {(currentActivity?.equityGroup === 'workflow' || isWorkflowTab) && (
-                            <div>
-                                <h4 className="text-xs font-bold text-emerald-600 uppercase mb-2 border-b border-emerald-200 pb-1 flex items-center justify-between">
-                                    <span>Équité : Supervision Workflow</span>
-                                    <span className="text-[10px] normal-case font-normal text-slate-500">
-                                        Activités regroupées : {
-                                            activityDefinitions
-                                                .filter(a => a.equityGroup === 'workflow')
-                                                .map(a => a.name)
-                                                .join(', ') || 'Supervision Workflow'
-                                        }
-                                    </span>
-                                </h4>
-                                <div className="overflow-x-auto max-h-48 transition-all">
-                                    <table className="min-w-full text-xs text-left">
-                                        <thead className="bg-emerald-50 border-b sticky top-0 z-10">
-                                            <tr>
-                                                <th className="p-2 font-bold text-slate-600">Médecin</th>
-                                                <th className="p-2 font-bold text-slate-500">Taux</th>
-                                                <th className="p-2 font-bold text-emerald-500" title="Cette semaine">Sem.</th>
-                                                <th className="p-2 font-bold text-emerald-700" title={activitiesStartDate ? `Cumul depuis le ${new Date(activitiesStartDate).toLocaleDateString('fr-FR')}` : 'Cumul total'}>
-                                                    Cumul
-                                                    {activitiesStartDate && (
-                                                        <span className="block text-[8px] font-normal text-emerald-500">depuis le {new Date(activitiesStartDate).toLocaleDateString('fr-FR')}</span>
-                                                    )}
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[...doctors].sort((a, b) => {
-                                                const wfA = screenStats[a.id]?.workflowTotal || 0;
-                                                const wfB = screenStats[b.id]?.workflowTotal || 0;
-                                                return wfA - wfB;
-                                            }).map(d => {
-                                                const stats = screenStats[d.id];
-                                                return (
-                                                    <tr key={d.id} className="border-b hover:bg-slate-50">
-                                                        <td className="p-2 font-medium text-slate-700 flex items-center">
-                                                            <div className={`w-5 h-5 rounded-full mr-2 ${d.color} flex items-center justify-center text-[8px]`}>
-                                                                {d.name.substring(0, 2)}
-                                                            </div>
-                                                            {d.name}
-                                                        </td>
-                                                        <td className="p-2 text-slate-500">
-                                                            {Math.round((stats?.rate || 1) * 100)}%
-                                                        </td>
-                                                        <td className="p-2 text-emerald-500 bg-emerald-50/30">
-                                                            {stats?.workflowWeek || 0}
-                                                        </td>
-                                                        <td className="p-2 font-bold text-emerald-700 bg-emerald-50/50">
-                                                            {stats?.workflowTotal || 0}
-                                                        </td>
-                                                    </tr>
-                                                )
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* CUSTOM/INDEPENDENT GROUP - Show activity-specific counts */}
-                        {currentActivity?.equityGroup === 'custom' && (
-                            <div>
-                                <h4 className="text-xs font-bold text-purple-600 uppercase mb-2 border-b border-purple-200 pb-1 flex items-center justify-between">
-                                    <span>Équité : {currentActivity.name} (Indépendante)</span>
-                                    <span className="text-[10px] normal-case font-normal text-slate-500">
-                                        Cette activité est comptabilisée séparément
-                                    </span>
-                                </h4>
-                                <div className="overflow-x-auto max-h-48 transition-all">
-                                    <table className="min-w-full text-xs text-left">
-                                        <thead className="bg-purple-50 border-b sticky top-0 z-10">
-                                            <tr>
-                                                <th className="p-2 font-bold text-slate-600">Médecin</th>
-                                                <th className="p-2 font-bold text-slate-500">Taux Travail</th>
-                                                <th className="p-2 font-bold text-purple-600">{currentActivity.name} (Total)</th>
-                                                <th className="p-2 font-bold text-purple-800">Score Pondéré</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[...doctors].sort((a, b) => {
-                                                // Count activity assignments for this specific activity
-                                                const sourceSchedule = viewMode === 'WEEK' ? schedule : monthSchedule;
-                                                const countA = sourceSchedule.filter(s => s.assignedDoctorId === a.id && s.activityId === activeTabId).length;
-                                                const countB = sourceSchedule.filter(s => s.assignedDoctorId === b.id && s.activityId === activeTabId).length;
-                                                const rateA = getDoctorWorkRate(a);
-                                                const rateB = getDoctorWorkRate(b);
-                                                return (countA / rateA) - (countB / rateB);
-                                            }).map(d => {
-                                                const sourceSchedule = viewMode === 'WEEK' ? schedule : monthSchedule;
-                                                const count = sourceSchedule.filter(s => s.assignedDoctorId === d.id && s.activityId === activeTabId).length;
-                                                const historyCount = effectiveHistory[d.id]?.[activeTabId] || 0;
-                                                const total = count + historyCount;
-                                                const rate = getDoctorWorkRate(d);
-                                                const weighted = total / rate;
-
-                                                return (
-                                                    <tr key={d.id} className="border-b hover:bg-slate-50">
-                                                        <td className="p-2 font-medium text-slate-700 flex items-center">
-                                                            <div className={`w-5 h-5 rounded-full mr-2 ${d.color} flex items-center justify-center text-[8px]`}>
-                                                                {d.name.substring(0, 2)}
-                                                            </div>
-                                                            {d.name}
-                                                        </td>
-                                                        <td className="p-2 text-slate-500">
-                                                            {Math.round(rate * 100)}%
-                                                        </td>
-                                                        <td className="p-2 font-bold text-purple-600 bg-purple-50/30">
-                                                            {total}
-                                                        </td>
-                                                        <td className="p-2 font-bold text-purple-800">
-                                                            {weighted.toFixed(1)}
-                                                        </td>
-                                                    </tr>
-                                                )
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
             </div>
+
+            {/* MOBILE: Vaul bottom sheet for detail */}
+            <Drawer.Root open={mobileDetailOpen} onOpenChange={setMobileDetailOpen} dismissible>
+                <Drawer.Portal>
+                    <Drawer.Overlay className="fixed inset-0 bg-black/40 z-modal" />
+                    <Drawer.Content
+                        className="fixed bottom-0 left-0 right-0 z-modal bg-surface rounded-t-2xl border-t border-border outline-none"
+                        style={{ maxHeight: '85dvh' }}
+                    >
+                        <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-4" aria-hidden="true" />
+                        <div className="overflow-y-auto px-4 pb-8 flex flex-col gap-4">
+                            {currentActivity ? (
+                                <>
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="font-heading font-bold text-base text-text-base">{currentActivity.name}</h2>
+                                        <Badge variant={activityVariant(currentActivity.equityGroup)}>
+                                            {currentActivity.equityGroup === 'workflow' ? 'Workflow' : currentActivity.equityGroup === 'unity_astreinte' ? 'Unity + Astreinte' : 'Indépendant'}
+                                        </Badge>
+                                    </div>
+
+                                    {/* Toolbar */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <div className="flex bg-muted p-1 rounded-lg">
+                                            <button onClick={() => setViewMode('WEEK')} className={`px-2 py-1 text-xs font-bold rounded ${viewMode === 'WEEK' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}>Semaine</button>
+                                            <button onClick={() => setViewMode('MONTH')} className={`px-2 py-1 text-xs font-bold rounded ${viewMode === 'MONTH' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}>Mois</button>
+                                        </div>
+                                        <div className="flex items-center bg-surface rounded-lg shadow-card border border-border p-1">
+                                            <button onClick={() => handleWeekChange('prev')} disabled={!canNavigatePrevious} className={`p-1 rounded ${canNavigatePrevious ? 'hover:bg-muted' : 'opacity-30 cursor-not-allowed'}`}>
+                                                <ChevronLeft className="w-4 h-4 text-text-muted" />
+                                            </button>
+                                            {viewMode === 'WEEK' ? (
+                                                <input type="date" className="border-none text-text-muted font-medium text-xs focus:ring-0 bg-transparent mx-1 w-28"
+                                                    value={`${currentWeekStart.getFullYear()}-${String(currentWeekStart.getMonth() + 1).padStart(2, '0')}-${String(currentWeekStart.getDate()).padStart(2, '0')}`}
+                                                    onChange={handleDateChange} min={activitiesStartDate || undefined} />
+                                            ) : (
+                                                <span className="px-2 text-xs font-bold text-text-base capitalize w-24 text-center">{currentWeekStart.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+                                            )}
+                                            <button onClick={() => handleWeekChange('next')} className="p-1 hover:bg-muted rounded"><ChevronRight className="w-4 h-4 text-text-muted" /></button>
+                                        </div>
+                                        {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
+                                            <button onClick={handleRecalculateAuto} className="flex items-center px-2 py-1.5 rounded text-xs font-bold bg-blue-100 text-blue-700 border border-blue-300">
+                                                <Wand2 className="w-4 h-4 mr-1" />{autoFillTriggered ? '✓' : 'Auto'}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Schedule grid */}
+                                    <div className="bg-surface border border-border rounded-card p-2 shadow-card overflow-auto">
+                                        {viewMode === 'MONTH' ? renderMonthGrid() : currentActivity?.granularity === 'WEEKLY' ? (
+                                            <div className="flex flex-col items-center gap-4">
+                                                <h3 className="text-base font-bold text-text-base">Responsable de la Semaine</h3>
+                                                {(() => {
+                                                    const sampleSlot = schedule.find(s => s.activityId === activeTabId);
+                                                    if (!sampleSlot) return <div className="text-text-muted text-sm">Pas de créneau généré.</div>;
+                                                    return (
+                                                        <select
+                                                            className={`w-full p-3 border rounded-lg text-lg text-center font-bold outline-none ring-2 ${sampleSlot.isLocked ? 'ring-blue-500 bg-surface text-blue-800' : 'ring-transparent bg-muted text-text-muted'}`}
+                                                            value={sampleSlot.isLocked ? sampleSlot.assignedDoctorId || "" : ""}
+                                                            onChange={(e) => handleWeeklyAssign(e.target.value)}
+                                                        >
+                                                            <option value="">-- Sélectionner --</option>
+                                                            {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                                        </select>
+                                                    )
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            <div className="min-w-[400px]">
+                                                <table className="w-full border-collapse table-fixed">
+                                                    <thead>
+                                                        <tr>
+                                                            <th className="p-1 border bg-muted text-[9px] font-bold text-text-muted uppercase w-10">Pér.</th>
+                                                            {days.map(d => {
+                                                                const date = getDateForDayOfWeek(currentWeekStart, d);
+                                                                const [, month, day] = date.split('-');
+                                                                return (
+                                                                    <th key={d} className="p-1 border bg-muted text-[10px] font-bold text-text-base">
+                                                                        {d.substring(0, 3)}
+                                                                        <span className="block text-[8px] font-normal text-text-muted">{day}/{month}</span>
+                                                                    </th>
+                                                                )
+                                                            })}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr>
+                                                            <td className="p-1 border bg-muted text-[9px] font-bold text-center">AM</td>
+                                                            {days.map(d => <td key={`m-${d}`} className="p-0.5 border align-top">{renderSlot(d, Period.MORNING)}</td>)}
+                                                        </tr>
+                                                        <tr>
+                                                            <td className="p-1 border bg-muted text-[9px] font-bold text-center">PM</td>
+                                                            {days.map(d => <td key={`am-${d}`} className="p-0.5 border align-top">{renderSlot(d, Period.AFTERNOON)}</td>)}
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <EmptyState
+                                    icon={ActivityIcon}
+                                    title="Aucune activité sélectionnée"
+                                    description="Sélectionnez une activité dans la liste pour voir son planning."
+                                />
+                            )}
+                        </div>
+                    </Drawer.Content>
+                </Drawer.Portal>
+            </Drawer.Root>
 
             {/* PDF DATE RANGE MODAL */}
             {showPdfModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-surface rounded-xl shadow-modal w-full max-w-sm p-6 border border-border animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center">
+                            <h3 className="text-lg font-bold text-text-base flex items-center">
                                 <FileText className="w-5 h-5 mr-2 text-blue-600" />
                                 Générer Rapport PDF
                             </h3>
-                            <button onClick={() => setShowPdfModal(false)} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => setShowPdfModal(false)} className="text-text-muted hover:text-text-base">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-
                         <div className="space-y-4 mb-6">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Date de début</label>
-                                <input
-                                    type="date"
-                                    className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={pdfStartDate}
-                                    onChange={e => setPdfStartDate(e.target.value)}
-                                />
+                                <label className="block text-xs font-bold text-text-muted mb-1">Date de début</label>
+                                <input type="date" className="w-full border border-border rounded p-2 text-sm focus:ring-2 focus:ring-primary outline-none" value={pdfStartDate} onChange={e => setPdfStartDate(e.target.value)} />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Date de fin</label>
-                                <input
-                                    type="date"
-                                    className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={pdfEndDate}
-                                    min={pdfStartDate}
-                                    onChange={e => setPdfEndDate(e.target.value)}
-                                />
+                                <label className="block text-xs font-bold text-text-muted mb-1">Date de fin</label>
+                                <input type="date" className="w-full border border-border rounded p-2 text-sm focus:ring-2 focus:ring-primary outline-none" value={pdfEndDate} min={pdfStartDate} onChange={e => setPdfEndDate(e.target.value)} />
                             </div>
-                            <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded italic">
+                            <div className="text-xs text-text-muted bg-muted p-3 rounded italic">
                                 Le rapport calculera les statistiques consolidées (Unity, Astreinte, Supervision) sur cette période précise.
                             </div>
                         </div>
-
-                        <button
-                            onClick={handleDownloadReport}
-                            disabled={isGeneratingStatsPdf}
-                            className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 flex items-center justify-center disabled:opacity-50 transition-all shadow-md"
-                        >
+                        <button onClick={handleDownloadReport} disabled={isGeneratingStatsPdf} className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary-hover flex items-center justify-center disabled:opacity-50 transition-all shadow-card">
                             {isGeneratingStatsPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
                             {isGeneratingStatsPdf ? 'Génération...' : 'Télécharger le Rapport'}
                         </button>
@@ -2176,61 +2233,39 @@ const Activities: React.FC = () => {
                 />
             )}
 
-            {/* ======= ACTIVITY LOG SLIDING PANEL ======= */}
+            {/* ACTIVITY LOG SLIDING PANEL */}
             {showLogPanel && (
                 <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 bg-black/20 z-40 transition-opacity"
-                        onClick={() => setShowLogPanel(false)}
-                    />
-                    {/* Sliding Panel */}
-                    <div className="fixed top-0 right-0 h-full w-[420px] max-w-[90vw] bg-white shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-300 border-l border-slate-200">
-                        {/* Panel Header */}
-                        <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-violet-50 to-indigo-50 flex-shrink-0">
+                    <div className="fixed inset-0 bg-black/20 z-modal transition-opacity" onClick={() => setShowLogPanel(false)} />
+                    <div className="fixed top-0 right-0 h-full w-[420px] max-w-[90vw] bg-surface shadow-modal z-modal flex flex-col animate-in slide-in-from-right duration-300 border-l border-border">
+                        <div className="p-4 border-b border-border bg-gradient-to-r from-violet-50 to-indigo-50 flex-shrink-0">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center">
                                     <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center mr-3">
                                         <History className="w-5 h-5 text-violet-600" />
                                     </div>
                                     <div>
-                                        <h2 className="font-bold text-slate-800 text-lg">Historique</h2>
-                                        <p className="text-xs text-slate-500">Modifications des activités</p>
+                                        <h2 className="font-bold text-text-base text-lg">Historique</h2>
+                                        <p className="text-xs text-text-muted">Modifications des activités</p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => setShowLogPanel(false)}
-                                    className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
-                                >
-                                    <X className="w-5 h-5 text-slate-500" />
+                                <button onClick={() => setShowLogPanel(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
+                                    <X className="w-5 h-5 text-text-muted" />
                                 </button>
                             </div>
-                            {/* Filter Tabs */}
-                            <div className="flex bg-white/80 p-1 rounded-lg border border-slate-200">
-                                <button
-                                    onClick={() => setLogFilter('ALL')}
-                                    className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'ALL' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                                >
-                                    Toutes les semaines
-                                </button>
-                                <button
-                                    onClick={() => setLogFilter('WEEK')}
-                                    className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'WEEK' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                                >
-                                    Semaine actuelle
-                                </button>
+                            <div className="flex bg-surface/80 p-1 rounded-lg border border-border">
+                                <button onClick={() => setLogFilter('ALL')} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'ALL' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-text-muted hover:text-text-base'}`}>Toutes les semaines</button>
+                                <button onClick={() => setLogFilter('WEEK')} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'WEEK' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-text-muted hover:text-text-base'}`}>Semaine actuelle</button>
                             </div>
                         </div>
-
-                        {/* Panel Content */}
                         <div className="flex-1 overflow-y-auto p-4">
                             {isLoadingLogs ? (
-                                <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                                <div className="flex flex-col items-center justify-center h-40 text-text-muted">
                                     <Loader2 className="w-8 h-8 animate-spin mb-3 text-violet-400" />
                                     <span className="text-sm">Chargement...</span>
                                 </div>
                             ) : logEntries.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+                                <div className="flex flex-col items-center justify-center h-40 text-text-muted">
                                     <History className="w-12 h-12 mb-3 opacity-30" />
                                     <span className="text-sm font-medium">Aucune modification enregistrée</span>
                                     <span className="text-xs mt-1">Les modifications apparaîtront ici</span>
@@ -2238,25 +2273,21 @@ const Activities: React.FC = () => {
                             ) : (
                                 <div className="space-y-1">
                                     {(() => {
-                                        // Group logs by date
                                         const grouped = new Map<string, ActivityLogEntry[]>();
                                         logEntries.forEach(entry => {
                                             const dateKey = new Date(entry.timestamp).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
                                             if (!grouped.has(dateKey)) grouped.set(dateKey, []);
                                             grouped.get(dateKey)!.push(entry);
                                         });
-
                                         return Array.from(grouped.entries()).map(([dateLabel, entries]) => (
                                             <div key={dateLabel} className="mb-4">
-                                                <div className="sticky top-0 bg-white/95 backdrop-blur-sm py-2 z-10">
-                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider capitalize">{dateLabel}</span>
+                                                <div className="sticky top-0 bg-surface/95 backdrop-blur-sm py-2 z-10">
+                                                    <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider capitalize">{dateLabel}</span>
                                                 </div>
                                                 <div className="space-y-2 relative">
-                                                    {/* Timeline line */}
-                                                    <div className="absolute left-[15px] top-2 bottom-2 w-px bg-slate-200" />
+                                                    <div className="absolute left-[15px] top-2 bottom-2 w-px bg-border" />
                                                     {entries.map(entry => {
-                                                        // Action icon & color
-                                                        let iconColor = 'bg-slate-100 text-slate-500';
+                                                        let iconColor = 'bg-muted text-text-muted';
                                                         let actionLabel = entry.action;
                                                         if (entry.action === 'MANUAL_ASSIGN') { iconColor = 'bg-blue-100 text-blue-600'; actionLabel = 'Assignation manuelle'; }
                                                         else if (entry.action === 'AUTO_RECALCULATE') { iconColor = 'bg-cyan-100 text-cyan-600'; actionLabel = 'Recalcul auto'; }
@@ -2267,38 +2298,23 @@ const Activities: React.FC = () => {
                                                         else if (entry.action === 'CREATE_ACTIVITY') { iconColor = 'bg-emerald-100 text-emerald-600'; actionLabel = 'Création activité'; }
                                                         else if (entry.action === 'DELETE_ACTIVITY') { iconColor = 'bg-rose-100 text-rose-600'; actionLabel = 'Suppression activité'; }
                                                         else if (entry.action === 'EDIT_ACTIVITY') { iconColor = 'bg-amber-100 text-amber-600'; actionLabel = 'Modification activité'; }
-
                                                         const time = new Date(entry.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
                                                         return (
                                                             <div key={entry.id} className="relative pl-9 group">
-                                                                {/* Timeline dot */}
-                                                                <div className={`absolute left-[10px] top-3 w-[11px] h-[11px] rounded-full border-2 border-white shadow-sm ${iconColor.split(' ')[0]}`} />
-
-                                                                <div className="bg-white border border-slate-100 rounded-lg p-3 hover:border-slate-200 hover:shadow-sm transition-all">
-                                                                    {/* Header: Action badge + Time */}
+                                                                <div className={`absolute left-[10px] top-3 w-[11px] h-[11px] rounded-full border-2 border-surface shadow-sm ${iconColor.split(' ')[0]}`} />
+                                                                <div className="bg-surface border border-border rounded-card p-3 hover:border-border hover:shadow-card transition-all">
                                                                     <div className="flex items-center justify-between mb-1.5">
-                                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${iconColor}`}>
-                                                                            {actionLabel}
-                                                                        </span>
-                                                                        <span className="text-[10px] text-slate-400 font-mono flex items-center">
-                                                                            <Clock className="w-3 h-3 mr-1" />{time}
-                                                                        </span>
+                                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${iconColor}`}>{actionLabel}</span>
+                                                                        <span className="text-[10px] text-text-muted font-mono flex items-center"><Clock className="w-3 h-3 mr-1" />{time}</span>
                                                                     </div>
-
-                                                                    {/* Description */}
-                                                                    <p className="text-sm text-slate-700 leading-snug">{entry.description}</p>
-
-                                                                    {/* Week badge */}
+                                                                    <p className="text-sm text-text-base leading-snug">{entry.description}</p>
                                                                     {entry.weekKey && (
-                                                                        <div className="mt-2 flex items-center text-[10px] text-slate-400">
+                                                                        <div className="mt-2 flex items-center text-[10px] text-text-muted">
                                                                             <Calendar className="w-3 h-3 mr-1" />
                                                                             Sem. du {new Date(entry.weekKey).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                                                                         </div>
                                                                     )}
-
-                                                                    {/* User info */}
-                                                                    <div className="mt-2 flex items-center text-[10px] text-slate-400 border-t border-slate-50 pt-2">
+                                                                    <div className="mt-2 flex items-center text-[10px] text-text-muted border-t border-border pt-2">
                                                                         <UserCircle className="w-3.5 h-3.5 mr-1 text-violet-400" />
                                                                         <span className="font-medium text-violet-500">{entry.userName}</span>
                                                                     </div>
@@ -2313,19 +2329,11 @@ const Activities: React.FC = () => {
                                 </div>
                             )}
                         </div>
-
-                        {/* Panel Footer */}
-                        <div className="p-3 border-t border-slate-200 bg-slate-50 flex-shrink-0">
+                        <div className="p-3 border-t border-border bg-muted flex-shrink-0">
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-slate-400">
-                                    {logEntries.length} modification{logEntries.length !== 1 ? 's' : ''}
-                                </span>
-                                <button
-                                    onClick={loadLogs}
-                                    className="text-[10px] text-violet-600 hover:text-violet-700 font-bold flex items-center"
-                                >
-                                    <History className="w-3 h-3 mr-1" />
-                                    Actualiser
+                                <span className="text-[10px] text-text-muted">{logEntries.length} modification{logEntries.length !== 1 ? 's' : ''}</span>
+                                <button onClick={loadLogs} className="text-[10px] text-violet-600 hover:text-violet-700 font-bold flex items-center">
+                                    <History className="w-3 h-3 mr-1" />Actualiser
                                 </button>
                             </div>
                         </div>
@@ -2338,3 +2346,4 @@ const Activities: React.FC = () => {
 };
 
 export default Activities;
+
