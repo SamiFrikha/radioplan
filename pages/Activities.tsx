@@ -1300,7 +1300,7 @@ const Activities: React.FC = () => {
                     /* Non-admin or validated week: show assignment as read-only */
                     <div className={`text-[9px] md:text-xs font-medium text-center leading-tight ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                         {doc ? doc.name : <span className="text-text-muted italic">Non assigné</span>}
-                        {isCurrentWeekValidated && <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 inline ml-0.5 text-green-600" />}
+                        {isCurrentWeekValidated && <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 inline ml-0.5 text-success" />}
                     </div>
                 )}
             </div>
@@ -1335,7 +1335,7 @@ const Activities: React.FC = () => {
                 {gridWeeks.map((weekDays, i) => (
                     <div key={i} className="grid grid-cols-5 gap-2 border-b pb-4">
                         {weekDays.map(date => (
-                            <div key={date.toISOString()} className="border rounded p-2 bg-white min-h-[100px] flex flex-col">
+                            <div key={date.toISOString()} className="border rounded p-2 bg-surface min-h-[100px] flex flex-col">
                                 <div className="text-xs font-bold text-text-muted mb-1 border-b border-border pb-1">{date.getDate()}</div>
                                 <div className="flex-1 flex flex-col justify-center space-y-2">
                                     <div className="flex items-start text-[10px] text-text-muted">
@@ -1781,7 +1781,7 @@ const Activities: React.FC = () => {
 
                                                 {weeklyAssignmentMode === 'AUTO' && (
                                                     <div className="mt-2">
-                                                        <button onClick={() => handleWeeklyAssign("")} className="text-xs underline text-text-muted hover:text-blue-600">
+                                                        <button onClick={() => handleWeeklyAssign("")} className="text-xs underline text-text-muted hover:text-primary">
                                                             Forcer le recalcul Auto
                                                         </button>
                                                     </div>
@@ -1890,7 +1890,7 @@ const Activities: React.FC = () => {
                                                                 <span className="font-bold">{doc?.name}</span> : {conf.description}
                                                             </div>
                                                             <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
-                                                                <span className="text-xs font-bold text-blue-600 flex items-center">
+                                                                <span className="text-xs font-bold text-primary flex items-center">
                                                                     Résoudre <ChevronRight className="w-3 h-3 ml-1" />
                                                                 </span>
                                                             </div>
@@ -1918,7 +1918,7 @@ const Activities: React.FC = () => {
                                                 </span>
                                             )}
                                             {activitiesStartDate && (
-                                                <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">
+                                                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
                                                     Depuis {new Date(activitiesStartDate).toLocaleDateString()}
                                                 </span>
                                             )}
@@ -1964,7 +1964,7 @@ const Activities: React.FC = () => {
                                                                 <th className="p-2 font-bold text-text-muted">Taux</th>
                                                                 <th className="p-2 font-bold text-warning-text">Sem./Mois</th>
                                                                 <th className="p-2 font-bold text-warning-text">Total U+A</th>
-                                                                <th className="p-2 font-bold text-blue-600">Score Pondéré</th>
+                                                                <th className="p-2 font-bold text-primary">Score Pondéré</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -1981,7 +1981,7 @@ const Activities: React.FC = () => {
                                                                         <td className="p-2 text-text-muted">{Math.round((stats?.rate || 1) * 100)}%</td>
                                                                         <td className="p-2 text-warning-text bg-warning/5">{weekTotal}</td>
                                                                         <td className="p-2 font-bold text-warning-text bg-warning/10">{cumulTotal}</td>
-                                                                        <td className="p-2 font-bold text-blue-600">{(stats?.weighted || 0).toFixed(1)}</td>
+                                                                        <td className="p-2 font-bold text-primary">{(stats?.weighted || 0).toFixed(1)}</td>
                                                                     </tr>
                                                                 )
                                                             })}
@@ -2204,7 +2204,7 @@ const Activities: React.FC = () => {
                     <div className="bg-surface rounded-card shadow-modal w-full max-w-sm p-6 border border-border animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-text-base flex items-center">
-                                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                                <FileText className="w-5 h-5 mr-2 text-primary" />
                                 Générer Rapport PDF
                             </h3>
                             <button onClick={() => setShowPdfModal(false)} className="text-text-muted hover:text-text-base">
