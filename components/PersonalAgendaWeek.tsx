@@ -25,7 +25,7 @@ const PERIODS = [Period.MORNING, Period.AFTERNOON];
 // Base styles — used for all slot types except RCP which has dynamic status styles
 const BASE_STYLE: Record<string, { bg: string; border: string; text: string; dot: string }> = {
   [SlotType.CONSULTATION]: { bg: 'bg-primary/5',  border: 'border-primary/30',  text: 'text-primary',        dot: 'bg-primary' },
-  [SlotType.ACTIVITY]:     { bg: 'bg-orange-50',  border: 'border-orange-300',  text: 'text-orange-800',     dot: 'bg-orange-500' },
+  [SlotType.ACTIVITY]:     { bg: 'bg-warning/10', border: 'border-warning/20',  text: 'text-warning',        dot: 'bg-warning' },
   LEAVE:                   { bg: 'bg-muted',       border: 'border-border',      text: 'text-text-muted',     dot: 'bg-border' },
 };
 
@@ -33,27 +33,27 @@ const BASE_STYLE: Record<string, { bg: string; border: string; text: string; dot
 const RCP_STYLES = {
   // À confirmer — look very different from confirmed (amber/warning)
   UNCONFIRMED: {
-    bg:     'bg-amber-50',
-    border: 'border-amber-400 border-dashed',
-    text:   'text-amber-800',
-    dot:    'bg-amber-500',
-    subtext:'text-amber-600',
+    bg:     'bg-warning/10',
+    border: 'border-warning/20 border-dashed',
+    text:   'text-warning',
+    dot:    'bg-warning',
+    subtext:'text-warning',
   },
   // Confirmé présent — clearly green
   PRESENT: {
-    bg:     'bg-green-100',
-    border: 'border-green-500 border-2',
-    text:   'text-green-800',
-    dot:    'bg-green-500',
-    subtext:'text-green-600',
+    bg:     'bg-success/10',
+    border: 'border-success/20 border-2',
+    text:   'text-success',
+    dot:    'bg-success',
+    subtext:'text-success',
   },
   // Aucun statut (RCP programmée, sans confirmation individuelle)
   NONE: {
-    bg:     'bg-violet-50',
-    border: 'border-violet-300',
-    text:   'text-violet-800',
-    dot:    'bg-violet-500',
-    subtext:'text-violet-500',
+    bg:     'bg-secondary/10',
+    border: 'border-secondary/20',
+    text:   'text-secondary',
+    dot:    'bg-secondary',
+    subtext:'text-secondary',
   },
 };
 
@@ -403,19 +403,19 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
           <span className="text-xs text-text-muted">Consultation</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+          <span className="w-2.5 h-2.5 rounded-full bg-secondary" />
           <span className="text-xs text-text-muted">RCP</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <AlertTriangle size={10} className="text-amber-500" />
+          <AlertTriangle size={10} className="text-warning" />
           <span className="text-xs text-text-muted">RCP à confirmer</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 size={10} className="text-green-500" />
+          <CheckCircle2 size={10} className="text-success" />
           <span className="text-xs text-text-muted">RCP confirmé</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+          <span className="w-2.5 h-2.5 rounded-full bg-warning" />
           <span className="text-xs text-text-muted">Activité</span>
         </div>
       </div>
