@@ -21,7 +21,7 @@ const TopBar: React.FC = () => {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-topbar lg:hidden print:hidden bg-surface border-b border-border"
-      style={{ height: '56px', paddingTop: 'env(safe-area-inset-top)' }}
+      style={{ height: 'calc(56px + env(safe-area-inset-top))', paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="flex items-center h-14 px-4 gap-3">
         <h1 className="text-base font-bold text-text-base tracking-tight flex-1 truncate">

@@ -66,7 +66,7 @@ const Sidebar: React.FC = () => {
 
       {/* Header */}
       <div className="flex items-center h-14 px-4 border-b border-white/10 flex-shrink-0">
-        <div className="w-8 h-8 rounded-btn-sm bg-gradient-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
           RP
         </div>
         <span className="text-white font-extrabold text-base lg:text-lg hidden lg:block ml-3">
