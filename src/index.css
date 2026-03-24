@@ -45,17 +45,17 @@
   .press-scale:active {
     transform: scale(0.97);
   }
+  .skeleton {
+    background: linear-gradient(90deg, #EEF2FF 25%, #E0E7FF 50%, #EEF2FF 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
 }
 
 /* Skeleton shimmer — Indigo tint */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
-}
-.skeleton {
-  background: linear-gradient(90deg, #EEF2FF 25%, #E0E7FF 50%, #EEF2FF 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
 }
 
 /* Scrollbar — Indigo branded */
@@ -87,7 +87,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; background: #EEF2FF; }
+  .press-scale { transition: none; }
   .press-scale:active { transform: none; }
+  .float-label-text { transition: none; }
+  .float-label-input { transition: none; }
 }
 
 @media print {
