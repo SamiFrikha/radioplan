@@ -17,12 +17,9 @@ interface NavItemDef {
 }
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  [
-    'flex items-center px-3 h-11 rounded-lg transition-colors duration-150 relative',
-    isActive
-      ? 'bg-muted text-primary border-l-[3px] border-primary pl-[calc(0.75rem-3px)]'
-      : 'text-text-muted hover:bg-muted hover:text-text-base border-l-[3px] border-transparent pl-[calc(0.75rem-3px)]',
-  ].join(' ');
+  isActive
+    ? 'flex items-center gap-3 w-full px-3 py-2.5 rounded-btn-sm bg-gradient-primary text-white font-semibold shadow-[0_2px_8px_rgba(79,70,229,0.4)] transition-all duration-150'
+    : 'flex items-center gap-3 w-full px-3 py-2.5 rounded-btn-sm text-white/60 hover:text-white hover:bg-white/10 font-medium transition-all duration-150';
 
 function SidebarNavLink({ item }: { item: NavItemDef }) {
   return (
@@ -33,8 +30,8 @@ function SidebarNavLink({ item }: { item: NavItemDef }) {
     >
       {({ isActive }) => (
         <>
-          <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
-          <span className="hidden lg:block ml-3 text-sm font-medium">{item.label}</span>
+          <item.icon className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+          <span className="hidden lg:block text-sm truncate">{item.label}</span>
           {isActive && <span className="sr-only">(page actuelle)</span>}
         </>
       )}
@@ -65,28 +62,31 @@ const Sidebar: React.FC = () => {
   const visibleAdminItems = adminItems.filter(i => i.show);
 
   return (
-    <aside className="print:hidden hidden md:flex flex-col h-full w-sidebar-collapsed lg:w-sidebar bg-surface border-r border-border">
+    <aside className="print:hidden hidden md:flex flex-col h-full w-sidebar-collapsed lg:w-sidebar bg-[#0F172A] border-r border-white/5 z-sidebar">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-3 h-14 border-b border-border shrink-0">
-        <span className="hidden lg:block text-primary font-heading font-bold text-sm">
+      <div className="flex items-center h-14 px-4 border-b border-white/10 flex-shrink-0">
+        <div className="w-8 h-8 rounded-btn-sm bg-gradient-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+          RP
+        </div>
+        <span className="text-white font-extrabold text-base lg:text-lg hidden lg:block ml-3">
           RadioPlan AI
         </span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 ml-auto">
           <NotificationBell />
         </div>
       </div>
 
       {/* Main nav */}
-      <nav aria-label="Navigation principale" className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
+      <nav aria-label="Navigation principale" className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
         {navItems.filter(i => i.show).map(item => (
           <SidebarNavLink key={item.to} item={item} />
         ))}
 
         {/* Admin section */}
         {visibleAdminItems.length > 0 && (
-          <div className="border-t border-border mt-2 pt-2">
-            <p className="text-[10px] font-medium uppercase text-text-muted tracking-wider px-3 mb-1 hidden lg:block">
+          <div className="border-t border-white/10 mt-2 pt-2">
+            <p className="text-[10px] font-medium uppercase text-white/40 tracking-wider px-3 mb-1 hidden lg:block">
               Administration
             </p>
             {visibleAdminItems.map(item => (
@@ -97,15 +97,15 @@ const Sidebar: React.FC = () => {
       </nav>
 
       {/* Footer — user info + logout */}
-      <div className="border-t border-border px-2 py-3 shrink-0">
+      <div className="mt-auto border-t border-white/10 p-3">
         {profile ? (
-          <div className="flex items-center gap-2 px-1">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[11px] font-bold text-white shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
               {profile.email?.substring(0, 2).toUpperCase() ?? 'U'}
             </div>
             <div className="hidden lg:block flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-base truncate">{profile.email}</p>
-              <p className="text-xs text-text-muted">{profile.role_name || profile.role}</p>
+              <p className="text-white/70 text-sm font-medium hidden lg:block truncate">{profile.email}</p>
+              <p className="text-xs text-white/40 truncate">{profile.role_name || profile.role}</p>
             </div>
             <button
               onClick={async () => {
@@ -113,7 +113,7 @@ const Sidebar: React.FC = () => {
                 setCurrentUser(null);
                 navigate('/login');
               }}
-              className="ml-auto text-text-muted hover:text-accent-red transition-colors duration-150 shrink-0"
+              className="ml-auto text-white/40 hover:text-white transition-colors duration-150 flex-shrink-0"
               aria-label="Se déconnecter"
               title="Se déconnecter"
             >
@@ -123,7 +123,7 @@ const Sidebar: React.FC = () => {
         ) : (
           <button
             onClick={() => navigate('/login')}
-            className="w-full flex items-center justify-center gap-2 text-sm text-text-muted hover:text-primary transition-colors duration-150 py-2"
+            className="w-full flex items-center justify-center gap-2 text-sm text-white/40 hover:text-white transition-colors duration-150 py-2"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden lg:block">Se connecter</span>
