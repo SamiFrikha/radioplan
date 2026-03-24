@@ -1235,7 +1235,7 @@ const Activities: React.FC = () => {
             s.activityId === activeTabId
         );
 
-        if (!slot) return <div className="text-xs text-slate-300 p-2">--</div>;
+        if (!slot) return <div className="text-xs text-text-muted p-2">--</div>;
 
         const doc = doctors.find(d => d.id === slot.assignedDoctorId);
 
@@ -1245,10 +1245,10 @@ const Activities: React.FC = () => {
         // In month view, simplify display
         if (viewMode === 'MONTH') {
             return (
-                <div className={`text-[8px] md:text-[10px] p-0.5 md:p-1 border rounded min-h-[1.25rem] md:min-h-[1.5rem] flex items-center break-words ${hasConflict ? 'bg-red-50 border-red-300' : 'bg-slate-50'}`}>
+                <div className={`text-[8px] md:text-[10px] p-0.5 md:p-1 border rounded min-h-[1.25rem] md:min-h-[1.5rem] flex items-center break-words ${hasConflict ? 'bg-red-50 border-red-300' : 'bg-muted'}`}>
                     {doc ? (
-                        <span className={`font-bold ${hasConflict ? 'text-red-700' : 'text-slate-700'}`}>{doc.name}</span>
-                    ) : <span className="text-slate-300">--</span>}
+                        <span className={`font-bold ${hasConflict ? 'text-red-700' : 'text-text-base'}`}>{doc.name}</span>
+                    ) : <span className="text-text-muted">--</span>}
                 </div>
             )
         }
@@ -1256,9 +1256,9 @@ const Activities: React.FC = () => {
         // Determine styling based on auto vs manual
         const isAuto = slot.isAutoAssigned;
         const borderColor = hasConflict ? 'border-red-400 bg-red-50' :
-            slot.isLocked ? (isAuto ? 'border-green-400 bg-green-50' : 'border-blue-400 bg-blue-50') : 'border-dashed border-slate-300';
+            slot.isLocked ? (isAuto ? 'border-green-400 bg-green-50' : 'border-blue-400 bg-blue-50') : 'border-dashed border-border';
         const textColor = hasConflict ? 'text-red-800' :
-            slot.isLocked ? (isAuto ? 'text-green-800' : 'text-blue-800') : 'text-slate-700';
+            slot.isLocked ? (isAuto ? 'text-green-800' : 'text-blue-800') : 'text-text-base';
 
         return (
             <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative ${borderColor}`}>
@@ -1283,7 +1283,7 @@ const Activities: React.FC = () => {
                 {isAdmin && !isCurrentWeekValidated ? (
                     <div className="relative w-full">
                         <div className={`text-[9px] md:text-xs font-medium text-center leading-tight pointer-events-none ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                            {doc ? doc.name : <span className="text-slate-400 italic">Choisir</span>}
+                            {doc ? doc.name : <span className="text-text-muted italic">Choisir</span>}
                         </div>
                         <select
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -1299,7 +1299,7 @@ const Activities: React.FC = () => {
                 ) : (
                     /* Non-admin or validated week: show assignment as read-only */
                     <div className={`text-[9px] md:text-xs font-medium text-center leading-tight ${textColor}`} style={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
-                        {doc ? doc.name : <span className="text-slate-400 italic">Non assigné</span>}
+                        {doc ? doc.name : <span className="text-text-muted italic">Non assigné</span>}
                         {isCurrentWeekValidated && <Lock className="w-2.5 h-2.5 md:w-3 md:h-3 inline ml-0.5 text-green-600" />}
                     </div>
                 )}
@@ -1329,22 +1329,22 @@ const Activities: React.FC = () => {
 
         return (
             <div className="space-y-4">
-                <div className="grid grid-cols-5 gap-2 font-bold text-center text-slate-600 mb-2">
+                <div className="grid grid-cols-5 gap-2 font-bold text-center text-text-muted mb-2">
                     {days.map(d => <div key={d}>{d}</div>)}
                 </div>
                 {gridWeeks.map((weekDays, i) => (
                     <div key={i} className="grid grid-cols-5 gap-2 border-b pb-4">
                         {weekDays.map(date => (
                             <div key={date.toISOString()} className="border rounded p-2 bg-white min-h-[100px] flex flex-col">
-                                <div className="text-xs font-bold text-slate-400 mb-1 border-b border-slate-100 pb-1">{date.getDate()}</div>
+                                <div className="text-xs font-bold text-text-muted mb-1 border-b border-border pb-1">{date.getDate()}</div>
                                 <div className="flex-1 flex flex-col justify-center space-y-2">
-                                    <div className="flex items-start text-[10px] text-slate-500">
+                                    <div className="flex items-start text-[10px] text-text-muted">
                                         <span className="w-6 text-[9px] uppercase font-bold pt-1">Mat</span>
                                         <div className="flex-1 min-w-0">
                                             {renderSlot(DayOfWeek.MONDAY, Period.MORNING, date)}
                                         </div>
                                     </div>
-                                    <div className="flex items-start text-[10px] text-slate-500">
+                                    <div className="flex items-start text-[10px] text-text-muted">
                                         <span className="w-6 text-[9px] uppercase font-bold pt-1">ApM</span>
                                         <div className="flex-1 min-w-0">
                                             {renderSlot(DayOfWeek.MONDAY, Period.AFTERNOON, date)}
