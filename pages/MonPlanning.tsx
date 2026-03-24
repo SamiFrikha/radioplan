@@ -9,22 +9,22 @@ const MonPlanning: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
+      <div className="bg-surface rounded-card shadow-card border border-border p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-slate-800 flex items-center">
-            <LayoutGrid className="w-5 h-5 mr-2 text-blue-500" />
+          <h1 className="font-heading font-bold text-xl text-text-base flex items-center">
+            <LayoutGrid className="w-5 h-5 mr-2 text-primary" />
             Mon Planning
           </h1>
-          <div className="flex rounded-lg border border-slate-200 overflow-hidden">
+          <div className="flex rounded-lg border border-border overflow-hidden">
             <button
               onClick={() => setAgendaView('week')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${agendaView === 'week' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${agendaView === 'week' ? 'bg-primary text-white' : 'bg-surface text-text-muted hover:bg-muted'}`}
             >
               Semaine
             </button>
             <button
               onClick={() => setAgendaView('month')}
-              className={`px-4 py-2 text-sm font-medium transition-colors ${agendaView === 'month' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${agendaView === 'month' ? 'bg-primary text-white' : 'bg-surface text-text-muted hover:bg-muted'}`}
             >
               Mois
             </button>

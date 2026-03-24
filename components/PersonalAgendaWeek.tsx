@@ -5,6 +5,7 @@ import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
 import { DayOfWeek, Period, SlotType } from '../types';
+import { Badge } from '../src/components/ui';
 
 interface Props {
   weekOffset: number;
@@ -145,28 +146,136 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
     return `${fmt(weekStart)} — ${end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
   })();
 
+  const [isMobile, setIsMobile] = React.useState(() => window.innerWidth < 768);
+  React.useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  // Maps slot type + RCP status to a Badge variant
+  const getSlotBadgeVariant = (slot: any): 'green' | 'red' | 'amber' | 'blue' | 'gray' => {
+    if (slot.type === 'LEAVE') return 'gray';
+    if (slot.type === SlotType.RCP) {
+      const rcpStatus = getRcpStatus(slot);
+      if (rcpStatus === 'PRESENT') return 'green';
+      if (rcpStatus === 'UNCONFIRMED') return 'amber';
+      return 'blue';
+    }
+    if (slot.type === SlotType.CONSULTATION) return 'blue';
+    if (slot.type === SlotType.ACTIVITY) return 'amber';
+    return 'gray';
+  };
+
+  // Returns a short label for the badge
+  const getSlotBadgeLabel = (slot: any): string => {
+    if (slot.type === 'LEAVE') return 'Congé';
+    if (slot.type === SlotType.RCP) {
+      const rcpStatus = getRcpStatus(slot);
+      if (rcpStatus === 'PRESENT') return 'Confirmé';
+      if (rcpStatus === 'UNCONFIRMED') return 'À confirmer';
+      return 'RCP';
+    }
+    if (slot.type === SlotType.CONSULTATION) return 'Consultation';
+    if (slot.type === SlotType.ACTIVITY) return 'Activité';
+    return slot.type || 'Créneau';
+  };
+
+  if (isMobile) {
+    return (
+      <div className="space-y-4">
+        {/* Week selector */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => onOffsetChange(weekOffset - 1)}
+            className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <div className="text-center">
+            <span className="font-heading font-semibold text-sm text-text-base">{weekLabel}</span>
+            {weekOffset === 0 && <p className="text-xs text-primary font-medium">Semaine en cours</p>}
+            {weekOffset === 1 && <p className="text-xs text-text-muted">Semaine prochaine</p>}
+            {weekOffset < 0 && <p className="text-xs text-text-muted">il y a {-weekOffset} semaine{-weekOffset > 1 ? 's' : ''}</p>}
+          </div>
+          <button
+            onClick={() => onOffsetChange(weekOffset + 1)}
+            className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        {!hasAnyActivity && (
+          <div className="flex flex-col items-center justify-center py-10 text-text-muted">
+            <CalendarDays size={36} className="mb-2 opacity-30" />
+            <p className="text-sm">Aucune activité cette semaine</p>
+          </div>
+        )}
+
+        {days.map(({ day, date, dateStr, isToday, periods }) => {
+          const allSlots = periods.flatMap(p => p.slots);
+          return (
+            <div key={day}>
+              <h3 className={`text-[11px] font-heading font-semibold uppercase tracking-wider py-1 px-1 ${isToday ? 'text-primary' : 'text-text-muted'}`}>
+                {DAY_LABELS[day]}&nbsp;{date.getDate()}&nbsp;
+                {date.toLocaleDateString('fr-FR', { month: 'short' })}
+                {isToday && <span className="ml-1 text-[10px] font-normal">(aujourd'hui)</span>}
+              </h3>
+              {allSlots.map((slot: any) => (
+                <div
+                  key={slot.id}
+                  className="w-full bg-surface border border-border rounded-card p-3 flex items-center gap-3 mb-2"
+                >
+                  <span className="font-heading font-semibold text-[12px] text-text-muted w-14 flex-shrink-0">
+                    {slot.period === Period.MORNING ? '08h00' : '14h00'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate text-text-base">
+                      {slot.subType || slot.location || slot.type}
+                    </p>
+                    {slot.subType && slot.location && slot.location !== slot.subType && (
+                      <p className="text-[11px] text-text-muted truncate">{slot.location}</p>
+                    )}
+                  </div>
+                  <Badge variant={getSlotBadgeVariant(slot)}>
+                    {getSlotBadgeLabel(slot)}
+                  </Badge>
+                  <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" aria-hidden="true" />
+                </div>
+              ))}
+              {allSlots.length === 0 && (
+                <p className="text-sm text-text-muted py-2 px-1">Aucun créneau</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Week navigation */}
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => onOffsetChange(weekOffset - 1)}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          className="p-1.5 hover:bg-muted rounded-lg transition-colors">
           <ChevronLeft size={18} />
         </button>
         <div className="text-center">
-          <p className="text-sm font-semibold text-gray-700">{weekLabel}</p>
-          {weekOffset === 0 && <p className="text-xs text-blue-500 font-medium">Semaine en cours</p>}
-          {weekOffset === 1 && <p className="text-xs text-gray-400">Semaine prochaine</p>}
-          {weekOffset < 0 && <p className="text-xs text-gray-400">il y a {-weekOffset} semaine{-weekOffset > 1 ? 's' : ''}</p>}
+          <p className="text-sm font-semibold text-text-base">{weekLabel}</p>
+          {weekOffset === 0 && <p className="text-xs text-primary font-medium">Semaine en cours</p>}
+          {weekOffset === 1 && <p className="text-xs text-text-muted">Semaine prochaine</p>}
+          {weekOffset < 0 && <p className="text-xs text-text-muted">il y a {-weekOffset} semaine{-weekOffset > 1 ? 's' : ''}</p>}
         </div>
         <button onClick={() => onOffsetChange(weekOffset + 1)}
-          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+          className="p-1.5 hover:bg-muted rounded-lg transition-colors">
           <ChevronRight size={18} />
         </button>
       </div>
 
       {!hasAnyActivity && (
-        <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-10 text-text-muted">
           <CalendarDays size={36} className="mb-2 opacity-30" />
           <p className="text-sm">Aucune activité cette semaine</p>
         </div>
@@ -177,11 +286,11 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
           {days.map(({ day, date, isToday, periods }) => (
             <div key={day} className="flex flex-col gap-1">
               {/* Day header */}
-              <div className={`text-center rounded-lg py-1.5 px-1 ${isToday ? 'bg-blue-500' : 'bg-gray-100'}`}>
-                <p className={`text-xs font-bold uppercase tracking-wide ${isToday ? 'text-white' : 'text-gray-500'}`}>
+              <div className={`text-center rounded-lg py-1.5 px-1 ${isToday ? 'bg-primary' : 'bg-muted'}`}>
+                <p className={`text-xs font-bold uppercase tracking-wide ${isToday ? 'text-white' : 'text-text-muted'}`}>
                   {DAY_LABELS[day]}
                 </p>
-                <p className={`text-sm font-semibold ${isToday ? 'text-white' : 'text-gray-700'}`}>
+                <p className={`text-sm font-semibold ${isToday ? 'text-white' : 'text-text-base'}`}>
                   {date.getDate()}
                 </p>
               </div>
@@ -191,9 +300,9 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                 const periodLabel = period === Period.MORNING ? 'AM' : 'PM';
                 return (
                   <div key={period} className="min-h-[56px]">
-                    <p className="text-[10px] text-gray-400 font-medium mb-0.5 text-center">{periodLabel}</p>
+                    <p className="text-[10px] text-text-muted font-medium mb-0.5 text-center">{periodLabel}</p>
                     {slots.length === 0 ? (
-                      <div className="h-10 rounded-lg bg-gray-50 border border-dashed border-gray-200" />
+                      <div className="h-10 rounded-lg bg-muted border border-dashed border-border" />
                     ) : (
                       slots.map((slot: any) => {
                         // RCP gets dynamic styling based on confirmation status
@@ -262,26 +371,26 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 pt-3 border-t border-gray-100">
+      <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 pt-3 border-t border-border">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-          <span className="text-xs text-gray-500">Consultation</span>
+          <span className="text-xs text-text-muted">Consultation</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
-          <span className="text-xs text-gray-500">RCP</span>
+          <span className="text-xs text-text-muted">RCP</span>
         </div>
         <div className="flex items-center gap-1.5">
           <AlertTriangle size={10} className="text-amber-500" />
-          <span className="text-xs text-gray-500">RCP à confirmer</span>
+          <span className="text-xs text-text-muted">RCP à confirmer</span>
         </div>
         <div className="flex items-center gap-1.5">
           <CheckCircle2 size={10} className="text-green-500" />
-          <span className="text-xs text-gray-500">RCP confirmé</span>
+          <span className="text-xs text-text-muted">RCP confirmé</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-          <span className="text-xs text-gray-500">Activité</span>
+          <span className="text-xs text-text-muted">Activité</span>
         </div>
       </div>
     </div>
