@@ -26,7 +26,7 @@ const PERIODS = [Period.MORNING, Period.AFTERNOON];
 const BASE_STYLE: Record<string, { bg: string; border: string; text: string; dot: string }> = {
   [SlotType.CONSULTATION]: { bg: 'bg-blue-50',   border: 'border-blue-300',   text: 'text-blue-800',   dot: 'bg-blue-500' },
   [SlotType.ACTIVITY]:     { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-800', dot: 'bg-orange-500' },
-  LEAVE:                   { bg: 'bg-gray-50',   border: 'border-gray-200',   text: 'text-gray-500',   dot: 'bg-gray-300' },
+  LEAVE:                   { bg: 'bg-muted',      border: 'border-border',     text: 'text-text-muted', dot: 'bg-border' },
 };
 
 // RCP styles vary by confirmation status

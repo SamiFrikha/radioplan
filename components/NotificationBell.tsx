@@ -172,16 +172,16 @@ const NotificationItem: React.FC<{
   return (
     <div
       onClick={onRead}
-      className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors
+      className={`px-4 py-3 hover:bg-muted cursor-pointer transition-colors
         ${!notification.read ? 'bg-blue-50' : ''}`}
     >
       <div className="flex items-start gap-2">
         <span className="text-lg mt-0.5 shrink-0">{icon}</span>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-800' : 'text-gray-700'}`}>
+          <p className={`text-sm ${!notification.read ? 'font-semibold text-text-base' : 'text-text-base'}`}>
             {notification.title}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.body}</p>
+          <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{notification.body}</p>
           <p className="text-xs text-text-muted mt-1">{date}</p>
           {notification.type === 'REPLACEMENT_REQUEST' && requestId && (
             notification.data?.resolution ? (

@@ -447,7 +447,7 @@ const Activities: React.FC = () => {
                 name: newActName,
                 granularity: newActType,
                 allowDoubleBooking: false,
-                color: 'bg-gray-100 text-gray-800',
+                color: 'bg-muted text-text-base',
                 equityGroup: newActEquityGroup
             });
             addLog('CREATE_ACTIVITY', `Nouvelle activité créée : "${newActName}" (${newActType === 'WEEKLY' ? 'Semaine' : 'Demi-journée'}, Groupe: ${groupLabel})`, {
