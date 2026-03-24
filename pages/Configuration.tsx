@@ -7,6 +7,7 @@ import RcpExceptionModal from '../components/RcpExceptionModal';
 import { DoctorBadge, getDoctorHexColor } from '../components/DoctorBadge';
 import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow } from '../services/rcpAutoConfigService';
 import { useAuth } from '../context/AuthContext';
+import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 
 
 const Configuration: React.FC = () => {
@@ -373,8 +374,8 @@ const Configuration: React.FC = () => {
 
         if (isConsultTab && isMondayMorning && isBox) {
             return (
-                <div className="bg-gray-100 h-full flex items-center justify-center p-2 text-center border border-gray-200">
-                    <span className="text-[10px] text-gray-400 uppercase font-bold">Fermé (RCP Service)</span>
+                <div className="bg-muted h-full flex items-center justify-center p-2 text-center border border-border">
+                    <span className="text-[10px] text-text-muted uppercase font-bold">Fermé (RCP Service)</span>
                 </div>
             );
         }
@@ -387,7 +388,7 @@ const Configuration: React.FC = () => {
 
         if (editMode) {
             return (
-                <div className={`p-2 h-full flex flex-col justify-start items-center space-y-2 border min-h-[160px] relative group ${slot ? 'bg-white border-blue-300' : 'bg-slate-50 border-dashed border-slate-300'}`}>
+                <div className={`p-2 h-full flex flex-col justify-start items-center space-y-2 border min-h-[160px] relative group ${slot ? 'bg-white border-blue-300' : 'bg-muted border-dashed border-border'}`}>
                     {slot && (
                         <button
                             onClick={() => handleDeleteSlot(day, period, location)}
@@ -400,7 +401,7 @@ const Configuration: React.FC = () => {
 
                     {!slot && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="text-[9px] text-slate-300 font-medium">+ Ajouter</span>
+                            <span className="text-[9px] text-text-muted font-medium">+ Ajouter</span>
                         </div>
                     )}
 
@@ -423,12 +424,12 @@ const Configuration: React.FC = () => {
                                     ))}
                                 </select>
                             ))}
-                            <div className="flex items-center space-x-1 border-t pt-1 border-slate-100">
-                                <Shield className="w-3 h-3 text-slate-400" />
+                            <div className="flex items-center space-x-1 border-t pt-1 border-border">
+                                <Shield className="w-3 h-3 text-text-muted" />
                                 <select
                                     value={slot?.backupDoctorId || ''}
                                     onChange={(e) => handleUpdateSlot(day, period, location, 'backupDoctorId', e.target.value)}
-                                    className="w-full text-[10px] p-1 border rounded bg-slate-50 focus:ring-1 focus:ring-blue-500 h-6 text-slate-600"
+                                    className="w-full text-[10px] p-1 border rounded bg-muted focus:ring-1 focus:ring-blue-500 h-6 text-text-muted"
                                 >
                                     <option value="">-- Backup --</option>
                                     {doctors.map(d => (
@@ -437,7 +438,7 @@ const Configuration: React.FC = () => {
                                 </select>
                             </div>
                             <div className="flex items-center space-x-1 pt-1">
-                                <Clock className={`w-3 h-3 ${isTimeWarning ? 'text-orange-500' : 'text-slate-400'}`} />
+                                <Clock className={`w-3 h-3 ${isTimeWarning ? 'text-orange-500' : 'text-text-muted'}`} />
                                 <input
                                     type="time"
                                     value={slot?.time || ''}
@@ -474,7 +475,7 @@ const Configuration: React.FC = () => {
             );
         }
 
-        if (!slot) return <div className="text-[10px] text-slate-300 text-center py-4">--</div>;
+        if (!slot) return <div className="text-[10px] text-text-muted text-center py-4">--</div>;
 
         return (
             <div className="p-2 h-full flex flex-col justify-center items-center">
@@ -484,21 +485,21 @@ const Configuration: React.FC = () => {
                             const doc = doctors.find(d => d.id === docId);
                             if (!doc) return null;
                             return (
-                                <div key={docId} className="flex items-center justify-start px-2 py-1.5 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                <div key={docId} className="flex items-center justify-start px-2 py-1.5 rounded-lg bg-white border border-border shadow-sm">
                                     <div
                                         className="w-6 h-6 rounded-full mr-2 flex-shrink-0 flex items-center justify-center text-white text-[9px] font-bold"
                                         style={{ backgroundColor: getDoctorHexColor(doc.color) }}
                                     >
                                         {doc.name.substring(0, 2)}
                                     </div>
-                                    <span className={`text-[11px] font-semibold leading-tight truncate ${idx === 0 ? 'text-slate-800' : 'text-slate-600'}`}>
+                                    <span className={`text-[11px] font-semibold leading-tight truncate ${idx === 0 ? 'text-text-base' : 'text-text-muted'}`}>
                                         {doc.name}
                                     </span>
                                 </div>
                             )
                         })}
                         {slot.backupDoctorId && (
-                            <div className="flex items-center justify-center space-x-1 mt-1 pt-1 border-t border-slate-100">
+                            <div className="flex items-center justify-center space-x-1 mt-1 pt-1 border-t border-border">
                                 <Shield className="w-3 h-3 text-amber-400" />
                                 <span className="text-[9px] text-amber-600 font-medium">
                                     Backup: {doctors.find(d => d.id === slot.backupDoctorId)?.name || '?'}
@@ -514,7 +515,7 @@ const Configuration: React.FC = () => {
                         )}
                     </div>
                 ) : (
-                    <span className="text-xs text-slate-400 italic">Libre</span>
+                    <span className="text-xs text-text-muted italic">Libre</span>
                 )}
             </div>
         );
@@ -537,7 +538,7 @@ const Configuration: React.FC = () => {
             )
         }
 
-        if (!slot) return <div className="text-xs text-slate-300 p-2 text-center h-full flex items-center justify-center bg-slate-50/50 min-h-[70px]">--</div>;
+        if (!slot) return <div className="text-xs text-text-muted p-2 text-center h-full flex items-center justify-center bg-muted/50 min-h-[70px]">--</div>;
 
         // If RCP falls on a holiday, show it with a warning indicator (allows admin to move it)
         if (holiday && slot) {
@@ -581,14 +582,14 @@ const Configuration: React.FC = () => {
                                     >
                                         {d.name.substring(0, 2)}
                                     </div>
-                                    <span className={`text-[9px] truncate ${idx === 0 ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
+                                    <span className={`text-[9px] truncate ${idx === 0 ? 'font-bold text-text-base' : 'text-text-muted'}`}>
                                         {d.name}
                                     </span>
                                 </div>
                             )
                         })}
                         {allDoctorIds.length > 2 && (
-                            <span className="text-[8px] text-slate-400">+{allDoctorIds.length - 2} autre(s)</span>
+                            <span className="text-[8px] text-text-muted">+{allDoctorIds.length - 2} autre(s)</span>
                         )}
                     </div>
 
@@ -646,14 +647,14 @@ const Configuration: React.FC = () => {
                                 >
                                     {d.name.substring(0, 2)}
                                 </div>
-                                <span className={`text-[10px] truncate ${idx === 0 ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
+                                <span className={`text-[10px] truncate ${idx === 0 ? 'font-bold text-text-base' : 'text-text-muted'}`}>
                                     {d.name}
                                 </span>
                             </div>
                         )
                     })}
                     {allDoctorIds.length === 0 && (
-                        <span className="text-[9px] text-slate-400 italic">Non assigné</span>
+                        <span className="text-[9px] text-text-muted italic">Non assigné</span>
                     )}
                 </div>
             </div>
@@ -675,11 +676,11 @@ const Configuration: React.FC = () => {
         <div className="h-full flex flex-col space-y-4 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div className="mb-4 md:mb-0">
-                    <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center">
+                    <h1 className="font-heading font-bold text-xl text-text-base flex items-center">
                         <LayoutTemplate className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-purple-600" />
                         Règles & Postes
                     </h1>
-                    <p className="text-xs md:text-sm text-slate-500 mt-1 max-w-2xl hidden sm:block">
+                    <p className="text-xs md:text-sm text-text-muted mt-1 max-w-2xl hidden sm:block">
                         Définissez les postes fixes (Consultations) et les RCP hebdomadaires.
                     </p>
                 </div>
@@ -688,16 +689,16 @@ const Configuration: React.FC = () => {
                     {rcpViewMode === 'RULES' && (
                         editMode ? (
                             <>
-                                <button onClick={cancelChanges} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">
+                                <button onClick={cancelChanges} className="px-4 py-2 text-sm text-text-muted hover:text-text-base">
                                     Annuler
                                 </button>
-                                <button onClick={saveChanges} className="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 flex items-center text-sm font-medium">
+                                <button onClick={saveChanges} className="px-4 py-2 bg-green-600 text-white rounded-btn shadow hover:bg-green-700 flex items-center text-sm font-medium">
                                     <Save className="w-4 h-4 mr-2" />
                                     Sauvegarder
                                 </button>
                             </>
                         ) : (
-                            <button onClick={() => setEditMode(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 flex items-center text-sm font-medium">
+                            <button onClick={() => setEditMode(true)} className="px-4 py-2 bg-blue-600 text-white rounded-btn shadow hover:bg-blue-700 flex items-center text-sm font-medium">
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Modifier la Semaine Type
                             </button>
@@ -707,107 +708,111 @@ const Configuration: React.FC = () => {
             </div>
 
             {/* START DATE SETTING */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="flex items-center">
-                        <Calendar className="w-5 h-5 mr-3 text-slate-500" />
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-700">Date de début de comptage des activités</h3>
-                            <p className="text-xs text-slate-500 mt-0.5">L'équité automatique (Unity/Astreinte/Workflow) sera calculée à partir de cette date.</p>
+            <Card>
+                <CardBody className="p-4">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex items-center">
+                            <Calendar className="w-5 h-5 mr-3 text-text-muted" />
+                            <div>
+                                <h3 className="text-sm font-bold text-text-base">Date de début de comptage des activités</h3>
+                                <p className="text-xs text-text-muted mt-0.5">L'équité automatique (Unity/Astreinte/Workflow) sera calculée à partir de cette date.</p>
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex items-center space-x-2 w-full md:w-auto">
-                        {activitiesStartDate ? (
-                            <div className="flex items-center gap-3 bg-green-50 border border-green-200 px-4 py-2 rounded-lg">
-                                <div className="text-center">
-                                    <div className="text-xs text-green-600 font-bold uppercase">Date confirmée</div>
-                                    <div className="text-lg font-bold text-green-800">
-                                        {new Date(activitiesStartDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        <div className="flex items-center space-x-2 w-full md:w-auto">
+                            {activitiesStartDate ? (
+                                <div className="flex items-center gap-3 bg-green-50 border border-green-200 px-4 py-2 rounded-btn">
+                                    <div className="text-center">
+                                        <div className="text-xs text-green-600 font-bold uppercase">Date confirmée</div>
+                                        <div className="text-lg font-bold text-green-800">
+                                            {new Date(activitiesStartDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        </div>
                                     </div>
+                                    <button
+                                        onClick={() => {
+                                            if (window.confirm('⚠️ ATTENTION !\n\nSupprimer la date de début réinitialisera le calcul d\'équité.\n\nÊtes-vous sûr de vouloir effacer cette date ?')) {
+                                                setActivitiesStartDate(null);
+                                            }
+                                        }}
+                                        className="text-red-500 hover:text-red-700 p-1 hover:bg-red-100 rounded"
+                                        title="Effacer la date"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        if (window.confirm('⚠️ ATTENTION !\n\nSupprimer la date de début réinitialisera le calcul d\'équité.\n\nÊtes-vous sûr de vouloir effacer cette date ?')) {
-                                            setActivitiesStartDate(null);
-                                        }
-                                    }}
-                                    className="text-red-500 hover:text-red-700 p-1 hover:bg-red-100 rounded"
-                                    title="Effacer la date"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-                                <input
-                                    type="date"
-                                    id="pending-start-date"
-                                    className="border rounded-md px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
-                                    max={new Date().toISOString().split('T')[0]}
-                                />
-                                <button
-                                    onClick={() => {
-                                        const input = document.getElementById('pending-start-date') as HTMLInputElement;
-                                        const dateValue = input?.value;
-                                        if (!dateValue) {
-                                            alert('Veuillez sélectionner une date.');
-                                            return;
-                                        }
-                                        const formattedDate = new Date(dateValue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-                                        if (window.confirm(`⚙️ CONFIRMATION\n\nVous allez définir la date de début du calcul d'équité au :\n\n📅 ${formattedDate}\n\n⚠️ Cette action ne peut pas être annulée facilement.\nL'équité sera recalculée à partir de cette date.\n\nConfirmer ?`)) {
-                                            setActivitiesStartDate(dateValue);
-                                        }
-                                    }}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-2 whitespace-nowrap"
-                                >
-                                    <Check className="w-4 h-4" /> Confirmer la date
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                {!activitiesStartDate && (
-                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-start gap-2">
-                            <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                            <div className="text-xs text-yellow-700">
-                                <strong>Important :</strong> Sans date de début, l'équité ne sera pas calculée automatiquement.
-                                Définissez une date pour activer le calcul équitable des affectations.
-                            </div>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+                                    <input
+                                        type="date"
+                                        id="pending-start-date"
+                                        className="border border-border rounded-btn px-3 h-12 md:h-10 text-sm text-text-base focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none flex-1"
+                                        max={new Date().toISOString().split('T')[0]}
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            const input = document.getElementById('pending-start-date') as HTMLInputElement;
+                                            const dateValue = input?.value;
+                                            if (!dateValue) {
+                                                alert('Veuillez sélectionner une date.');
+                                                return;
+                                            }
+                                            const formattedDate = new Date(dateValue).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                                            if (window.confirm(`⚙️ CONFIRMATION\n\nVous allez définir la date de début du calcul d'équité au :\n\n📅 ${formattedDate}\n\n⚠️ Cette action ne peut pas être annulée facilement.\nL'équité sera recalculée à partir de cette date.\n\nConfirmer ?`)) {
+                                                setActivitiesStartDate(dateValue);
+                                            }
+                                        }}
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-btn text-sm font-bold hover:bg-blue-700 flex items-center justify-center gap-2 whitespace-nowrap"
+                                    >
+                                        <Check className="w-4 h-4" /> Confirmer la date
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
-                )}
-            </div>
+                    {!activitiesStartDate && (
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <div className="flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                <div className="text-xs text-yellow-700">
+                                    <strong>Important :</strong> Sans date de début, l'équité ne sera pas calculée automatiquement.
+                                    Définissez une date pour activer le calcul équitable des affectations.
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </CardBody>
+            </Card>
 
-            <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4 items-center justify-between">
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setActiveTab(SlotType.CONSULTATION)}
-                        className={`px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-full transition-colors ${activeTab === SlotType.CONSULTATION ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
-                    >
-                        <span className="hidden md:inline">Consultations & Postes</span>
-                        <span className="md:hidden">Consult.</span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab(SlotType.RCP)}
-                        className={`px-2 md:px-4 py-1.5 md:py-2 text-xs md:text-sm font-medium rounded-full transition-colors ${activeTab === SlotType.RCP ? 'bg-purple-100 text-purple-700' : 'text-slate-600 hover:bg-slate-100'}`}
-                    >
-                        <span className="hidden md:inline">RCP (Gestion)</span>
-                        <span className="md:hidden">RCP</span>
-                    </button>
+            <div className="flex items-center justify-between border-b border-border bg-surface">
+                <div className="flex overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    {[
+                        { id: SlotType.CONSULTATION, label: 'Consultations & Postes' },
+                        { id: SlotType.RCP, label: 'RCP (Gestion)' },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 h-10 font-heading font-medium text-sm whitespace-nowrap border-b-2 transition-colors flex-shrink-0
+                                ${activeTab === tab.id
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-text-muted hover:text-text-base'
+                                }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
                 </div>
 
                 {activeTab === SlotType.RCP && (
-                    <div className="flex bg-slate-100 p-1 rounded-lg mt-2 md:mt-0">
+                    <div className="flex bg-muted p-1 rounded-lg mr-2 flex-shrink-0">
                         <button
                             onClick={() => setRcpViewMode('RULES')}
-                            className={`px-3 py-1 text-xs font-bold rounded ${rcpViewMode === 'RULES' ? 'bg-white shadow text-purple-700' : 'text-slate-500'}`}
+                            className={`px-3 py-1 text-xs font-bold rounded ${rcpViewMode === 'RULES' ? 'bg-white shadow text-primary' : 'text-text-muted'}`}
                         >
                             Vue Règles
                         </button>
                         <button
                             onClick={() => setRcpViewMode('CALENDAR')}
-                            className={`px-3 py-1 text-xs font-bold rounded ${rcpViewMode === 'CALENDAR' ? 'bg-white shadow text-purple-700' : 'text-slate-500'}`}
+                            className={`px-3 py-1 text-xs font-bold rounded ${rcpViewMode === 'CALENDAR' ? 'bg-white shadow text-primary' : 'text-text-muted'}`}
                         >
                             Vue Calendrier (Réel)
                         </button>
@@ -816,112 +821,115 @@ const Configuration: React.FC = () => {
             </div>
 
             {activeTab === SlotType.CONSULTATION && editMode && (
-                <div className="bg-white rounded-lg border border-slate-200 p-4 mb-4 animate-in fade-in slide-in-from-top-2">
-                    <h3 className="font-bold text-slate-700 mb-3 flex items-center">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Gestion des Lieux / Postes
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                        {postes.map(poste => (
-                            <div key={poste} className="flex items-center bg-blue-50 px-3 py-1 rounded-full border border-blue-200 text-sm">
-                                <span className="text-blue-800 font-medium mr-2">{poste}</span>
-                                <button onClick={() => handleDeletePoste(poste)} className="text-blue-400 hover:text-red-600">
-                                    <X className="w-3 h-3" />
+                <Card className="animate-in fade-in slide-in-from-top-2">
+                    <CardBody className="p-4">
+                        <h3 className="font-bold text-text-base mb-3 flex items-center">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            Gestion des Lieux / Postes
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {postes.map(poste => (
+                                <div key={poste} className="flex items-center bg-blue-50 px-3 py-1 rounded-full border border-blue-200 text-sm">
+                                    <span className="text-blue-800 font-medium mr-2">{poste}</span>
+                                    <button onClick={() => handleDeletePoste(poste)} className="text-blue-400 hover:text-red-600">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
+                            <div className="flex items-center w-full md:w-auto mt-2 md:mt-0">
+                                <input
+                                    type="text"
+                                    value={newPosteName}
+                                    onChange={e => setNewPosteName(e.target.value)}
+                                    placeholder="Nouveau (ex: Scanner)"
+                                    className="text-sm border border-border rounded-l h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none w-32 md:w-40"
+                                    onKeyDown={e => e.key === 'Enter' && handleAddPoste()}
+                                />
+                                <button onClick={handleAddPoste} disabled={!newPosteName} className="bg-blue-600 text-white p-1.5 rounded-r hover:bg-blue-700 h-10 flex items-center">
+                                    <PlusCircle className="w-4 h-4" />
                                 </button>
                             </div>
-                        ))}
-                        <div className="flex items-center w-full md:w-auto mt-2 md:mt-0">
-                            <input
-                                type="text"
-                                value={newPosteName}
-                                onChange={e => setNewPosteName(e.target.value)}
-                                placeholder="Nouveau (ex: Scanner)"
-                                className="text-sm p-1 border rounded-l focus:outline-none focus:ring-1 focus:ring-blue-500 w-32 md:w-40"
-                                onKeyDown={e => e.key === 'Enter' && handleAddPoste()}
-                            />
-                            <button onClick={handleAddPoste} disabled={!newPosteName} className="bg-blue-600 text-white p-1.5 rounded-r hover:bg-blue-700">
-                                <PlusCircle className="w-4 h-4" />
-                            </button>
                         </div>
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
             )}
 
             {activeTab === SlotType.RCP && rcpViewMode === 'RULES' && (
-                <div className="bg-white rounded-lg border border-slate-200 p-4 mb-4 shadow-sm">
-                    <div className="flex justify-between items-center mb-4 border-b pb-2">
-                        <h3 className="font-bold text-slate-700 flex items-center">
-                            <Settings className="w-4 h-4 mr-2" />
-                            Gestion des Lignes RCP
-                        </h3>
-                    </div>
-
-                    <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-1">
-                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Ajouter une nouvelle ligne</h4>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="text"
-                                    placeholder="Nom de la RCP..."
-                                    className="flex-1 text-sm p-2 border rounded focus:ring-2 focus:ring-purple-500 outline-none"
-                                    value={newRcpName}
-                                    onChange={e => setNewRcpName(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleAddRcp()}
-                                />
-                                <button onClick={handleAddRcp} disabled={!newRcpName} className="bg-purple-600 text-white p-2 rounded hover:bg-purple-700 disabled:opacity-50 transition-colors">
-                                    <PlusCircle className="w-5 h-5" />
-                                </button>
-                            </div>
+                <Card className="mb-4">
+                    <CardBody className="p-4">
+                        <div className="flex justify-between items-center mb-4 border-b border-border pb-2">
+                            <h3 className="font-bold text-text-base flex items-center">
+                                <Settings className="w-4 h-4 mr-2" />
+                                Gestion des Lignes RCP
+                            </h3>
                         </div>
 
-                        <div className="w-px bg-slate-200 hidden md:block"></div>
-
-                        <div className="flex-[2]">
-                            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Modifier les propriétés</h4>
-
-                            <div className="flex flex-col md:flex-row items-start md:space-x-4 space-y-4 md:space-y-0">
-                                <div className="flex-1 max-w-xs w-full">
-                                    <select
-                                        value={selectedRcpId}
-                                        onChange={(e) => {
-                                            setSelectedRcpId(e.target.value);
-                                            const r = rcpTypes.find(x => x.id === e.target.value);
-                                            if (r) setTempRcpName(r.name);
-                                        }}
-                                        className="w-full p-2 border rounded text-sm bg-slate-50 font-medium focus:ring-2 focus:ring-purple-500 outline-none cursor-pointer"
-                                    >
-                                        <option value="">-- Sélectionner une RCP --</option>
-                                        {rcpTypes.map(r => (
-                                            <option key={r.id} value={r.id}>{r.name}</option>
-                                        ))}
-                                    </select>
+                        <div className="flex flex-col md:flex-row gap-6">
+                            <div className="flex-1">
+                                <h4 className="text-xs font-bold text-text-muted uppercase mb-2">Ajouter une nouvelle ligne</h4>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Nom de la RCP..."
+                                        className="flex-1 text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
+                                        value={newRcpName}
+                                        onChange={e => setNewRcpName(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleAddRcp()}
+                                    />
+                                    <button onClick={handleAddRcp} disabled={!newRcpName} className="bg-purple-600 text-white p-2 rounded-btn hover:bg-purple-700 disabled:opacity-50 transition-colors h-10 flex items-center">
+                                        <PlusCircle className="w-5 h-5" />
+                                    </button>
                                 </div>
+                            </div>
+
+                            <div className="w-px bg-border hidden md:block"></div>
+
+                            <div className="flex-[2]">
+                                <h4 className="text-xs font-bold text-text-muted uppercase mb-2">Modifier les propriétés</h4>
+
+                                <div className="flex flex-col md:flex-row items-start md:space-x-4 space-y-4 md:space-y-0">
+                                    <div className="flex-1 max-w-xs w-full">
+                                        <select
+                                            value={selectedRcpId}
+                                            onChange={(e) => {
+                                                setSelectedRcpId(e.target.value);
+                                                const r = rcpTypes.find(x => x.id === e.target.value);
+                                                if (r) setTempRcpName(r.name);
+                                            }}
+                                            className="w-full h-10 px-3 border border-border rounded-btn text-sm bg-muted font-medium focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none cursor-pointer"
+                                        >
+                                            <option value="">-- Sélectionner une RCP --</option>
+                                            {rcpTypes.map(r => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
 
                                 {selectedRcpId && (() => {
                                     const rcp = rcpTypes.find(r => r.id === selectedRcpId);
                                     if (!rcp) return null;
                                     return (
                                         <div className="flex-1 flex flex-col gap-3 animate-in fade-in slide-in-from-left-2 w-full">
-                                            <div className="flex flex-col md:flex-row items-end gap-3">
-                                                <div className="w-full md:w-auto">
-                                                    <label className="block text-[10px] text-slate-400 font-bold mb-1">Renommer</label>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div className="w-full">
+                                                    <label className="block text-label font-medium text-text-base mb-1.5">Renommer</label>
                                                     <div className="flex items-center space-x-1">
                                                         <input
                                                             type="text"
                                                             value={tempRcpName}
                                                             onChange={e => setTempRcpName(e.target.value)}
-                                                            className="w-full md:w-32 text-sm p-1.5 border rounded"
+                                                            className="flex-1 text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
                                                         />
-                                                        <button onClick={() => saveEditRcp(rcp)} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200" title="Valider le nom"><Check className="w-4 h-4" /></button>
+                                                        <button onClick={() => saveEditRcp(rcp)} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 h-10 flex items-center" title="Valider le nom"><Check className="w-4 h-4" /></button>
                                                     </div>
                                                 </div>
 
-                                                <div className="w-full md:w-auto">
-                                                    <label className="block text-[10px] text-slate-400 font-bold mb-1">Fréquence</label>
+                                                <div className="w-full">
+                                                    <label className="block text-label font-medium text-text-base mb-1.5">Fréquence</label>
                                                     <select
                                                         value={rcp.frequency}
                                                         onChange={(e) => updateRcpDefinition({ ...rcp, frequency: e.target.value as any })}
-                                                        className="text-xs p-2 border rounded bg-white w-full md:w-36 cursor-pointer"
+                                                        className="text-sm border border-border rounded-btn h-10 px-3 bg-white w-full cursor-pointer focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
                                                     >
                                                         <option value="WEEKLY">Hebdomadaire</option>
                                                         <option value="BIWEEKLY">1 Semaine sur 2</option>
@@ -929,35 +937,35 @@ const Configuration: React.FC = () => {
                                                         <option value="MANUAL">Dates Manuelles</option>
                                                     </select>
                                                 </div>
+                                            </div>
 
-                                                <div className="ml-auto">
-                                                    <button
-                                                        onClick={() => {
-                                                            if (window.confirm(`Supprimer définitivement la RCP "${rcp.name}" et tout son historique ?`)) {
-                                                                handleDeleteRcp(rcp.id);
-                                                            }
-                                                        }}
-                                                        className="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded border border-transparent hover:border-red-200 transition-colors"
-                                                        title="Supprimer cette RCP"
-                                                    >
-                                                        <Trash2 className="w-5 h-5" />
-                                                    </button>
-                                                </div>
+                                            <div className="flex justify-end">
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm(`Supprimer définitivement la RCP "${rcp.name}" et tout son historique ?`)) {
+                                                            handleDeleteRcp(rcp.id);
+                                                        }
+                                                    }}
+                                                    className="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded border border-transparent hover:border-red-200 transition-colors"
+                                                    title="Supprimer cette RCP"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
                                             </div>
 
                                             {rcp.frequency === 'BIWEEKLY' && (
-                                                <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                                                    <label className="block text-[10px] text-slate-400 font-bold mb-1">Parité Semaine (Annuelle)</label>
+                                                <div className="bg-muted p-2 rounded-btn border border-border">
+                                                    <label className="block text-label font-medium text-text-base mb-1.5">Parité Semaine (Annuelle)</label>
                                                     <div className="flex gap-2">
                                                         <button
                                                             onClick={() => updateRcpDefinition({ ...rcp, weekParity: 'ODD' })}
-                                                            className={`px-3 py-1 text-xs rounded border ${rcp.weekParity === 'ODD' ? 'bg-white border-purple-300 text-purple-700 font-bold shadow-sm' : 'bg-transparent border-transparent text-slate-500 hover:bg-white'}`}
+                                                            className={`px-3 py-1 text-xs rounded border ${rcp.weekParity === 'ODD' ? 'bg-white border-purple-300 text-purple-700 font-bold shadow-sm' : 'bg-transparent border-transparent text-text-muted hover:bg-white'}`}
                                                         >
                                                             Impaire (Sem 1, 3...)
                                                         </button>
                                                         <button
                                                             onClick={() => updateRcpDefinition({ ...rcp, weekParity: 'EVEN' })}
-                                                            className={`px-3 py-1 text-xs rounded border ${rcp.weekParity === 'EVEN' ? 'bg-white border-purple-300 text-purple-700 font-bold shadow-sm' : 'bg-transparent border-transparent text-slate-500 hover:bg-white'}`}
+                                                            className={`px-3 py-1 text-xs rounded border ${rcp.weekParity === 'EVEN' ? 'bg-white border-purple-300 text-purple-700 font-bold shadow-sm' : 'bg-transparent border-transparent text-text-muted hover:bg-white'}`}
                                                         >
                                                             Paire (Sem 2, 4...)
                                                         </button>
@@ -966,44 +974,44 @@ const Configuration: React.FC = () => {
                                             )}
 
                                             {rcp.frequency === 'MONTHLY' && (
-                                                <div className="bg-slate-50 p-2 rounded border border-slate-200">
-                                                    <label className="block text-[10px] text-slate-400 font-bold mb-1">Occurrence dans le mois</label>
+                                                <div className="bg-muted p-2 rounded-btn border border-border">
+                                                    <label className="block text-label font-medium text-text-base mb-1.5">Occurrence dans le mois</label>
                                                     <div className="flex gap-1">
                                                         {[1, 2, 3, 4].map(num => (
                                                             <button
                                                                 key={num}
                                                                 onClick={() => updateRcpDefinition({ ...rcp, monthlyWeekNumber: num })}
-                                                                className={`w-8 h-8 flex items-center justify-center text-xs rounded border ${rcp.monthlyWeekNumber === num ? 'bg-purple-600 border-purple-600 text-white font-bold' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'}`}
+                                                                className={`w-8 h-8 flex items-center justify-center text-xs rounded border ${rcp.monthlyWeekNumber === num ? 'bg-purple-600 border-purple-600 text-white font-bold' : 'bg-white border-border text-text-muted hover:bg-muted'}`}
                                                             >
                                                                 {num}
                                                             </button>
                                                         ))}
                                                     </div>
-                                                    <p className="text-[10px] text-slate-400 mt-1 italic">Ex: Si le créneau est le Lundi, "1" = 1er Lundi du mois.</p>
+                                                    <p className="text-[10px] text-text-muted mt-1 italic">Ex: Si le créneau est le Lundi, "1" = 1er Lundi du mois.</p>
                                                 </div>
                                             )}
 
                                             {rcp.frequency === 'MANUAL' && (
-                                                <div className="bg-slate-50 p-3 rounded border border-slate-200">
-                                                    <h5 className="text-xs font-bold text-slate-700 mb-2 flex items-center">
+                                                <div className="bg-muted p-3 rounded-btn border border-border">
+                                                    <h5 className="text-xs font-bold text-text-base mb-2 flex items-center">
                                                         <Calendar className="w-3 h-3 mr-1" /> Ajouter une date manuelle
                                                     </h5>
 
-                                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                                                         <div>
-                                                            <label className="text-[9px] text-slate-400 uppercase font-bold">Date</label>
+                                                            <label className="block text-label font-medium text-text-base mb-1.5">Date</label>
                                                             <input
                                                                 type="date"
-                                                                className={`text-xs border rounded p-1 w-full ${manualHolidayWarning ? 'border-orange-300 bg-orange-50' : 'border-slate-300'}`}
+                                                                className={`text-sm border rounded-btn h-10 px-3 w-full focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none ${manualHolidayWarning ? 'border-orange-300 bg-orange-50' : 'border-border'}`}
                                                                 value={manualDateInput}
                                                                 onChange={e => handleManualDateChange(e.target.value)}
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="text-[9px] text-slate-400 uppercase font-bold">Heure</label>
+                                                            <label className="block text-label font-medium text-text-base mb-1.5">Heure</label>
                                                             <input
                                                                 type="time"
-                                                                className="text-xs border rounded p-1 w-full border-slate-300"
+                                                                className="text-sm border border-border rounded-btn h-10 px-3 w-full focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
                                                                 value={manualTimeInput}
                                                                 onChange={e => setManualTimeInput(e.target.value)}
                                                             />
@@ -1017,31 +1025,31 @@ const Configuration: React.FC = () => {
                                                         </div>
                                                     )}
 
-                                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                                                         <div>
-                                                            <label className="text-[9px] text-slate-400 uppercase font-bold">Responsable</label>
-                                                            <select className="w-full text-xs p-1 border rounded" value={manualLeadId} onChange={e => setManualLeadId(e.target.value)}>
+                                                            <label className="block text-label font-medium text-text-base mb-1.5">Responsable</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualLeadId} onChange={e => setManualLeadId(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="text-[9px] text-slate-400 uppercase font-bold">Backup (Suppléant)</label>
-                                                            <select className="w-full text-xs p-1 border rounded" value={manualBackupId} onChange={e => setManualBackupId(e.target.value)}>
+                                                            <label className="block text-label font-medium text-text-base mb-1.5">Backup (Suppléant)</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualBackupId} onChange={e => setManualBackupId(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="text-[9px] text-slate-400 uppercase font-bold">Intervenant 1</label>
-                                                            <select className="w-full text-xs p-1 border rounded" value={manualAssoc1Id} onChange={e => setManualAssoc1Id(e.target.value)}>
+                                                            <label className="block text-label font-medium text-text-base mb-1.5">Intervenant 1</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualAssoc1Id} onChange={e => setManualAssoc1Id(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="text-[9px] text-slate-400 uppercase font-bold">Intervenant 2</label>
-                                                            <select className="w-full text-xs p-1 border rounded" value={manualAssoc2Id} onChange={e => setManualAssoc2Id(e.target.value)}>
+                                                            <label className="block text-label font-medium text-text-base mb-1.5">Intervenant 2</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualAssoc2Id} onChange={e => setManualAssoc2Id(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
@@ -1051,30 +1059,30 @@ const Configuration: React.FC = () => {
                                                     <button
                                                         onClick={() => handleAddManualInstance(rcp)}
                                                         disabled={!manualDateInput || !manualTimeInput || !manualLeadId}
-                                                        className="w-full bg-blue-600 text-white py-1.5 rounded text-xs font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center mt-2"
+                                                        className="w-full bg-blue-600 text-white py-1.5 rounded-btn text-xs font-bold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center mt-2"
                                                     >
                                                         <PlusCircle className="w-3 h-3 mr-1" /> Ajouter l'occurrence
                                                     </button>
 
-                                                    <div className="mt-3 border-t pt-2">
-                                                        <label className="text-[9px] text-slate-400 uppercase font-bold block mb-1">Dates Programmées</label>
+                                                    <div className="mt-3 border-t border-border pt-2">
+                                                        <label className="block text-label font-medium text-text-base mb-1.5">Dates Programmées</label>
                                                         <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
                                                             {rcp.manualInstances?.map((inst: RcpManualInstance) => (
-                                                                <div key={inst.id} className="bg-white px-2 py-1 rounded border border-slate-200 text-[10px] flex items-center shadow-sm w-full justify-between">
+                                                                <div key={inst.id} className="bg-white px-2 py-1 rounded border border-border text-[10px] flex items-center shadow-sm w-full justify-between">
                                                                     <div className="flex items-center">
-                                                                        <span className="font-bold mr-2 text-slate-700">{inst.date.split('-').reverse().join('/')}</span>
-                                                                        <span className="text-slate-500 mr-2 flex items-center"><Clock className="w-3 h-3 mr-1" />{inst.time}</span>
-                                                                        <span className="text-slate-400">({inst.doctorIds.length} méd.)</span>
+                                                                        <span className="font-bold mr-2 text-text-base">{inst.date.split('-').reverse().join('/')}</span>
+                                                                        <span className="text-text-muted mr-2 flex items-center"><Clock className="w-3 h-3 mr-1" />{inst.time}</span>
+                                                                        <span className="text-text-muted">({inst.doctorIds.length} méd.)</span>
                                                                     </div>
                                                                     <button
                                                                         onClick={() => handleRemoveManualInstance(rcp, inst.id)}
-                                                                        className="text-slate-400 hover:text-red-500 ml-2"
+                                                                        className="text-text-muted hover:text-red-500 ml-2"
                                                                     >
                                                                         <X className="w-3 h-3" />
                                                                     </button>
                                                                 </div>
                                                             ))}
-                                                            {(!rcp.manualInstances || rcp.manualInstances.length === 0) && <span className="text-[10px] text-slate-400 italic">Aucune occurrence planifiée</span>}
+                                                            {(!rcp.manualInstances || rcp.manualInstances.length === 0) && <span className="text-[10px] text-text-muted italic">Aucune occurrence planifiée</span>}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1082,81 +1090,84 @@ const Configuration: React.FC = () => {
                                         </div>
                                     )
                                 })()}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
             )}
 
             {/* Auto-assignment global config */}
             {activeTab === SlotType.RCP && rcpViewMode === 'RULES' && (
-                <div className="border border-blue-200 rounded-xl p-5 space-y-4 mt-4 bg-blue-50/30">
-                    <div>
-                        <h3 className="font-semibold text-gray-800">Attribution automatique des RCP</h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Chaque semaine, si aucun médecin n'a confirmé avant l'heure limite,
-                            le système tire au sort automatiquement. Ce planning s'applique aux 8 prochaines semaines.
-                        </p>
-                    </div>
-
-                    <div className="flex items-end gap-3">
+                <Card className="mt-4">
+                    <CardBody className="p-4 space-y-4">
                         <div>
-                            <label className="text-xs text-gray-500 block mb-1 font-medium">Jour du tirage</label>
-                            <select value={autoConfigDay} onChange={e => setAutoConfigDay(e.target.value)}
-                                className="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300">
-                                {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(d => (
-                                    <option key={d}>{d}</option>
-                                ))}
-                            </select>
+                            <h3 className="font-heading font-bold text-xl text-text-base">Attribution automatique des RCP</h3>
+                            <p className="text-sm text-text-muted mt-1">
+                                Chaque semaine, si aucun médecin n'a confirmé avant l'heure limite,
+                                le système tire au sort automatiquement. Ce planning s'applique aux 8 prochaines semaines.
+                            </p>
                         </div>
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1 font-medium">Heure du tirage</label>
-                            <input type="time" value={autoConfigTime}
-                                onChange={e => setAutoConfigTime(e.target.value)}
-                                className="border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
-                        </div>
-                        <button onClick={handleSaveAutoConfig} disabled={savingAutoConfig}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 font-medium whitespace-nowrap">
-                            {savingAutoConfig ? 'Application...' : 'Appliquer aux 8 prochaines semaines'}
-                        </button>
-                    </div>
 
-                    <div className="border-t border-blue-100 pt-3">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Planning configuré</span>
-                            <button
-                                onClick={async () => {
-                                    const upcoming = rcpAutoConfigs.find(c => !c.executedAt);
-                                    if (upcoming) await triggerAutoAssignNow(upcoming.weekStartDate);
-                                    const updated = await getRcpAutoConfigs();
-                                    setRcpAutoConfigs(updated);
-                                }}
-                                className="flex items-center gap-1.5 text-xs bg-orange-500 text-white px-3 py-1.5 rounded-lg hover:bg-orange-600 font-medium">
-                                <RefreshCw size={12} /> Lancer maintenant
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                            <div>
+                                <label className="block text-label font-medium text-text-base mb-1.5">Jour du tirage</label>
+                                <select value={autoConfigDay} onChange={e => setAutoConfigDay(e.target.value)}
+                                    className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-white focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none">
+                                    {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(d => (
+                                        <option key={d}>{d}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-label font-medium text-text-base mb-1.5">Heure du tirage</label>
+                                <input type="time" value={autoConfigTime}
+                                    onChange={e => setAutoConfigTime(e.target.value)}
+                                    className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-white focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" />
+                            </div>
+                            <button onClick={handleSaveAutoConfig} disabled={savingAutoConfig}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-btn text-sm hover:bg-blue-700 disabled:opacity-50 font-medium whitespace-nowrap h-10 flex items-center justify-center md:col-span-2 w-full md:w-auto md:self-end">
+                                {savingAutoConfig ? 'Application...' : 'Appliquer aux 8 prochaines semaines'}
                             </button>
                         </div>
-                        <div className="space-y-1.5">
-                            {rcpAutoConfigs.length === 0 && (
-                                <p className="text-sm text-gray-400 italic">Aucune configuration. Cliquez sur "Appliquer aux 8 prochaines semaines".</p>
-                            )}
-                            {rcpAutoConfigs.map(c => (
-                                <div key={c.id}
-                                    className="flex items-center justify-between bg-white rounded-lg p-2.5 text-sm border border-gray-100">
-                                    <div>
-                                        <span className="font-medium text-gray-700">Semaine du {new Date(c.weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                                        <span className="text-gray-400 ml-3 text-xs">
-                                            Tirage le {new Date(c.deadlineAt).toLocaleString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+
+                        <div className="border-t border-border pt-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">Planning configuré</span>
+                                <button
+                                    onClick={async () => {
+                                        const upcoming = rcpAutoConfigs.find(c => !c.executedAt);
+                                        if (upcoming) await triggerAutoAssignNow(upcoming.weekStartDate);
+                                        const updated = await getRcpAutoConfigs();
+                                        setRcpAutoConfigs(updated);
+                                    }}
+                                    className="flex items-center gap-1.5 text-xs bg-orange-500 text-white px-3 py-1.5 rounded-btn hover:bg-orange-600 font-medium">
+                                    <RefreshCw size={12} /> Lancer maintenant
+                                </button>
+                            </div>
+                            <div className="space-y-1.5">
+                                {rcpAutoConfigs.length === 0 && (
+                                    <p className="text-sm text-text-muted italic">Aucune configuration. Cliquez sur "Appliquer aux 8 prochaines semaines".</p>
+                                )}
+                                {rcpAutoConfigs.map(c => (
+                                    <div key={c.id}
+                                        className="flex items-center justify-between bg-white rounded-btn p-2.5 text-sm border border-border">
+                                        <div>
+                                            <span className="font-medium text-text-base">Semaine du {new Date(c.weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                                            <span className="text-text-muted ml-3 text-xs">
+                                                Tirage le {new Date(c.deadlineAt).toLocaleString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        {c.executedAt
+                                            ? <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Exécuté</span>
+                                            : <span className="text-text-muted text-xs bg-muted px-2 py-0.5 rounded-full">En attente</span>
+                                        }
                                     </div>
-                                    {c.executedAt
-                                        ? <span className="text-green-600 text-xs font-medium bg-green-50 px-2 py-0.5 rounded-full">✓ Exécuté</span>
-                                        : <span className="text-gray-400 text-xs bg-gray-100 px-2 py-0.5 rounded-full">En attente</span>
-                                    }
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
             )}
 
             {/* CALENDAR CONTROLS */}
@@ -1174,7 +1185,7 @@ const Configuration: React.FC = () => {
                             <ChevronLeft className="w-5 h-5 text-purple-600" />
                         </button>
                         <div className="text-center">
-                            <h3 className="font-bold text-slate-800 text-sm capitalize">
+                            <h3 className="font-heading font-bold text-text-base text-sm capitalize">
                                 Semaine du {currentCalendarWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </h3>
                         </div>
@@ -1191,7 +1202,7 @@ const Configuration: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className="text-xs text-slate-500 italic hidden md:block">
+                        <div className="text-xs text-text-muted italic hidden md:block">
                             Cliquez sur une RCP pour modifier
                         </div>
                         <button
@@ -1207,7 +1218,7 @@ const Configuration: React.FC = () => {
 
             {/* MAIN GRID - with fullscreen support (only for RCP Calendar view) */}
             <div
-                className={`${isFullscreen && activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR' ? 'fixed inset-0 z-50 p-4 bg-slate-100' : 'flex-1'} overflow-auto bg-white rounded-xl shadow border border-slate-200`}
+                className={`${isFullscreen && activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR' ? 'fixed inset-0 z-50 p-4 bg-muted' : 'flex-1'} overflow-auto bg-white rounded-xl shadow border border-border`}
                 ref={tableContainerRef}
             >
                 {/* Fullscreen header - only shown for RCP Calendar */}
@@ -1249,7 +1260,7 @@ const Configuration: React.FC = () => {
                 )}
 
                 {rows.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+                    <div className="flex flex-col items-center justify-center h-48 text-text-muted">
                         <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
                         <p className="text-sm">Aucun élément à afficher.</p>
                         <p className="text-xs">Utilisez le panneau ci-dessus pour ajouter des RCP ou des Postes.</p>
@@ -1259,11 +1270,11 @@ const Configuration: React.FC = () => {
                         <table className="w-full border-collapse table-fixed">
                             <thead>
                                 <tr>
-                                    <th className={`p-3 border-b-2 border-r-2 bg-slate-100 w-44 text-left text-xs font-bold text-slate-500 uppercase sticky left-0 z-20 ${activeTab === SlotType.RCP ? 'border-purple-200' : 'border-blue-200'}`}>
+                                    <th className={`p-3 border-b-2 border-r-2 bg-muted w-44 text-left text-xs font-bold text-text-muted uppercase sticky left-0 z-20 ${activeTab === SlotType.RCP ? 'border-purple-200' : 'border-blue-200'}`}>
                                         {activeTab === SlotType.RCP ? 'RCP / Période' : 'Lieu / Période'}
                                     </th>
                                     {days.map(day => (
-                                        <th key={day} className={`p-3 border-b-2 border-r bg-slate-50 text-slate-700 font-bold uppercase text-xs w-1/5 min-w-[160px] ${activeTab === SlotType.RCP ? 'border-purple-200' : 'border-blue-200'}`}>
+                                        <th key={day} className={`p-3 border-b-2 border-r bg-muted/50 text-text-base font-bold uppercase text-xs w-1/5 min-w-[160px] ${activeTab === SlotType.RCP ? 'border-purple-200' : 'border-blue-200'}`}>
                                             {day}
                                             {activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR' && (
                                                 <div className="font-normal text-[10px] text-purple-500 mt-1 bg-purple-50 px-2 py-0.5 rounded inline-block">
@@ -1288,7 +1299,7 @@ const Configuration: React.FC = () => {
                                                                 e.stopPropagation();
                                                                 if (window.confirm(`Supprimer la RCP "${row.name}" ?`)) handleDeleteRcp(row.id);
                                                             }}
-                                                            className="text-slate-300 hover:text-red-600 p-1 z-50 relative bg-white rounded-full shadow-sm"
+                                                            className="text-text-muted hover:text-red-600 p-1 z-50 relative bg-white rounded-full shadow-sm"
                                                             title={`Supprimer la ligne ${row.name}`}
                                                         >
                                                             <Trash2 className="w-3 h-3" />
@@ -1300,7 +1311,7 @@ const Configuration: React.FC = () => {
                                                                 e.stopPropagation();
                                                                 handleDeletePoste(row.id);
                                                             }}
-                                                            className="text-slate-300 hover:text-red-600 p-1 z-50 relative bg-white rounded-full shadow-sm"
+                                                            className="text-text-muted hover:text-red-600 p-1 z-50 relative bg-white rounded-full shadow-sm"
                                                             title={`Supprimer la ligne ${row.name}`}
                                                         >
                                                             <Trash2 className="w-3 h-3" />
@@ -1324,7 +1335,7 @@ const Configuration: React.FC = () => {
                                                 <span className="block font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded text-[10px] inline-block">🌙 Après-midi</span>
                                             </td>
                                             {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className="border-r p-1 h-24 bg-slate-50/50 relative">
+                                                <td key={`${day}-apres-midi`} className="border-r p-1 h-24 bg-muted/50 relative">
                                                     {activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR'
                                                         ? renderCalendarCell(day, Period.AFTERNOON, row.name)
                                                         : renderConfigCell(day, Period.AFTERNOON, row.name)
