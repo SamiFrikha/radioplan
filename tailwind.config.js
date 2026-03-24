@@ -14,11 +14,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary:   { DEFAULT: '#4F46E5', hover: '#4338CA', light: '#EEF2FF' },
-        secondary: { DEFAULT: '#7C3AED', hover: '#6D28D9' },
-        success:   { DEFAULT: '#10B981', light: '#D1FAE5' },
-        warning:   { DEFAULT: '#F59E0B', light: '#FEF3C7' },
-        danger:    { DEFAULT: '#DC2626', light: '#FEE2E2' },
+        primary:   { DEFAULT: '#4F46E5', hover: '#4338CA', light: '#EEF2FF', text: '#3730A3' },
+        secondary: { DEFAULT: '#7C3AED', hover: '#6D28D9', text: '#5B21B6' },
+        success:   { DEFAULT: '#10B981', light: '#D1FAE5', text: '#065F46' },
+        warning:   { DEFAULT: '#F59E0B', light: '#FEF3C7', text: '#92400E' },
+        danger:    { DEFAULT: '#DC2626', light: '#FEE2E2', hover: '#B91C1C' },
         'app-bg':  '#F8FAFC',
         surface:   '#FFFFFF',
         border:    '#E2E8F0',

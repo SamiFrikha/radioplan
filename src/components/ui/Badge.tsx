@@ -10,11 +10,11 @@ interface BadgeProps {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  green:  'bg-success/10 text-emerald-700 ring-1 ring-success/20',
-  red:    'bg-danger/10  text-red-700     ring-1 ring-danger/20',
-  amber:  'bg-warning/10 text-amber-700   ring-1 ring-warning/20',
-  blue:   'bg-primary/10 text-indigo-700  ring-1 ring-primary/20',
-  violet: 'bg-secondary/10 text-violet-700 ring-1 ring-secondary/20',
+  green:  'bg-success/10 text-success-text ring-1 ring-success/20',
+  red:    'bg-danger/10  text-danger       ring-1 ring-danger/20',
+  amber:  'bg-warning/10 text-warning-text ring-1 ring-warning/20',
+  blue:   'bg-primary/10 text-primary-text ring-1 ring-primary/20',
+  violet: 'bg-secondary/10 text-secondary-text ring-1 ring-secondary/20',
   gray:   'bg-border     text-text-muted  ring-1 ring-border',
 };
 
