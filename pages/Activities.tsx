@@ -13,9 +13,9 @@ import { activityLogService, ActivityLogEntry } from '../services/activityLogSer
 
 // Predefined equity groups
 const EQUITY_GROUPS = [
-    { id: 'unity_astreinte', name: 'Unity + Astreinte', color: 'bg-orange-100 text-orange-800' },
-    { id: 'workflow', name: 'Supervision Workflow', color: 'bg-emerald-100 text-emerald-800' },
-    { id: 'custom', name: 'Équité indépendante', color: 'bg-purple-100 text-purple-800' }
+    { id: 'unity_astreinte', name: 'Unity + Astreinte', color: 'bg-warning/10 text-warning-text' },
+    { id: 'workflow', name: 'Supervision Workflow', color: 'bg-success/10 text-success-text' },
+    { id: 'custom', name: 'Équité indépendante', color: 'bg-secondary/10 text-secondary-text' }
 ];
 
 const Activities: React.FC = () => {
@@ -1219,9 +1219,9 @@ const Activities: React.FC = () => {
         const holiday = isFrenchHoliday(dateStr);
         if (holiday) {
             return (
-                <div className="h-full w-full bg-pink-50 flex items-center justify-center border border-pink-200 flex-col opacity-80 min-h-[40px] md:min-h-[60px]">
-                    <span className="text-[8px] md:text-[10px] text-pink-400 font-bold uppercase tracking-wider">Férié</span>
-                    <span className="text-[7px] md:text-[9px] text-pink-300 text-center px-0.5 leading-tight">{holiday.name}</span>
+                <div className="h-full w-full bg-secondary/5 flex items-center justify-center border border-secondary/20 flex-col opacity-80 min-h-[40px] md:min-h-[60px]">
+                    <span className="text-[8px] md:text-[10px] text-secondary-text font-bold uppercase tracking-wider">Férié</span>
+                    <span className="text-[7px] md:text-[9px] text-secondary/60 text-center px-0.5 leading-tight">{holiday.name}</span>
                 </div>
             )
         }
@@ -1245,9 +1245,9 @@ const Activities: React.FC = () => {
         // In month view, simplify display
         if (viewMode === 'MONTH') {
             return (
-                <div className={`text-[8px] md:text-[10px] p-0.5 md:p-1 border rounded min-h-[1.25rem] md:min-h-[1.5rem] flex items-center break-words ${hasConflict ? 'bg-red-50 border-red-300' : 'bg-muted'}`}>
+                <div className={`text-[8px] md:text-[10px] p-0.5 md:p-1 border rounded-btn-sm min-h-[1.25rem] md:min-h-[1.5rem] flex items-center break-words ${hasConflict ? 'bg-danger/5 border-danger/30' : 'bg-muted'}`}>
                     {doc ? (
-                        <span className={`font-bold ${hasConflict ? 'text-red-700' : 'text-text-base'}`}>{doc.name}</span>
+                        <span className={`font-bold ${hasConflict ? 'text-danger' : 'text-text-base'}`}>{doc.name}</span>
                     ) : <span className="text-text-muted">--</span>}
                 </div>
             )
@@ -1255,15 +1255,15 @@ const Activities: React.FC = () => {
 
         // Determine styling based on auto vs manual
         const isAuto = slot.isAutoAssigned;
-        const borderColor = hasConflict ? 'border-red-400 bg-red-50' :
-            slot.isLocked ? (isAuto ? 'border-green-400 bg-green-50' : 'border-blue-400 bg-blue-50') : 'border-dashed border-border';
-        const textColor = hasConflict ? 'text-red-800' :
-            slot.isLocked ? (isAuto ? 'text-green-800' : 'text-blue-800') : 'text-text-base';
+        const borderColor = hasConflict ? 'border-danger/50 bg-danger/5' :
+            slot.isLocked ? (isAuto ? 'border-success/40 bg-success/5' : 'border-primary/40 bg-primary/5') : 'border-dashed border-border';
+        const textColor = hasConflict ? 'text-danger' :
+            slot.isLocked ? (isAuto ? 'text-success-text' : 'text-primary-text') : 'text-text-base';
 
         return (
             <div className={`p-1 md:p-2 rounded border h-full flex flex-col justify-center min-h-[40px] md:min-h-[60px] relative ${borderColor}`}>
                 {hasConflict && (
-                    <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1 text-red-500 animate-pulse">
+                    <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1 text-danger animate-pulse">
                         <AlertTriangle className="w-2.5 h-2.5 md:w-3 md:h-3" />
                     </div>
                 )}
@@ -1272,9 +1272,9 @@ const Activities: React.FC = () => {
                 {slot.isLocked && doc && (
                     <div className="mb-0.5 md:mb-0 md:absolute md:top-1 md:left-1">
                         {isAuto ? (
-                            <span className="text-[6px] md:text-[8px] bg-green-200 text-green-700 px-0.5 md:px-1 rounded font-bold">AUTO</span>
+                            <span className="text-[6px] md:text-[8px] bg-success/20 text-success-text px-0.5 md:px-1 rounded font-bold">AUTO</span>
                         ) : (
-                            <span className="text-[6px] md:text-[8px] bg-blue-200 text-blue-700 px-0.5 md:px-1 rounded font-bold">MAN.</span>
+                            <span className="text-[6px] md:text-[8px] bg-primary/20 text-primary-text px-0.5 md:px-1 rounded font-bold">MAN.</span>
                         )}
                     </div>
                 )}
@@ -1363,15 +1363,12 @@ const Activities: React.FC = () => {
         <div className="h-full flex flex-col gap-4">
             {/* PAGE HEADER */}
             <div className="flex items-center justify-between">
-                <h1 className="font-heading font-bold text-xl text-text-base flex items-center gap-2">
-                    <ActivityIcon className="w-5 h-5 text-orange-500" />
-                    Activités
-                </h1>
+                <h1 className="text-2xl font-extrabold text-text-base tracking-tight">Activités</h1>
                 <div className="flex items-center gap-2">
                     {/* Activity Log History Button */}
                     <button
                         onClick={() => setShowLogPanel(!showLogPanel)}
-                        className={`flex items-center px-2 md:px-3 py-1.5 rounded text-xs md:text-sm font-medium transition-all ${showLogPanel ? 'bg-violet-100 text-violet-700 border border-violet-300' : 'bg-muted hover:bg-border text-text-muted border border-border'}`}
+                        className={`flex items-center px-2 md:px-3 py-1.5 rounded-btn-sm text-xs md:text-sm font-medium transition-all ${showLogPanel ? 'bg-secondary/10 text-secondary-text border border-secondary/30' : 'bg-muted hover:bg-border text-text-muted border border-border'}`}
                         title="Historique des modifications"
                     >
                         <History className="w-4 h-4 md:mr-2" />
@@ -1396,7 +1393,7 @@ const Activities: React.FC = () => {
                     {/* Create New Activity */}
                     <div>
                         <h3 className="font-bold text-xs md:text-sm mb-2 md:mb-3 flex items-center">
-                            <Plus className="w-4 h-4 mr-2 text-blue-600" /> Créer une nouvelle activité
+                            <Plus className="w-4 h-4 mr-2 text-primary" /> Créer une nouvelle activité
                         </h3>
                         <form onSubmit={handleCreateActivity} className="flex flex-col sm:flex-row flex-wrap gap-2 md:gap-4 sm:items-end">
                             <div>
@@ -1442,7 +1439,7 @@ const Activities: React.FC = () => {
                     {/* Activity List */}
                     <div className="border-t border-border pt-4">
                         <h3 className="font-bold text-sm mb-3 flex items-center">
-                            <Layers className="w-4 h-4 mr-2 text-purple-600" /> Gérer les activités existantes
+                            <Layers className="w-4 h-4 mr-2 text-secondary" /> Gérer les activités existantes
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {activityDefinitions.map(act => {
@@ -1451,7 +1448,7 @@ const Activities: React.FC = () => {
                                 const equityGrp = EQUITY_GROUPS.find(g => g.id === (act.equityGroup || 'custom'));
 
                                 return (
-                                    <div key={act.id} className={`p-3 border rounded-card ${isEditing ? 'bg-blue-50 border-blue-300' : 'bg-muted border-border'}`}>
+                                    <div key={act.id} className={`p-3 border rounded-card ${isEditing ? 'bg-primary/5 border-primary/30' : 'bg-muted border-border'}`}>
                                         {isEditing ? (
                                             <div className="space-y-2">
                                                 <input
@@ -1473,7 +1470,7 @@ const Activities: React.FC = () => {
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={handleSaveActivityEdit}
-                                                        className="flex-1 bg-green-600 text-white px-2 py-1 rounded text-xs font-bold hover:bg-green-700"
+                                                        className="flex-1 bg-success text-white px-2 py-1 rounded-btn-sm text-xs font-bold hover:opacity-90"
                                                     >
                                                         <Save className="w-3 h-3 inline mr-1" /> Sauver
                                                     </button>
@@ -1506,7 +1503,7 @@ const Activities: React.FC = () => {
                                                 <div className="flex gap-2 mt-2">
                                                     <button
                                                         onClick={() => handleEditActivity(act)}
-                                                        className="flex-1 text-xs text-blue-600 hover:bg-blue-100 px-2 py-1 rounded flex items-center justify-center"
+                                                        className="flex-1 text-xs text-primary hover:bg-primary/10 px-2 py-1 rounded-btn-sm flex items-center justify-center"
                                                     >
                                                         <Edit className="w-3 h-3 mr-1" /> Modifier
                                                     </button>
@@ -1515,7 +1512,7 @@ const Activities: React.FC = () => {
                                                             onClick={() => handleDeleteActivity(act.id)}
                                                             className={`flex-1 text-xs px-2 py-1 rounded flex items-center justify-center transition-colors ${isConfirmDelete
                                                                 ? 'bg-accent-red text-white font-bold'
-                                                                : 'text-accent-red hover:bg-red-100'
+                                                                : 'text-danger hover:bg-danger/10'
                                                                 }`}
                                                         >
                                                             <Trash2 className="w-3 h-3 mr-1" />
@@ -1557,24 +1554,40 @@ const Activities: React.FC = () => {
                                 action={isAdmin ? { label: "Ajouter", onClick: () => setShowSettings(true) } : undefined}
                             />
                         ) : (
-                            activityDefinitions.map(act => (
-                                <button
+                            activityDefinitions.map(act => {
+                                const isAstreinte = act.name.toLowerCase().includes('astreinte');
+                                const borderColor =
+                                    act.equityGroup === 'workflow' ? 'bg-secondary' :
+                                    isAstreinte ? 'bg-warning' :
+                                    act.equityGroup === 'unity_astreinte' ? 'bg-warning' :
+                                    'bg-primary';
+                                const badgeVariant: 'violet' | 'amber' | 'blue' =
+                                    act.equityGroup === 'workflow' ? 'violet' :
+                                    (act.equityGroup === 'unity_astreinte' || isAstreinte) ? 'amber' :
+                                    'blue';
+                                return (
+                                <div
                                     key={act.id}
                                     onClick={() => {
                                         setActiveTabId(act.id);
                                         setMobileDetailOpen(true);
                                     }}
-                                    className={`w-full text-left p-3 flex items-center gap-3 hover:bg-muted border-b border-border last:border-0 transition-colors ${activeTabId === act.id ? 'bg-muted' : ''}`}
+                                    className={`bg-surface rounded-card shadow-card border border-border/40 p-4 flex items-start gap-3 press-scale cursor-pointer hover:shadow-card-hover transition-shadow overflow-hidden relative mb-2 ${activeTabId === act.id ? 'ring-2 ring-primary/30' : ''}`}
                                 >
-                                    <Badge variant={activityVariant(act.equityGroup)} className="flex-shrink-0">
-                                        {act.equityGroup === 'workflow' ? 'WF' : act.equityGroup === 'unity_astreinte' ? 'U+A' : 'Ind.'}
-                                    </Badge>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-sm text-text-base truncate">{act.name}</p>
-                                        <p className="text-[11px] text-text-muted">{act.granularity === 'WEEKLY' ? 'Hebdomadaire' : 'Demi-journée'}</p>
+                                    {/* Left color border */}
+                                    <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-card ${borderColor}`} aria-hidden="true" />
+                                    <div className="pl-3 flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className="font-medium text-sm text-text-base truncate">{act.name}</p>
+                                            <Badge variant={badgeVariant} className="flex-shrink-0">
+                                                {act.equityGroup === 'workflow' ? 'WF' : isAstreinte ? 'Astr.' : act.equityGroup === 'unity_astreinte' ? 'U+A' : 'Ind.'}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-[11px] text-text-muted mt-0.5">{act.granularity === 'WEEKLY' ? 'Hebdomadaire' : 'Demi-journée'}</p>
                                     </div>
-                                </button>
-                            ))
+                                </div>
+                                );
+                            })
                         )}
                     </CardBody>
                 </Card>
@@ -1586,7 +1599,7 @@ const Activities: React.FC = () => {
                             {/* Toolbar: view toggle, week nav, actions */}
                             <div className="flex flex-wrap items-center gap-2">
                                 {/* View Toggle */}
-                                <div className="flex bg-muted p-1 rounded-lg">
+                                <div className="flex bg-muted p-1 rounded-card">
                                     <button
                                         onClick={() => setViewMode('WEEK')}
                                         className={`px-2 md:px-3 py-1 text-xs font-bold rounded ${viewMode === 'WEEK' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
@@ -1601,7 +1614,7 @@ const Activities: React.FC = () => {
                                     </button>
                                 </div>
 
-                                <div className="flex items-center bg-surface rounded-lg shadow-card border border-border p-1">
+                                <div className="flex items-center bg-surface rounded-card shadow-card border border-border p-1">
                                     <button
                                         onClick={() => handleWeekChange('prev')}
                                         disabled={!canNavigatePrevious}
@@ -1633,9 +1646,9 @@ const Activities: React.FC = () => {
                                 {isAdmin && viewMode === 'WEEK' && (
                                     <button
                                         onClick={handleValidateWeek}
-                                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${isCurrentWeekValidated
-                                            ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
-                                            : 'bg-orange-100 text-orange-700 border border-orange-300 hover:bg-orange-200'
+                                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded-btn-sm text-xs md:text-sm font-bold transition-all ${isCurrentWeekValidated
+                                            ? 'bg-success/10 text-success-text border border-success/30 hover:bg-success/20'
+                                            : 'bg-warning/10 text-warning-text border border-warning/30 hover:bg-warning/20'
                                             }`}
                                         title={isCurrentWeekValidated ? 'Semaine validée - Cliquer pour déverrouiller' : 'Cliquer pour valider cette semaine'}
                                     >
@@ -1654,7 +1667,7 @@ const Activities: React.FC = () => {
                                 )}
 
                                 {!isAdmin && isCurrentWeekValidated && viewMode === 'WEEK' && (
-                                    <div className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-green-50 text-green-700 rounded text-xs md:text-sm font-medium border border-green-200">
+                                    <div className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-success/10 text-success-text rounded-btn-sm text-xs md:text-sm font-medium border border-success/30">
                                         <Lock className="w-4 h-4 md:mr-2" />
                                         <span className="hidden md:inline">Semaine validée</span>
                                     </div>
@@ -1663,9 +1676,9 @@ const Activities: React.FC = () => {
                                 {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
                                     <button
                                         onClick={handleRecalculateAuto}
-                                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded text-xs md:text-sm font-bold transition-all ${autoFillTriggered
-                                            ? 'bg-green-100 text-green-700 border border-green-300'
-                                            : 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200'}`}
+                                        className={`flex items-center px-2 md:px-3 py-1.5 md:py-2 rounded-btn-sm text-xs md:text-sm font-bold transition-all ${autoFillTriggered
+                                            ? 'bg-success/10 text-success-text border border-success/30'
+                                            : 'bg-primary/10 text-primary-text border border-primary/30 hover:bg-primary/20'}`}
                                         title="Recalculer les affectations automatiques pour cette semaine"
                                     >
                                         <Wand2 className="w-4 h-4 md:mr-2" />
@@ -1676,7 +1689,7 @@ const Activities: React.FC = () => {
                                 {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
                                     <button
                                         onClick={handleClearAllChoices}
-                                        className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-xs md:text-sm font-medium transition-all"
+                                        className="flex items-center px-2 md:px-3 py-1.5 md:py-2 bg-danger/5 hover:bg-danger/10 text-danger border border-danger/20 rounded-btn-sm text-xs md:text-sm font-medium transition-all"
                                         title="Effacer tous les choix de cette semaine"
                                     >
                                         <Trash2 className="w-4 h-4 md:mr-1" />
@@ -1698,25 +1711,25 @@ const Activities: React.FC = () => {
                                         </div>
 
                                         {choiceSectionExpanded && (
-                                            <div className="bg-muted p-3 md:p-6 rounded-xl border border-border shadow-card flex flex-col items-center justify-center max-w-md w-full transition-all">
-                                                <div className="flex items-center space-x-4 mb-6 bg-surface p-2 rounded-lg border border-border">
+                                            <div className="bg-muted p-3 md:p-6 rounded-card border border-border shadow-card flex flex-col items-center justify-center max-w-md w-full transition-all">
+                                                <div className="flex items-center space-x-4 mb-6 bg-surface p-2 rounded-btn-sm border border-border">
                                                     <button
                                                         onClick={() => setWeeklyAssignmentMode('AUTO')}
                                                         disabled={isWeekInPast}
-                                                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${weeklyAssignmentMode === 'AUTO' && !isWeekInPast ? 'bg-blue-100 text-blue-800' : 'text-text-muted hover:bg-muted'} ${isWeekInPast ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        className={`px-4 py-2 text-sm font-bold rounded-btn-sm transition-colors ${weeklyAssignmentMode === 'AUTO' && !isWeekInPast ? 'bg-primary/10 text-primary-text' : 'text-text-muted hover:bg-muted'} ${isWeekInPast ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                         title={isWeekInPast ? 'Le choix auto est désactivé pour les semaines passées' : ''}
                                                     >
                                                         <Wand2 className="w-4 h-4 inline-block mr-1" /> Auto / IA
                                                     </button>
                                                     <button
                                                         onClick={() => setWeeklyAssignmentMode('MANUAL')}
-                                                        className={`px-4 py-2 text-sm font-bold rounded transition-colors ${weeklyAssignmentMode === 'MANUAL' || isWeekInPast ? 'bg-blue-100 text-blue-800' : 'text-text-muted hover:bg-muted'}`}
+                                                        className={`px-4 py-2 text-sm font-bold rounded-btn-sm transition-colors ${weeklyAssignmentMode === 'MANUAL' || isWeekInPast ? 'bg-primary/10 text-primary-text' : 'text-text-muted hover:bg-muted'}`}
                                                     >
                                                         <User className="w-4 h-4 inline-block mr-1" /> Manuel
                                                     </button>
                                                 </div>
                                                 {isWeekInPast && (
-                                                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center">
+                                                    <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-card text-sm text-warning-text flex items-center">
                                                         <AlertTriangle className="w-4 h-4 mr-2 flex-shrink-0" />
                                                         <span>Cette semaine est passée. Seul le mode manuel est autorisé pour éviter de modifier l'historique.</span>
                                                     </div>
@@ -1729,7 +1742,7 @@ const Activities: React.FC = () => {
                                                         if (!sampleSlot) return <div>Pas de créneau généré.</div>;
                                                         return (
                                                             <select
-                                                                className={`w-full p-3 border rounded-lg text-lg text-center font-bold outline-none ring-2 ${sampleSlot.isLocked ? 'ring-blue-500 bg-surface text-blue-800' : 'ring-transparent bg-muted text-text-muted'}`}
+                                                                className={`w-full p-3 border rounded-card text-lg text-center font-bold outline-none ring-2 ${sampleSlot.isLocked ? 'ring-primary/50 bg-surface text-primary-text' : 'ring-transparent bg-muted text-text-muted'}`}
                                                                 value={sampleSlot.isLocked ? sampleSlot.assignedDoctorId || "" : ""}
                                                                 onChange={(e) => handleWeeklyAssign(e.target.value)}
                                                             >
@@ -1744,12 +1757,12 @@ const Activities: React.FC = () => {
 
                                                 <div className="mt-4 text-sm text-text-muted text-center">
                                                     {weeklyAssignmentMode === 'AUTO' ? (
-                                                        <p className="flex items-center justify-center text-green-600 font-medium">
+                                                        <p className="flex items-center justify-center text-success-text font-medium">
                                                             <Wand2 className="w-4 h-4 mr-1" />
                                                             L'algorithme choisit automatiquement en équilibrant sur l'année.
                                                         </p>
                                                     ) : (
-                                                        <p className="text-blue-600">
+                                                        <p className="text-primary-text">
                                                             Vous avez la main. Cette affectation s'appliquera à toute la semaine et bloquera les choix auto.
                                                         </p>
                                                     )}
@@ -1828,18 +1841,18 @@ const Activities: React.FC = () => {
                             </div>
 
                             {/* CONFLICTS */}
-                            <div className="bg-red-50 rounded-card border border-red-100 p-4 shrink-0 shadow-card">
+                            <div className="bg-danger/5 rounded-card border border-danger/20 p-4 shrink-0 shadow-card">
                                 <h3
-                                    className="font-bold text-red-800 text-sm flex items-center justify-between cursor-pointer"
+                                    className="font-bold text-danger text-sm flex items-center justify-between cursor-pointer"
                                     onClick={() => setConflictsSectionExpanded(!conflictsSectionExpanded)}
                                 >
                                     <span className="flex items-center">
-                                        <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
+                                        <AlertTriangle className="w-5 h-5 mr-2 text-danger" />
                                         Conflits Détectés ({currentActivity?.name})
                                     </span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">{activityConflicts.length}</span>
-                                        {conflictsSectionExpanded ? <Minimize2 className="w-4 h-4 text-red-400" /> : <Maximize2 className="w-4 h-4 text-red-400" />}
+                                        <span className="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full">{activityConflicts.length}</span>
+                                        {conflictsSectionExpanded ? <Minimize2 className="w-4 h-4 text-danger/50" /> : <Maximize2 className="w-4 h-4 text-danger/50" />}
                                     </div>
                                 </h3>
                                 {conflictsSectionExpanded && (
@@ -1857,16 +1870,16 @@ const Activities: React.FC = () => {
                                                     <div
                                                         key={conf.id}
                                                         onClick={() => handleAlertClick(conf)}
-                                                        className="group flex items-start bg-surface p-3 rounded-lg border border-red-200 shadow-card hover:shadow-card-hover hover:border-red-400 cursor-pointer transition-all"
+                                                        className="group flex items-start bg-surface p-3 rounded-card border border-danger/20 shadow-card hover:shadow-card-hover hover:border-danger/50 cursor-pointer transition-all"
                                                     >
                                                         <div className="mr-3 mt-0.5">
-                                                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                                                            <div className="w-8 h-8 rounded-full bg-danger/10 flex items-center justify-center text-danger">
                                                                 <AlertTriangle className="w-4 h-4" />
                                                             </div>
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex justify-between items-start">
-                                                                <span className="font-bold text-red-700 text-sm">
+                                                                <span className="font-bold text-danger text-sm">
                                                                     {conf.type === 'DOUBLE_BOOKING' ? 'DOUBLE RÉSERVATION' : conf.type}
                                                                 </span>
                                                                 <span className="text-[10px] bg-muted text-text-muted px-2 py-0.5 rounded font-mono">
@@ -1895,7 +1908,7 @@ const Activities: React.FC = () => {
                                 <div className="flex justify-between items-center mb-3">
                                     <h3 className="font-bold text-text-base text-sm flex items-center cursor-pointer" onClick={() => setStatsSectionExpanded(!statsSectionExpanded)}>
                                         <span className="flex items-center">
-                                            <Layers className="w-4 h-4 mr-2 text-purple-600" />
+                                            <Layers className="w-4 h-4 mr-2 text-secondary" />
                                             Équité & Répartition par Groupe
                                         </span>
                                         <div className="ml-3 flex items-center space-x-2">
@@ -1917,7 +1930,7 @@ const Activities: React.FC = () => {
                                             <button
                                                 onClick={handleDownloadCurrentView}
                                                 disabled={isGeneratingStatsPdf}
-                                                className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded flex items-center transition-colors disabled:opacity-50"
+                                                className="text-xs bg-primary/10 hover:bg-primary/20 text-primary-text px-3 py-1.5 rounded-btn-sm flex items-center transition-colors disabled:opacity-50"
                                             >
                                                 {isGeneratingStatsPdf ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <FileText className="w-3 h-3 mr-1" />}
                                                 Vue actuelle
@@ -1937,7 +1950,7 @@ const Activities: React.FC = () => {
                                     <div className="space-y-6">
                                         {(currentActivity?.equityGroup === 'unity_astreinte' || !currentActivity?.equityGroup) && !isWorkflowTab && (
                                             <div>
-                                                <h4 className="text-xs font-bold text-orange-600 uppercase mb-2 border-b border-orange-200 pb-1 flex items-center justify-between">
+                                                <h4 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2 border-b border-border pb-1 flex items-center justify-between">
                                                     <span>Équité : Groupe Unity + Astreinte</span>
                                                     <span className="text-[10px] normal-case font-normal text-text-muted">
                                                         {activityDefinitions.filter(a => a.equityGroup === 'unity_astreinte').map(a => a.name).join(', ') || 'Astreinte, Unity'}
@@ -1945,12 +1958,12 @@ const Activities: React.FC = () => {
                                                 </h4>
                                                 <div className="overflow-x-auto max-h-48">
                                                     <table className="min-w-full text-xs text-left">
-                                                        <thead className="bg-orange-50 border-b sticky top-0 z-10">
+                                                        <thead className="bg-warning/5 border-b sticky top-0 z-10">
                                                             <tr>
                                                                 <th className="p-2 font-bold text-text-muted">Médecin</th>
                                                                 <th className="p-2 font-bold text-text-muted">Taux</th>
-                                                                <th className="p-2 font-bold text-orange-500">Sem./Mois</th>
-                                                                <th className="p-2 font-bold text-orange-700">Total U+A</th>
+                                                                <th className="p-2 font-bold text-warning-text">Sem./Mois</th>
+                                                                <th className="p-2 font-bold text-warning-text">Total U+A</th>
                                                                 <th className="p-2 font-bold text-blue-600">Score Pondéré</th>
                                                             </tr>
                                                         </thead>
@@ -1966,8 +1979,8 @@ const Activities: React.FC = () => {
                                                                             {d.name}
                                                                         </td>
                                                                         <td className="p-2 text-text-muted">{Math.round((stats?.rate || 1) * 100)}%</td>
-                                                                        <td className="p-2 text-orange-500 bg-orange-50/30">{weekTotal}</td>
-                                                                        <td className="p-2 font-bold text-orange-700 bg-orange-50/50">{cumulTotal}</td>
+                                                                        <td className="p-2 text-warning-text bg-warning/5">{weekTotal}</td>
+                                                                        <td className="p-2 font-bold text-warning-text bg-warning/10">{cumulTotal}</td>
                                                                         <td className="p-2 font-bold text-blue-600">{(stats?.weighted || 0).toFixed(1)}</td>
                                                                     </tr>
                                                                 )
@@ -1980,7 +1993,7 @@ const Activities: React.FC = () => {
 
                                         {(currentActivity?.equityGroup === 'workflow' || isWorkflowTab) && (
                                             <div>
-                                                <h4 className="text-xs font-bold text-emerald-600 uppercase mb-2 border-b border-emerald-200 pb-1 flex items-center justify-between">
+                                                <h4 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2 border-b border-border pb-1 flex items-center justify-between">
                                                     <span>Équité : Supervision Workflow</span>
                                                     <span className="text-[10px] normal-case font-normal text-text-muted">
                                                         {activityDefinitions.filter(a => a.equityGroup === 'workflow').map(a => a.name).join(', ') || 'Supervision Workflow'}
@@ -1988,12 +2001,12 @@ const Activities: React.FC = () => {
                                                 </h4>
                                                 <div className="overflow-x-auto max-h-48">
                                                     <table className="min-w-full text-xs text-left">
-                                                        <thead className="bg-emerald-50 border-b sticky top-0 z-10">
+                                                        <thead className="bg-success/5 border-b sticky top-0 z-10">
                                                             <tr>
                                                                 <th className="p-2 font-bold text-text-muted">Médecin</th>
                                                                 <th className="p-2 font-bold text-text-muted">Taux</th>
-                                                                <th className="p-2 font-bold text-emerald-500">Sem.</th>
-                                                                <th className="p-2 font-bold text-emerald-700">Cumul{activitiesStartDate && <span className="block text-[8px] font-normal text-emerald-500">depuis {new Date(activitiesStartDate).toLocaleDateString('fr-FR')}</span>}</th>
+                                                                <th className="p-2 font-bold text-text-muted">Sem.</th>
+                                                                <th className="p-2 font-bold text-text-muted">Cumul{activitiesStartDate && <span className="block text-[8px] font-normal text-text-muted">depuis {new Date(activitiesStartDate).toLocaleDateString('fr-FR')}</span>}</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -2006,8 +2019,8 @@ const Activities: React.FC = () => {
                                                                             {d.name}
                                                                         </td>
                                                                         <td className="p-2 text-text-muted">{Math.round((stats?.rate || 1) * 100)}%</td>
-                                                                        <td className="p-2 text-emerald-500 bg-emerald-50/30">{stats?.workflowWeek || 0}</td>
-                                                                        <td className="p-2 font-bold text-emerald-700 bg-emerald-50/50">{stats?.workflowTotal || 0}</td>
+                                                                        <td className="p-2 text-sm font-medium text-text-base bg-success/5">{stats?.workflowWeek || 0}</td>
+                                                                        <td className="p-2 font-bold text-text-base bg-success/10">{stats?.workflowTotal || 0}</td>
                                                                     </tr>
                                                                 )
                                                             })}
@@ -2019,18 +2032,18 @@ const Activities: React.FC = () => {
 
                                         {currentActivity?.equityGroup === 'custom' && (
                                             <div>
-                                                <h4 className="text-xs font-bold text-purple-600 uppercase mb-2 border-b border-purple-200 pb-1 flex items-center justify-between">
+                                                <h4 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-2 border-b border-border pb-1 flex items-center justify-between">
                                                     <span>Équité : {currentActivity.name} (Indépendante)</span>
                                                     <span className="text-[10px] normal-case font-normal text-text-muted">Cette activité est comptabilisée séparément</span>
                                                 </h4>
                                                 <div className="overflow-x-auto max-h-48">
                                                     <table className="min-w-full text-xs text-left">
-                                                        <thead className="bg-purple-50 border-b sticky top-0 z-10">
+                                                        <thead className="bg-secondary/5 border-b sticky top-0 z-10">
                                                             <tr>
                                                                 <th className="p-2 font-bold text-text-muted">Médecin</th>
                                                                 <th className="p-2 font-bold text-text-muted">Taux Travail</th>
-                                                                <th className="p-2 font-bold text-purple-600">{currentActivity.name} (Total)</th>
-                                                                <th className="p-2 font-bold text-purple-800">Score Pondéré</th>
+                                                                <th className="p-2 font-bold text-secondary-text">{currentActivity.name} (Total)</th>
+                                                                <th className="p-2 font-bold text-secondary-text">Score Pondéré</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody>
@@ -2051,8 +2064,8 @@ const Activities: React.FC = () => {
                                                                             {d.name}
                                                                         </td>
                                                                         <td className="p-2 text-text-muted">{Math.round(rate * 100)}%</td>
-                                                                        <td className="p-2 font-bold text-purple-600 bg-purple-50/30">{total}</td>
-                                                                        <td className="p-2 font-bold text-purple-800">{(total / rate).toFixed(1)}</td>
+                                                                        <td className="p-2 font-bold text-secondary-text bg-secondary/5">{total}</td>
+                                                                        <td className="p-2 font-bold text-secondary-text">{(total / rate).toFixed(1)}</td>
                                                                     </tr>
                                                                 )
                                                             })}
@@ -2096,11 +2109,11 @@ const Activities: React.FC = () => {
 
                                     {/* Toolbar */}
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <div className="flex bg-muted p-1 rounded-lg">
+                                        <div className="flex bg-muted p-1 rounded-card">
                                             <button onClick={() => setViewMode('WEEK')} className={`px-2 py-1 text-xs font-bold rounded ${viewMode === 'WEEK' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}>Semaine</button>
                                             <button onClick={() => setViewMode('MONTH')} className={`px-2 py-1 text-xs font-bold rounded ${viewMode === 'MONTH' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}>Mois</button>
                                         </div>
-                                        <div className="flex items-center bg-surface rounded-lg shadow-card border border-border p-1">
+                                        <div className="flex items-center bg-surface rounded-card shadow-card border border-border p-1">
                                             <button onClick={() => handleWeekChange('prev')} disabled={!canNavigatePrevious} className={`p-1 rounded ${canNavigatePrevious ? 'hover:bg-muted' : 'opacity-30 cursor-not-allowed'}`}>
                                                 <ChevronLeft className="w-4 h-4 text-text-muted" />
                                             </button>
@@ -2114,7 +2127,7 @@ const Activities: React.FC = () => {
                                             <button onClick={() => handleWeekChange('next')} className="p-1 hover:bg-muted rounded"><ChevronRight className="w-4 h-4 text-text-muted" /></button>
                                         </div>
                                         {isAdmin && viewMode === 'WEEK' && !isCurrentWeekValidated && !isWeekInPast && (
-                                            <button onClick={handleRecalculateAuto} className="flex items-center px-2 py-1.5 rounded text-xs font-bold bg-blue-100 text-blue-700 border border-blue-300">
+                                            <button onClick={handleRecalculateAuto} className="flex items-center px-2 py-1.5 rounded-btn-sm text-xs font-bold bg-primary/10 text-primary-text border border-primary/30">
                                                 <Wand2 className="w-4 h-4 mr-1" />{autoFillTriggered ? '✓' : 'Auto'}
                                             </button>
                                         )}
@@ -2130,7 +2143,7 @@ const Activities: React.FC = () => {
                                                     if (!sampleSlot) return <div className="text-text-muted text-sm">Pas de créneau généré.</div>;
                                                     return (
                                                         <select
-                                                            className={`w-full p-3 border rounded-lg text-lg text-center font-bold outline-none ring-2 ${sampleSlot.isLocked ? 'ring-blue-500 bg-surface text-blue-800' : 'ring-transparent bg-muted text-text-muted'}`}
+                                                            className={`w-full p-3 border rounded-card text-lg text-center font-bold outline-none ring-2 ${sampleSlot.isLocked ? 'ring-primary/50 bg-surface text-primary-text' : 'ring-transparent bg-muted text-text-muted'}`}
                                                             value={sampleSlot.isLocked ? sampleSlot.assignedDoctorId || "" : ""}
                                                             onChange={(e) => handleWeeklyAssign(e.target.value)}
                                                         >
@@ -2188,7 +2201,7 @@ const Activities: React.FC = () => {
             {/* PDF DATE RANGE MODAL */}
             {showPdfModal && (
                 <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-surface rounded-xl shadow-modal w-full max-w-sm p-6 border border-border animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-surface rounded-card shadow-modal w-full max-w-sm p-6 border border-border animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-text-base flex items-center">
                                 <FileText className="w-5 h-5 mr-2 text-blue-600" />
@@ -2211,7 +2224,7 @@ const Activities: React.FC = () => {
                                 Le rapport calculera les statistiques consolidées (Unity, Astreinte, Supervision) sur cette période précise.
                             </div>
                         </div>
-                        <button onClick={handleDownloadReport} disabled={isGeneratingStatsPdf} className="w-full py-2.5 bg-primary text-white rounded-lg font-bold text-sm hover:bg-primary-hover flex items-center justify-center disabled:opacity-50 transition-all shadow-card">
+                        <button onClick={handleDownloadReport} disabled={isGeneratingStatsPdf} className="w-full py-2.5 bg-primary text-white rounded-card font-bold text-sm hover:bg-primary-hover flex items-center justify-center disabled:opacity-50 transition-all shadow-card">
                             {isGeneratingStatsPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
                             {isGeneratingStatsPdf ? 'Génération...' : 'Télécharger le Rapport'}
                         </button>
@@ -2237,30 +2250,30 @@ const Activities: React.FC = () => {
                 <>
                     <div className="fixed inset-0 bg-black/20 z-modal transition-opacity" onClick={() => setShowLogPanel(false)} />
                     <div className="fixed top-0 right-0 h-full w-[420px] max-w-[90vw] bg-surface shadow-modal z-modal flex flex-col animate-in slide-in-from-right duration-300 border-l border-border">
-                        <div className="p-4 border-b border-border bg-gradient-to-r from-violet-50 to-indigo-50 flex-shrink-0">
+                        <div className="p-4 border-b border-border bg-secondary/5 flex-shrink-0">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center">
-                                    <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center mr-3">
-                                        <History className="w-5 h-5 text-violet-600" />
+                                    <div className="w-9 h-9 rounded-card bg-secondary/10 flex items-center justify-center mr-3">
+                                        <History className="w-5 h-5 text-secondary-text" />
                                     </div>
                                     <div>
                                         <h2 className="font-bold text-text-base text-lg">Historique</h2>
                                         <p className="text-xs text-text-muted">Modifications des activités</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setShowLogPanel(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">
+                                <button onClick={() => setShowLogPanel(false)} className="p-2 hover:bg-muted rounded-card transition-colors">
                                     <X className="w-5 h-5 text-text-muted" />
                                 </button>
                             </div>
-                            <div className="flex bg-surface/80 p-1 rounded-lg border border-border">
-                                <button onClick={() => setLogFilter('ALL')} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'ALL' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-text-muted hover:text-text-base'}`}>Toutes les semaines</button>
-                                <button onClick={() => setLogFilter('WEEK')} className={`flex-1 py-1.5 text-xs font-bold rounded transition-all ${logFilter === 'WEEK' ? 'bg-violet-100 text-violet-700 shadow-sm' : 'text-text-muted hover:text-text-base'}`}>Semaine actuelle</button>
+                            <div className="flex bg-surface/80 p-1 rounded-card border border-border">
+                                <button onClick={() => setLogFilter('ALL')} className={`flex-1 py-1.5 text-xs font-bold rounded-btn-sm transition-all ${logFilter === 'ALL' ? 'bg-secondary/10 text-secondary-text shadow-sm' : 'text-text-muted hover:text-text-base'}`}>Toutes les semaines</button>
+                                <button onClick={() => setLogFilter('WEEK')} className={`flex-1 py-1.5 text-xs font-bold rounded-btn-sm transition-all ${logFilter === 'WEEK' ? 'bg-secondary/10 text-secondary-text shadow-sm' : 'text-text-muted hover:text-text-base'}`}>Semaine actuelle</button>
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4">
                             {isLoadingLogs ? (
                                 <div className="flex flex-col items-center justify-center h-40 text-text-muted">
-                                    <Loader2 className="w-8 h-8 animate-spin mb-3 text-violet-400" />
+                                    <Loader2 className="w-8 h-8 animate-spin mb-3 text-secondary" />
                                     <span className="text-sm">Chargement...</span>
                                 </div>
                             ) : logEntries.length === 0 ? (
@@ -2288,15 +2301,15 @@ const Activities: React.FC = () => {
                                                     {entries.map(entry => {
                                                         let iconColor = 'bg-muted text-text-muted';
                                                         let actionLabel = entry.action;
-                                                        if (entry.action === 'MANUAL_ASSIGN') { iconColor = 'bg-blue-100 text-blue-600'; actionLabel = 'Assignation manuelle'; }
-                                                        else if (entry.action === 'AUTO_RECALCULATE') { iconColor = 'bg-cyan-100 text-cyan-600'; actionLabel = 'Recalcul auto'; }
-                                                        else if (entry.action === 'VALIDATE_WEEK') { iconColor = 'bg-green-100 text-green-600'; actionLabel = 'Validation semaine'; }
-                                                        else if (entry.action === 'UNVALIDATE_WEEK') { iconColor = 'bg-orange-100 text-orange-600'; actionLabel = 'Déverrouillage'; }
-                                                        else if (entry.action === 'CLEAR_CHOICES') { iconColor = 'bg-red-100 text-red-600'; actionLabel = 'Choix effacés'; }
-                                                        else if (entry.action === 'WEEKLY_ASSIGN') { iconColor = 'bg-indigo-100 text-indigo-600'; actionLabel = 'Assignation semaine'; }
-                                                        else if (entry.action === 'CREATE_ACTIVITY') { iconColor = 'bg-emerald-100 text-emerald-600'; actionLabel = 'Création activité'; }
-                                                        else if (entry.action === 'DELETE_ACTIVITY') { iconColor = 'bg-rose-100 text-rose-600'; actionLabel = 'Suppression activité'; }
-                                                        else if (entry.action === 'EDIT_ACTIVITY') { iconColor = 'bg-amber-100 text-amber-600'; actionLabel = 'Modification activité'; }
+                                                        if (entry.action === 'MANUAL_ASSIGN') { iconColor = 'bg-primary/10 text-primary-text'; actionLabel = 'Assignation manuelle'; }
+                                                        else if (entry.action === 'AUTO_RECALCULATE') { iconColor = 'bg-success/10 text-success-text'; actionLabel = 'Recalcul auto'; }
+                                                        else if (entry.action === 'VALIDATE_WEEK') { iconColor = 'bg-success/10 text-success-text'; actionLabel = 'Validation semaine'; }
+                                                        else if (entry.action === 'UNVALIDATE_WEEK') { iconColor = 'bg-warning/10 text-warning-text'; actionLabel = 'Déverrouillage'; }
+                                                        else if (entry.action === 'CLEAR_CHOICES') { iconColor = 'bg-danger/10 text-danger'; actionLabel = 'Choix effacés'; }
+                                                        else if (entry.action === 'WEEKLY_ASSIGN') { iconColor = 'bg-secondary/10 text-secondary-text'; actionLabel = 'Assignation semaine'; }
+                                                        else if (entry.action === 'CREATE_ACTIVITY') { iconColor = 'bg-success/10 text-success-text'; actionLabel = 'Création activité'; }
+                                                        else if (entry.action === 'DELETE_ACTIVITY') { iconColor = 'bg-danger/10 text-danger'; actionLabel = 'Suppression activité'; }
+                                                        else if (entry.action === 'EDIT_ACTIVITY') { iconColor = 'bg-warning/10 text-warning-text'; actionLabel = 'Modification activité'; }
                                                         const time = new Date(entry.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
                                                         return (
                                                             <div key={entry.id} className="relative pl-9 group">
@@ -2314,8 +2327,8 @@ const Activities: React.FC = () => {
                                                                         </div>
                                                                     )}
                                                                     <div className="mt-2 flex items-center text-[10px] text-text-muted border-t border-border pt-2">
-                                                                        <UserCircle className="w-3.5 h-3.5 mr-1 text-violet-400" />
-                                                                        <span className="font-medium text-violet-500">{entry.userName}</span>
+                                                                        <UserCircle className="w-3.5 h-3.5 mr-1 text-secondary" />
+                                                                        <span className="font-medium text-secondary-text">{entry.userName}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -2331,7 +2344,7 @@ const Activities: React.FC = () => {
                         <div className="p-3 border-t border-border bg-muted flex-shrink-0">
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] text-text-muted">{logEntries.length} modification{logEntries.length !== 1 ? 's' : ''}</span>
-                                <button onClick={loadLogs} className="text-[10px] text-violet-600 hover:text-violet-700 font-bold flex items-center">
+                                <button onClick={loadLogs} className="text-[10px] text-secondary-text hover:opacity-80 font-bold flex items-center">
                                     <History className="w-3 h-3 mr-1" />Actualiser
                                 </button>
                             </div>
