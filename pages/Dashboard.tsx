@@ -401,19 +401,19 @@ const Dashboard: React.FC = () => {
                         const isRcpUnconfirmed = s.type === SlotType.RCP && s.isUnconfirmed;
 
                         // Determine border color based on activity type
-                        let borderColor = '#e2e8f0';
+                        let borderColor = 'var(--color-border)';
                         if (s.type === SlotType.RCP) {
-                            borderColor = '#a855f7'; // purple
+                            borderColor = 'var(--color-secondary)'; // purple
                         } else if (s.type === SlotType.CONSULTATION) {
-                            borderColor = '#3b82f6'; // blue
+                            borderColor = 'var(--color-primary)'; // blue
                         } else if (s.type === SlotType.ACTIVITY) {
                             const subTypeLower = (s.subType || s.location || '').toLowerCase();
                             if (subTypeLower.includes('astreinte')) {
-                                borderColor = '#ef4444'; // red
+                                borderColor = 'var(--color-danger)'; // red
                             } else if (subTypeLower.includes('unity')) {
-                                borderColor = '#f97316'; // orange
+                                borderColor = 'var(--color-warning)'; // orange
                             } else if (subTypeLower.includes('workflow') || subTypeLower.includes('supervision')) {
-                                borderColor = '#10b981'; // emerald
+                                borderColor = 'var(--color-success)'; // emerald
                             }
                         }
 
@@ -454,7 +454,7 @@ const Dashboard: React.FC = () => {
                                         <>
                                             <div
                                                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mr-3 text-white flex-shrink-0"
-                                                style={{ backgroundColor: doc ? getDoctorHexColor(doc.color) : '#94a3b8' }}
+                                                style={{ backgroundColor: doc ? getDoctorHexColor(doc.color) : 'var(--color-muted-fg)' }}
                                             >
                                                 {doc ? doc.name.substring(0, 2) : '?'}
                                             </div>
@@ -784,7 +784,7 @@ const Dashboard: React.FC = () => {
                         <CardHeader>
                             <CardTitle>
                                 <span className="flex items-center">
-                                    <AlertTriangle className="w-4 h-4 mr-2 text-red-500" />
+                                    <AlertTriangle className="w-4 h-4 mr-2 text-danger" />
                                     Alertes {viewMode === 'DAY' ? 'du jour' : 'de la semaine'}
                                 </span>
                             </CardTitle>
@@ -849,7 +849,7 @@ const Dashboard: React.FC = () => {
                             <CardHeader>
                                 <CardTitle>
                                     <span className="flex items-center">
-                                        <CalendarX2 className="w-4 h-4 mr-2 text-orange-500" />
+                                        <CalendarX2 className="w-4 h-4 mr-2 text-warning" />
                                         RCP sur Jour Férié
                                     </span>
                                 </CardTitle>
@@ -978,7 +978,7 @@ const Dashboard: React.FC = () => {
                                     const doc = doctors.find(d => d.id === abs.doctorId);
                                     return (
                                         <div key={abs.id} className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
-                                            <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                            <span className="w-2 h-2 rounded-full bg-warning mt-1.5 flex-shrink-0" aria-hidden="true" />
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-medium text-text-base leading-snug">{doc?.name}</p>
                                                 <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
