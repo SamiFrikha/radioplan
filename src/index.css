@@ -3,74 +3,93 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-accent-green: #059669;
-  --color-accent-red: #DC2626;
-  --color-accent-amber: #D97706;
-  --color-bg: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-border: #E4ECFC;
-  --color-muted: #F1F5FD;
-  --color-text: #0F172A;
-  --color-text-muted: #64748B;
-  --sidebar-width: 240px;
-  --sidebar-collapsed-width: 64px;
-  --header-height: 56px;
+  --color-primary:    #4F46E5;
+  --color-secondary:  #7C3AED;
+  --color-success:    #10B981;
+  --color-warning:    #F59E0B;
+  --color-danger:     #DC2626;
+  --color-bg:         #F8FAFC;
+  --color-surface:    #FFFFFF;
+  --color-border:     #E2E8F0;
+  --color-text:       #0F172A;
+  --color-muted-fg:   #64748B;
+  --header-height:    56px;
   --bottom-nav-height: 64px;
-  --grid-gap: 8px;
-  --card-padding: 16px;
-  --card-padding-dense: 12px;
-  --table-row-height: 36px;
+  --gradient-primary: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Noto Sans', sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  font-size: 14px;
-  overflow-x: hidden;
-}
-
-/* Focus rings — never remove */
-*:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+@layer base {
+  body {
+    @apply bg-app-bg text-text-base font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  *:focus-visible {
+    outline: 2px solid #4F46E5;
+    outline-offset: 2px;
   }
 }
 
-/* Shimmer skeleton animation */
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .press-scale {
+    transition: transform 150ms ease-out;
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
 }
 
+/* Skeleton shimmer — Indigo tint */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
 .skeleton {
-  background: linear-gradient(90deg, var(--color-muted) 25%, var(--color-border) 50%, var(--color-muted) 75%);
+  background: linear-gradient(90deg, #EEF2FF 25%, #E0E7FF 50%, #EEF2FF 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
-  border-radius: 4px;
+}
+
+/* Scrollbar — Indigo branded */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #F8FAFC; }
+::-webkit-scrollbar-thumb { background: #C7D2FE; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #4F46E5; }
+
+/* Floating label input */
+.float-label-wrapper { @apply relative; }
+.float-label-input {
+  @apply w-full h-14 px-4 pt-5 pb-1 rounded-input border border-border bg-surface
+         text-text-base text-sm focus:outline-none focus:border-primary
+         transition-colors duration-150;
+}
+.float-label-text {
+  @apply absolute left-4 text-text-muted pointer-events-none transition-all duration-150;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+}
+.float-label-input:focus ~ .float-label-text,
+.float-label-input:not(:placeholder-shown) ~ .float-label-text {
+  top: 0.5rem;
+  transform: translateY(0);
+  font-size: 0.65rem;
+  @apply text-primary font-semibold;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-    background: var(--color-muted);
-  }
+  .skeleton { animation: none; background: #EEF2FF; }
+  .press-scale:active { transform: none; }
+}
+
+@media print {
+  .print\:hidden { display: none !important; }
 }
