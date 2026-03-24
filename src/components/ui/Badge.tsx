@@ -1,24 +1,38 @@
 import React from 'react';
 
-type BadgeVariant = 'green' | 'red' | 'amber' | 'blue' | 'gray';
-
-const variantClasses: Record<BadgeVariant, string> = {
-  green: 'bg-[#F0FDF4] text-accent-green',
-  red: 'bg-[#FEF2F2] text-accent-red',
-  amber: 'bg-[#FFFBEB] text-accent-amber',
-  blue: 'bg-[#EFF6FF] text-primary',
-  gray: 'bg-[#F1F5F9] text-[#475569]',
-};
+type BadgeVariant = 'green' | 'red' | 'amber' | 'blue' | 'violet' | 'gray';
 
 interface BadgeProps {
-  variant: BadgeVariant;
+  variant?: BadgeVariant;
   children: React.ReactNode;
+  dot?: boolean;
   className?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ variant, children, className = '' }) => (
-  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-badge text-[11px] font-medium font-body ${variantClasses[variant]} ${className}`}>
-    <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
-    {children}
-  </span>
-);
+const variants: Record<BadgeVariant, string> = {
+  green:  'bg-success/10 text-emerald-700 ring-1 ring-success/20',
+  red:    'bg-danger/10  text-red-700     ring-1 ring-danger/20',
+  amber:  'bg-warning/10 text-amber-700   ring-1 ring-warning/20',
+  blue:   'bg-primary/10 text-indigo-700  ring-1 ring-primary/20',
+  violet: 'bg-secondary/10 text-violet-700 ring-1 ring-secondary/20',
+  gray:   'bg-border     text-text-muted  ring-1 ring-border',
+};
+
+const dots: Record<BadgeVariant, string> = {
+  green: 'bg-success', red: 'bg-danger', amber: 'bg-warning',
+  blue: 'bg-primary', violet: 'bg-secondary', gray: 'bg-text-muted',
+};
+
+export function Badge({ variant = 'gray', children, dot = false, className = '' }: BadgeProps) {
+  return (
+    <span className={[
+      'inline-flex items-center gap-1.5 px-2.5 py-0.5',
+      'text-xs font-semibold rounded-badge',
+      variants[variant],
+      className,
+    ].join(' ')}>
+      {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dots[variant]}`} aria-hidden="true" />}
+      {children}
+    </span>
+  );
+}

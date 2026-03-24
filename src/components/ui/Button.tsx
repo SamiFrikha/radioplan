@@ -1,47 +1,53 @@
 import React from 'react';
-
-type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
-type ButtonSize = 'sm' | 'md';
-
-const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-white hover:bg-primary-hover',
-  secondary: 'bg-muted text-primary hover:bg-border',
-  destructive: 'bg-accent-red text-white hover:bg-[#B91C1C]',
-  ghost: 'bg-transparent text-text-muted hover:bg-muted',
-};
-
-const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-xs min-h-[44px] md:min-h-[32px]',
-  md: 'h-9 px-4 text-sm min-h-[44px] md:min-h-[36px]',
-};
+import { Loader2 } from 'lucide-react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   children: React.ReactNode;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+const variants: Record<string, string> = {
+  primary:   'bg-gradient-primary text-white shadow-card hover:shadow-card-hover',
+  secondary: 'bg-surface text-primary border border-primary/30 hover:bg-primary/5',
+  ghost:     'bg-transparent text-text-muted hover:bg-muted hover:text-text-base',
+  danger:    'bg-danger text-white hover:bg-red-700',
+};
+
+const sizes: Record<string, string> = {
+  sm: 'h-8  px-4  text-xs  font-semibold rounded-btn-sm',
+  md: 'h-11 px-6  text-sm  font-semibold rounded-btn',
+  lg: 'h-14 px-8  text-base font-semibold rounded-btn',
+};
+
+export function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
-  children,
-  className = '',
   disabled,
+  className = '',
+  children,
   ...props
-}) => (
-  <button
-    className={`inline-flex items-center justify-center gap-1.5 rounded-btn font-heading font-medium transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-    disabled={disabled || loading}
-    aria-busy={loading}
-    {...props}
-  >
-    {loading ? (
-      <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-      </svg>
-    ) : children}
-  </button>
-);
+}: ButtonProps) {
+  const isDisabled = disabled || loading;
+  return (
+    <button
+      {...props}
+      disabled={isDisabled}
+      aria-busy={loading}
+      className={[
+        'inline-flex items-center justify-center gap-2 cursor-pointer',
+        'transition-all duration-150 press-scale',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+        variants[variant],
+        sizes[size],
+        className,
+      ].join(' ')}
+    >
+      {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}
+      {children}
+    </button>
+  );
+}
