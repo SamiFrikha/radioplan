@@ -666,9 +666,9 @@ const Planning: React.FC = () => {
                 >
                     <table className="w-full border-collapse" style={{ minWidth: '600px' }}>
                         <thead>
-                            <tr className="sticky top-0 z-[11] bg-app-bg">
+                            <tr className="sticky top-0 z-table-header bg-[#0F172A]">
                                 {/* Sticky top-left corner cell */}
-                                <th className="sticky left-0 z-[12] bg-app-bg p-1 md:p-3 border-b border-r border-border min-w-[80px] max-w-[100px] text-left text-[9px] md:text-xs font-bold text-text-muted uppercase">
+                                <th className="sticky left-0 z-[12] bg-[#0F172A] px-3 py-3 border-r border-white/5 border-b border-white/5 min-w-[80px] max-w-[100px] text-left text-[9px] md:text-xs font-bold text-text-muted uppercase">
                                     <span className="hidden md:inline">{viewMode === 'ROOM' ? 'Lieu / Créneau' : 'Médecin'}</span>
                                     <span className="md:hidden">{viewMode === 'ROOM' ? 'Lieu' : 'Dr'}</span>
                                 </th>
@@ -677,11 +677,16 @@ const Planning: React.FC = () => {
                                     const holiday = isFrenchHoliday(date);
                                     const [dYear, dMonth, dDay] = date.split('-');
                                     const displayDate = `${dDay}/${dMonth}`;
+                                    const todayStr = new Date().toISOString().split('T')[0];
+                                    const isToday = date === todayStr;
 
                                     return (
-                                        <th key={day} className={`p-1 md:p-3 border-b border-r border-border text-text-base font-bold uppercase text-[10px] md:text-sm min-w-[72px] ${holiday ? 'bg-pink-50' : 'bg-muted'}`}>
+                                        <th key={day} className={isToday
+                                            ? "text-[11px] font-bold text-white uppercase tracking-wider px-3 py-3 min-w-[80px] text-center bg-gradient-primary border-r border-white/10"
+                                            : "text-[11px] font-semibold text-white/60 uppercase tracking-wider px-3 py-3 min-w-[80px] text-center border-r border-white/5"
+                                        }>
                                             {day.substring(0, 3)}
-                                            <div className="text-[8px] md:text-[10px] text-text-muted font-normal mt-0.5 md:mt-1 flex justify-center items-center">
+                                            <div className="text-[9px] font-normal mt-0.5 flex justify-center items-center opacity-80">
                                                 {displayDate}
                                             </div>
                                         </th>
@@ -694,9 +699,9 @@ const Planning: React.FC = () => {
                                 // ROOM VIEW
                                 displayRows.map((loc, index) => (
                                     <React.Fragment key={loc}>
-                                        <tr>
-                                            <td rowSpan={2} className={`sticky left-0 z-sticky p-1 md:p-3 border-r border-b border-border text-[9px] md:text-xs text-center font-bold shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]
-                                                ${postes.includes(loc) ? 'bg-muted text-text-base' : 'bg-orange-50 text-orange-800'}
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
+                                            <td rowSpan={2} className={`sticky left-0 z-sticky p-1 md:p-3 border-r border-b border-border text-[9px] md:text-xs text-center font-bold shadow-card
+                                                ${postes.includes(loc) ? 'bg-surface text-text-base' : 'bg-orange-50 text-orange-800'}
                                             `}>
                                                 <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
                                             </td>
@@ -709,7 +714,7 @@ const Planning: React.FC = () => {
                                                 </td>
                                             ))}
                                         </tr>
-                                        <tr>
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
                                                 <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0`}>
                                                     <div className="absolute top-0 left-0 right-0 bg-indigo-50/80 text-[9px] px-1 text-indigo-700 uppercase font-bold tracking-wider z-0 border-b border-indigo-100">A.Midi</div>
@@ -725,8 +730,8 @@ const Planning: React.FC = () => {
                                 // DOCTOR VIEW
                                 doctors.map(doc => (
                                     <React.Fragment key={doc.id}>
-                                        <tr>
-                                            <td rowSpan={2} className="sticky left-0 z-sticky p-1 md:p-3 border-r border-b border-border bg-muted text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
+                                            <td rowSpan={2} className="sticky left-0 z-sticky px-3 py-3 border-r border-b border-border bg-surface text-center shadow-card font-semibold text-text-base text-sm min-w-[80px]">
                                                 <div
                                                     className="w-6 h-6 md:w-8 md:h-8 rounded-full mx-auto flex items-center justify-center text-[8px] md:text-xs font-bold text-white"
                                                     style={{ backgroundColor: getDoctorHexColor(doc.color) }}
@@ -743,7 +748,7 @@ const Planning: React.FC = () => {
                                                 </td>
                                             ))}
                                         </tr>
-                                        <tr>
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
                                                 <td key={`${day}-apres-midi`} className="border-r border-b-2 border-border relative h-11 align-top p-0">
                                                     <div className="h-full bg-muted/30">
