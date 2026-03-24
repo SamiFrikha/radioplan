@@ -1554,8 +1554,7 @@ const Activities: React.FC = () => {
                                 icon={ActivityIcon}
                                 title="Aucune activité"
                                 description="Ajoutez des activités pour les voir ici."
-                                actionLabel={isAdmin ? "Ajouter" : undefined}
-                                onAction={isAdmin ? () => setShowSettings(true) : undefined}
+                                action={isAdmin ? { label: "Ajouter", onClick: () => setShowSettings(true) } : undefined}
                             />
                         ) : (
                             activityDefinitions.map(act => (

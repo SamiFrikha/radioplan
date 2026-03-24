@@ -6,35 +6,45 @@ interface CardProps {
   hover?: boolean;
   onClick?: () => void;
 }
+interface CardHeaderProps { children: React.ReactNode; className?: string; }
+interface CardTitleProps  { children: React.ReactNode; as?: 'h2' | 'h3' | 'h4'; className?: string; }
+interface CardBodyProps   { children: React.ReactNode; className?: string; }
 
-export const Card: React.FC<CardProps> = ({ children, className = '', hover = false, onClick }) => (
-  <div
-    className={`bg-surface border border-border rounded-card shadow-card ${hover ? 'transition-shadow duration-150 hover:shadow-card-hover cursor-pointer' : ''} ${className}`}
-    role={hover ? 'button' : undefined}
-    tabIndex={hover ? 0 : undefined}
-    onClick={onClick}
-    onKeyDown={hover && onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
-  >
-    {children}
-  </div>
-);
-
-interface CardHeaderProps {
-  children: React.ReactNode;
-  className?: string;
+export function Card({ children, className = '', hover = false, onClick }: CardProps) {
+  const interactive = hover || !!onClick;
+  return (
+    <div
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick?.(); } : undefined}
+      className={[
+        'bg-surface rounded-card shadow-card border border-border/40',
+        interactive ? 'cursor-pointer hover:shadow-card-hover press-scale transition-shadow' : '',
+        className,
+      ].join(' ')}
+    >
+      {children}
+    </div>
+  );
 }
 
-export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => (
-  <div className={`px-4 py-3 border-b border-border flex items-center justify-between ${className}`}>
-    {children}
-  </div>
-);
+export function CardHeader({ children, className = '' }: CardHeaderProps) {
+  return (
+    <div className={`px-5 pt-5 pb-0 flex items-center justify-between ${className}`}>
+      {children}
+    </div>
+  );
+}
 
-export const CardTitle: React.FC<{ children: React.ReactNode; level?: 'h2' | 'h3' | 'h4' }> = ({ children, level = 'h3' }) => {
-  const Tag = level;
-  return <Tag className="font-heading font-semibold text-sm text-text-base">{children}</Tag>;
-};
+export function CardTitle({ children, as: Tag = 'h3', className = '' }: CardTitleProps) {
+  return (
+    <Tag className={`text-sm font-bold text-text-base tracking-tight ${className}`}>
+      {children}
+    </Tag>
+  );
+}
 
-export const CardBody: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
-  <div className={className}>{children}</div>
-);
+export function CardBody({ children, className = '' }: CardBodyProps) {
+  return <div className={`px-5 py-4 ${className}`}>{children}</div>;
+}
