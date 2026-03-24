@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AppContext } from '../../App';
 import { unavailabilityService } from '../../services/unavailabilityService';
 import { Users, UserPlus, Edit2, Trash2, X, Save, Key, UserCheck, Mail, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, Stethoscope, Link2, Unlink, Tag, Plus, Ban, Calendar } from 'lucide-react';
+import { Card, CardBody, EmptyState } from '../../src/components/ui';
 
 interface UserData {
     id: string;
@@ -832,8 +833,8 @@ const TeamManagement: React.FC = () => {
     if (!hasPermission('manage_users')) {
         return (
             <div className="p-6 text-center">
-                <div className="text-red-500 text-lg">🔒 Accès refusé</div>
-                <p className="text-slate-500 mt-2">Vous n'avez pas la permission de gérer les utilisateurs.</p>
+                <div className="text-red-500 text-lg">Accès refusé</div>
+                <p className="text-text-muted mt-2">Vous n'avez pas la permission de gérer les utilisateurs.</p>
             </div>
         );
     }
@@ -841,7 +842,7 @@ const TeamManagement: React.FC = () => {
     if (loading) {
         return (
             <div className="p-6 flex justify-center items-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
             </div>
         );
     }
@@ -851,10 +852,10 @@ const TeamManagement: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
                 <div>
-                    <h1 className="text-lg md:text-2xl font-bold flex items-center gap-1.5 md:gap-2 text-slate-800">
-                        <Users className="w-5 h-5 md:w-7 md:h-7 text-blue-600" /> Gestion d'Équipe
+                    <h1 className="font-heading font-bold text-xl text-text-base flex items-center gap-1.5 md:gap-2">
+                        <Users className="w-5 h-5 md:w-7 md:h-7 text-primary" /> Gestion d'Équipe
                     </h1>
-                    <p className="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">
+                    <p className="text-text-muted text-xs md:text-sm mt-0.5 md:mt-1">
                         {users.length} utilisateur{users.length > 1 ? 's' : ''} • {allDoctors.length} profil{allDoctors.length > 1 ? 's' : ''} médecin
                     </p>
                 </div>
@@ -862,13 +863,13 @@ const TeamManagement: React.FC = () => {
                     <button
                         onClick={handleRefresh}
                         disabled={isRefreshing}
-                        className="bg-slate-100 text-slate-700 px-2 md:px-3 py-1.5 md:py-2 rounded-lg flex items-center gap-1 hover:bg-slate-200 transition-colors text-xs md:text-sm"
+                        className="bg-muted text-text-base px-2 md:px-3 py-1.5 md:py-2 rounded-btn flex items-center gap-1 hover:opacity-80 transition-colors text-xs md:text-sm border border-border"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </button>
                     <button
                         onClick={() => { resetForm(); setIsCreateModalOpen(true); }}
-                        className="bg-blue-600 text-white px-2 md:px-4 py-1.5 md:py-2 rounded-lg flex items-center gap-1 md:gap-2 hover:bg-blue-700 shadow-md transition-colors text-xs md:text-sm"
+                        className="bg-primary text-white px-2 md:px-4 py-1.5 md:py-2 rounded-btn flex items-center gap-1 md:gap-2 hover:opacity-90 shadow-md transition-colors text-xs md:text-sm"
                     >
                         <UserPlus className="w-3.5 h-3.5 md:w-4 md:h-4" />
                         <span className="hidden sm:inline">Nouvel Utilisateur</span>
@@ -881,9 +882,9 @@ const TeamManagement: React.FC = () => {
             <div className="flex flex-wrap gap-1.5 md:gap-2 mb-4 md:mb-6">
                 <button
                     onClick={() => setActiveView('users')}
-                    className={`px-2 md:px-4 py-1.5 md:py-2 rounded-lg font-medium flex items-center gap-1 md:gap-2 transition-colors text-xs md:text-sm ${activeView === 'users'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    className={`px-2 md:px-4 py-1.5 md:py-2 rounded-btn font-medium flex items-center gap-1 md:gap-2 transition-colors text-xs md:text-sm ${activeView === 'users'
+                        ? 'bg-primary text-white'
+                        : 'bg-muted text-text-base hover:opacity-80 border border-border'
                         }`}
                 >
                     <Users className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -892,9 +893,9 @@ const TeamManagement: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveView('doctors')}
-                    className={`px-2 md:px-4 py-1.5 md:py-2 rounded-lg font-medium flex items-center gap-1 md:gap-2 transition-colors text-xs md:text-sm ${activeView === 'doctors'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    className={`px-2 md:px-4 py-1.5 md:py-2 rounded-btn font-medium flex items-center gap-1 md:gap-2 transition-colors text-xs md:text-sm ${activeView === 'doctors'
+                        ? 'bg-primary text-white'
+                        : 'bg-muted text-text-base hover:opacity-80 border border-border'
                         }`}
                 >
                     <Stethoscope className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -903,9 +904,9 @@ const TeamManagement: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveView('specialties')}
-                    className={`px-2 md:px-4 py-1.5 md:py-2 rounded-lg font-medium flex items-center gap-1 md:gap-2 transition-colors text-xs md:text-sm ${activeView === 'specialties'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    className={`px-2 md:px-4 py-1.5 md:py-2 rounded-btn font-medium flex items-center gap-1 md:gap-2 transition-colors text-xs md:text-sm ${activeView === 'specialties'
+                        ? 'bg-primary text-white'
+                        : 'bg-muted text-text-base hover:opacity-80 border border-border'
                         }`}
                 >
                     <Tag className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -916,28 +917,29 @@ const TeamManagement: React.FC = () => {
 
             {/* Users View */}
             {activeView === 'users' && (
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
+                <Card>
+                    <CardBody>
                     {/* Mobile: card layout */}
-                    <div className="md:hidden divide-y">
+                    <div className="md:hidden divide-y divide-border">
                         {users.length === 0 ? (
-                            <div className="p-6 text-center text-slate-400">Aucun utilisateur trouvé.</div>
+                            <EmptyState icon={Users} title="Aucun utilisateur" description="Aucun utilisateur trouvé." />
                         ) : (
                             users.map(user => (
-                                <div key={user.id} className="p-3 hover:bg-slate-50">
+                                <div key={user.id} className="p-3 hover:bg-muted">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <Mail className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                                            <span className="font-medium text-slate-800 text-xs break-all">{user.email}</span>
+                                            <Mail className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
+                                            <span className="font-medium text-text-base text-xs break-all">{user.email}</span>
                                         </div>
                                         <div className="flex gap-1 flex-shrink-0 ml-2">
                                             <button
-                                                className="text-slate-400 hover:text-blue-600 p-1.5 rounded hover:bg-blue-50"
+                                                className="text-text-muted hover:text-primary p-1.5 rounded hover:bg-muted"
                                                 onClick={() => openEditModal(user)}
                                             >
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </button>
                                             <button
-                                                className={`p-1.5 rounded ${deleteConfirmId === user.id ? 'bg-red-600 text-white' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
+                                                className={`p-1.5 rounded ${deleteConfirmId === user.id ? 'bg-red-600 text-white' : 'text-text-muted hover:text-red-600 hover:bg-red-50'}`}
                                                 onClick={() => handleDeleteUser(user)}
                                             >
                                                 {deleteConfirmId === user.id ? <AlertTriangle className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -954,10 +956,10 @@ const TeamManagement: React.FC = () => {
                                                     >
                                                         {user.doctors.name.substring(0, 2)}
                                                     </div>
-                                                    <span className="text-xs text-slate-700">{user.doctors.name}</span>
+                                                    <span className="text-xs text-text-base">{user.doctors.name}</span>
                                                 </>
                                             ) : (
-                                                <span className="text-xs text-slate-400 italic flex items-center gap-1">
+                                                <span className="text-xs text-text-muted italic flex items-center gap-1">
                                                     <Unlink className="w-3 h-3" /> Non lié
                                                 </span>
                                             )}
@@ -966,7 +968,7 @@ const TeamManagement: React.FC = () => {
                                             ? 'bg-purple-100 text-purple-700'
                                             : user.app_roles?.name === 'Docteur' || user.app_roles?.name === 'Médecin'
                                                 ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-slate-100 text-slate-700'
+                                                : 'bg-muted text-text-base'
                                             }`}>
                                             {user.app_roles?.name || 'Sans rôle'}
                                         </span>
@@ -978,31 +980,31 @@ const TeamManagement: React.FC = () => {
                     {/* Desktop: table layout */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="min-w-full">
-                            <thead className="bg-slate-50 border-b">
+                            <thead>
                                 <tr>
-                                    <th className="p-4 text-left text-sm font-semibold text-slate-600">Email</th>
-                                    <th className="p-4 text-left text-sm font-semibold text-slate-600">Profil Médecin</th>
-                                    <th className="p-4 text-left text-sm font-semibold text-slate-600">Rôle</th>
-                                    <th className="p-4 text-right text-sm font-semibold text-slate-600">Actions</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Email</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Profil Médecin</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Rôle</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-right border-b border-border">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody>
                                 {users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="p-8 text-center text-slate-400">
-                                            Aucun utilisateur trouvé.
+                                        <td colSpan={4}>
+                                            <EmptyState icon={Users} title="Aucun utilisateur" description="Aucun utilisateur trouvé." />
                                         </td>
                                     </tr>
                                 ) : (
                                     users.map(user => (
-                                        <tr key={user.id} className="hover:bg-slate-50">
-                                            <td className="p-4">
+                                        <tr key={user.id} className="hover:bg-muted h-11 border-b border-border">
+                                            <td className="px-3 py-2">
                                                 <div className="flex items-center gap-3">
-                                                    <Mail className="w-4 h-4 text-slate-400" />
-                                                    <span className="font-medium text-slate-800">{user.email}</span>
+                                                    <Mail className="w-4 h-4 text-text-muted" />
+                                                    <span className="font-medium text-text-base">{user.email}</span>
                                                 </div>
                                             </td>
-                                            <td className="p-4">
+                                            <td className="px-3 py-2">
                                                 {user.doctors ? (
                                                     <div className="flex items-center gap-2">
                                                         <div
@@ -1011,28 +1013,28 @@ const TeamManagement: React.FC = () => {
                                                         >
                                                             {user.doctors.name.substring(0, 2)}
                                                         </div>
-                                                        <span className="font-medium text-slate-700">{user.doctors.name}</span>
+                                                        <span className="font-medium text-text-base">{user.doctors.name}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-400 italic flex items-center gap-1">
+                                                    <span className="text-text-muted italic flex items-center gap-1">
                                                         <Unlink className="w-3 h-3" /> Non lié
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="p-4">
+                                            <td className="px-3 py-2">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.app_roles?.name === 'Admin'
                                                     ? 'bg-purple-100 text-purple-700 border border-purple-200'
                                                     : user.app_roles?.name === 'Docteur' || user.app_roles?.name === 'Médecin'
                                                         ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                                        : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                                        : 'bg-muted text-text-base border border-border'
                                                     }`}>
                                                     {user.app_roles?.name || 'Sans rôle'}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-right">
+                                            <td className="px-3 py-2 text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <button
-                                                        className="text-slate-400 hover:text-blue-600 p-2 rounded hover:bg-blue-50 transition-colors"
+                                                        className="text-text-muted hover:text-primary p-2 rounded hover:bg-muted transition-colors"
                                                         onClick={() => openEditModal(user)}
                                                         title="Modifier"
                                                     >
@@ -1041,7 +1043,7 @@ const TeamManagement: React.FC = () => {
                                                     <button
                                                         className={`p-2 rounded transition-colors ${deleteConfirmId === user.id
                                                             ? 'bg-red-600 text-white'
-                                                            : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                            : 'text-text-muted hover:text-red-600 hover:bg-red-50'
                                                             }`}
                                                         onClick={() => handleDeleteUser(user)}
                                                         title={deleteConfirmId === user.id ? "Confirmer" : "Supprimer"}
@@ -1060,19 +1062,21 @@ const TeamManagement: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
-                </div>
+                    </CardBody>
+                </Card>
             )}
 
             {/* Doctors View */}
             {activeView === 'doctors' && (
-                <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
+                <Card>
+                    <CardBody>
                     {/* Mobile: card layout */}
-                    <div className="md:hidden divide-y">
+                    <div className="md:hidden divide-y divide-border">
                         {allDoctors.length === 0 ? (
-                            <div className="p-6 text-center text-slate-400">Aucun profil médecin trouvé.</div>
+                            <EmptyState icon={Stethoscope} title="Aucun profil médecin" description="Aucun profil médecin trouvé." />
                         ) : (
                             allDoctors.map(doctor => (
-                                <div key={doctor.id} className="p-3 hover:bg-slate-50">
+                                <div key={doctor.id} className="p-3 hover:bg-muted">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2 min-w-0 flex-1">
                                             <div
@@ -1082,8 +1086,8 @@ const TeamManagement: React.FC = () => {
                                                 {doctor.name.substring(0, 2)}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="font-medium text-slate-800 text-xs">{doctor.name}</div>
-                                                <div className="text-[10px] text-slate-400">
+                                                <div className="font-medium text-text-base text-xs">{doctor.name}</div>
+                                                <div className="text-[10px] text-text-muted">
                                                     {doctor.specialty && doctor.specialty.length > 0
                                                         ? doctor.specialty.join(', ')
                                                         : <span className="italic">Pas de spécialité</span>
@@ -1093,13 +1097,13 @@ const TeamManagement: React.FC = () => {
                                         </div>
                                         <div className="flex gap-1 flex-shrink-0 ml-2">
                                             <button
-                                                className="text-slate-400 hover:text-blue-600 p-1.5 rounded hover:bg-blue-50"
+                                                className="text-text-muted hover:text-primary p-1.5 rounded hover:bg-muted"
                                                 onClick={() => openEditDoctorModal(doctor)}
                                             >
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </button>
                                             <button
-                                                className={`p-1.5 rounded ${deleteDoctorConfirmId === doctor.id ? 'bg-red-600 text-white' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
+                                                className={`p-1.5 rounded ${deleteDoctorConfirmId === doctor.id ? 'bg-red-600 text-white' : 'text-text-muted hover:text-red-600 hover:bg-red-50'}`}
                                                 onClick={() => handleDeleteDoctor(doctor)}
                                             >
                                                 {deleteDoctorConfirmId === doctor.id ? <AlertTriangle className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -1111,10 +1115,10 @@ const TeamManagement: React.FC = () => {
                                             {doctor.linkedUser ? (
                                                 <>
                                                     <Link2 className="w-3 h-3 text-green-500 flex-shrink-0" />
-                                                    <span className="text-[10px] text-slate-600 break-all">{doctor.linkedUser.email}</span>
+                                                    <span className="text-[10px] text-text-base break-all">{doctor.linkedUser.email}</span>
                                                 </>
                                             ) : (
-                                                <span className="text-[10px] text-slate-400 italic flex items-center gap-1">
+                                                <span className="text-[10px] text-text-muted italic flex items-center gap-1">
                                                     <Unlink className="w-3 h-3" /> Aucun utilisateur
                                                 </span>
                                             )}
@@ -1133,25 +1137,25 @@ const TeamManagement: React.FC = () => {
                     {/* Desktop: table layout */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="min-w-full">
-                            <thead className="bg-slate-50 border-b">
+                            <thead>
                                 <tr>
-                                    <th className="p-4 text-left text-sm font-semibold text-slate-600">Profil Médecin</th>
-                                    <th className="p-4 text-left text-sm font-semibold text-slate-600">Utilisateur Lié</th>
-                                    <th className="p-4 text-left text-sm font-semibold text-slate-600">Statut</th>
-                                    <th className="p-4 text-right text-sm font-semibold text-slate-600">Actions</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Profil Médecin</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Utilisateur Lié</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Statut</th>
+                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-right border-b border-border">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y">
+                            <tbody>
                                 {allDoctors.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="p-8 text-center text-slate-400">
-                                            Aucun profil médecin trouvé.
+                                        <td colSpan={4}>
+                                            <EmptyState icon={Stethoscope} title="Aucun profil médecin" description="Aucun profil médecin trouvé." />
                                         </td>
                                     </tr>
                                 ) : (
                                     allDoctors.map(doctor => (
-                                        <tr key={doctor.id} className="hover:bg-slate-50">
-                                            <td className="p-4">
+                                        <tr key={doctor.id} className="hover:bg-muted h-11 border-b border-border">
+                                            <td className="px-3 py-2">
                                                 <div className="flex items-center gap-3">
                                                     <div
                                                         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow"
@@ -1160,8 +1164,8 @@ const TeamManagement: React.FC = () => {
                                                         {doctor.name.substring(0, 2)}
                                                     </div>
                                                     <div>
-                                                        <div className="font-medium text-slate-800">{doctor.name}</div>
-                                                        <div className="text-xs text-slate-400">
+                                                        <div className="font-medium text-text-base">{doctor.name}</div>
+                                                        <div className="text-xs text-text-muted">
                                                             {doctor.specialty && doctor.specialty.length > 0
                                                                 ? doctor.specialty.join(', ')
                                                                 : <span className="italic">Pas de spécialité</span>
@@ -1170,19 +1174,19 @@ const TeamManagement: React.FC = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="p-4">
+                                            <td className="px-3 py-2">
                                                 {doctor.linkedUser ? (
                                                     <div className="flex items-center gap-2">
                                                         <Link2 className="w-4 h-4 text-green-500" />
-                                                        <span className="text-slate-700">{doctor.linkedUser.email}</span>
+                                                        <span className="text-text-base">{doctor.linkedUser.email}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-400 italic flex items-center gap-1">
+                                                    <span className="text-text-muted italic flex items-center gap-1">
                                                         <Unlink className="w-4 h-4" /> Aucun utilisateur
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="p-4">
+                                            <td className="px-3 py-2">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${doctor.linkedUser
                                                     ? 'bg-green-100 text-green-700 border border-green-200'
                                                     : 'bg-orange-100 text-orange-700 border border-orange-200'
@@ -1190,10 +1194,10 @@ const TeamManagement: React.FC = () => {
                                                     {doctor.linkedUser ? 'Lié' : 'Orphelin'}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-right">
+                                            <td className="px-3 py-2 text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <button
-                                                        className="text-slate-400 hover:text-blue-600 p-2 rounded hover:bg-blue-50 transition-colors"
+                                                        className="text-text-muted hover:text-primary p-2 rounded hover:bg-muted transition-colors"
                                                         onClick={() => openEditDoctorModal(doctor)}
                                                         title="Modifier le profil"
                                                     >
@@ -1202,7 +1206,7 @@ const TeamManagement: React.FC = () => {
                                                     <button
                                                         className={`p-2 rounded transition-colors ${deleteDoctorConfirmId === doctor.id
                                                             ? 'bg-red-600 text-white'
-                                                            : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                            : 'text-text-muted hover:text-red-600 hover:bg-red-50'
                                                             }`}
                                                         onClick={() => handleDeleteDoctor(doctor)}
                                                         title={deleteDoctorConfirmId === doctor.id ? "Confirmer la suppression" : "Supprimer le profil"}
@@ -1221,43 +1225,44 @@ const TeamManagement: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
-                </div>
+                    </CardBody>
+                </Card>
             )}
 
             {/* Specialties View */}
             {activeView === 'specialties' && (
                 <div className="space-y-6">
                     {/* Create new specialty */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                        <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
-                            <Plus className="w-5 h-5 text-blue-600" /> Créer une Spécialité
+                    <Card className="p-6">
+                        <h3 className="font-heading font-bold text-sm text-text-base mb-4 flex items-center gap-2">
+                            <Plus className="w-5 h-5 text-primary" /> Créer une Spécialité
                         </h3>
                         <div className="flex gap-4 items-end">
                             <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Nom</label>
+                                <label className="block text-sm font-medium text-text-base mb-1">Nom</label>
                                 <input
                                     type="text"
                                     value={newSpecialtyName}
                                     onChange={(e) => setNewSpecialtyName(e.target.value)}
-                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                     placeholder="Ex: Radiologie, Scanner, IRM..."
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Couleur</label>
+                                <label className="block text-sm font-medium text-text-base mb-1">Couleur</label>
                                 <div className="flex items-center gap-2">
                                     <input
                                         type="color"
                                         value={newSpecialtyColor}
                                         onChange={(e) => setNewSpecialtyColor(e.target.value)}
-                                        className="w-10 h-10 rounded cursor-pointer border"
+                                        className="w-10 h-10 rounded cursor-pointer border border-border"
                                     />
                                 </div>
                             </div>
                             <button
                                 onClick={handleCreateSpecialty}
                                 disabled={isSubmitting || !newSpecialtyName.trim()}
-                                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                                className="bg-primary text-white px-4 py-2 rounded-btn font-medium hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
                             >
                                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                                 Créer
@@ -1265,31 +1270,29 @@ const TeamManagement: React.FC = () => {
                         </div>
                         {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
                         {success && <p className="text-green-600 text-sm mt-2">{success}</p>}
-                    </div>
+                    </Card>
 
                     {/* List of specialties */}
-                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200">
-                        <div className="p-4 bg-slate-50 border-b">
-                            <h3 className="font-bold text-slate-700">Spécialités disponibles ({specialties.length})</h3>
+                    <Card>
+                        <div className="px-4 py-3 border-b border-border">
+                            <h3 className="font-heading font-semibold text-sm text-text-base">Spécialités disponibles ({specialties.length})</h3>
                         </div>
-                        <div className="divide-y">
+                        <div className="divide-y divide-border">
                             {specialties.length === 0 ? (
-                                <div className="p-8 text-center text-slate-400">
-                                    Aucune spécialité définie. Créez-en une ci-dessus.
-                                </div>
+                                <EmptyState icon={Tag} title="Aucune spécialité" description="Créez-en une ci-dessus." />
                             ) : (
                                 specialties.map(spec => {
                                     const doctorsWithThisSpec = allDoctors.filter(d => d.specialty.includes(spec.name));
                                     return (
-                                        <div key={spec.id} className="flex items-center justify-between p-4 hover:bg-slate-50">
+                                        <div key={spec.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted">
                                             <div className="flex items-center gap-3">
                                                 <div
                                                     className="w-4 h-4 rounded-full"
                                                     style={{ backgroundColor: spec.color }}
                                                 />
                                                 <div>
-                                                    <div className="font-medium text-slate-800">{spec.name}</div>
-                                                    <div className="text-xs text-slate-400">
+                                                    <div className="font-medium text-text-base">{spec.name}</div>
+                                                    <div className="text-[11px] text-text-muted">
                                                         {doctorsWithThisSpec.length} médecin{doctorsWithThisSpec.length !== 1 ? 's' : ''}
                                                     </div>
                                                 </div>
@@ -1308,7 +1311,7 @@ const TeamManagement: React.FC = () => {
                                                             </div>
                                                         ))}
                                                         {doctorsWithThisSpec.length > 3 && (
-                                                            <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-300 flex items-center justify-center text-[9px] font-bold text-slate-600">
+                                                            <div className="w-7 h-7 rounded-full border-2 border-white bg-muted flex items-center justify-center text-[9px] font-bold text-text-muted">
                                                                 +{doctorsWithThisSpec.length - 3}
                                                             </div>
                                                         )}
@@ -1317,7 +1320,7 @@ const TeamManagement: React.FC = () => {
                                                 <button
                                                     className={`p-2 rounded transition-colors ${deleteSpecialtyConfirmId === spec.id
                                                         ? 'bg-red-600 text-white'
-                                                        : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                        : 'text-text-muted hover:text-red-600 hover:bg-red-50'
                                                         }`}
                                                     onClick={() => handleDeleteSpecialty(spec)}
                                                     title={deleteSpecialtyConfirmId === spec.id ? "Confirmer la suppression" : "Supprimer"}
@@ -1334,19 +1337,19 @@ const TeamManagement: React.FC = () => {
                                 })
                             )}
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 
             {/* Create Modal */}
             {isCreateModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-surface rounded-card shadow-2xl w-full max-w-md p-6 border border-border max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                <UserPlus className="w-5 h-5 text-blue-600" /> Nouvel Utilisateur
+                            <h2 className="font-heading font-bold text-xl text-text-base flex items-center gap-2">
+                                <UserPlus className="w-5 h-5 text-primary" /> Nouvel Utilisateur
                             </h2>
-                            <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => setIsCreateModalOpen(false)} className="text-text-muted hover:text-text-base">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -1354,14 +1357,14 @@ const TeamManagement: React.FC = () => {
                         <form onSubmit={handleCreateUser} className="space-y-4">
                             {/* Email */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label className="block text-sm font-medium text-text-base mb-1">
                                     <Mail className="w-4 h-4 inline mr-1" /> Email *
                                 </label>
                                 <input
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                     placeholder="utilisateur@exemple.com"
                                     required
                                 />
@@ -1369,7 +1372,7 @@ const TeamManagement: React.FC = () => {
 
                             {/* Password */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label className="block text-sm font-medium text-text-base mb-1">
                                     <Key className="w-4 h-4 inline mr-1" /> Mot de passe *
                                 </label>
                                 <div className="relative">
@@ -1377,7 +1380,7 @@ const TeamManagement: React.FC = () => {
                                         type={showPassword ? 'text' : 'password'}
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        className="w-full border rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full border border-border rounded-btn h-10 px-3 pr-10 focus:border-primary focus:outline-none"
                                         placeholder="Min. 6 caractères"
                                         required
                                         minLength={6}
@@ -1385,7 +1388,7 @@ const TeamManagement: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"
                                     >
                                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
@@ -1394,13 +1397,13 @@ const TeamManagement: React.FC = () => {
 
                             {/* Role */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label className="block text-sm font-medium text-text-base mb-1">
                                     <Shield className="w-4 h-4 inline mr-1" /> Rôle *
                                 </label>
                                 <select
                                     value={formData.roleId}
                                     onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                     required
                                 >
                                     <option value="">-- Sélectionner --</option>
@@ -1419,7 +1422,7 @@ const TeamManagement: React.FC = () => {
                                             onClick={() => setLinkMode('new')}
                                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${linkMode === 'new'
                                                 ? 'bg-blue-100 text-blue-700 border-2 border-blue-400'
-                                                : 'bg-slate-100 text-slate-600 border-2 border-transparent'
+                                                : 'bg-muted text-text-muted border-2 border-transparent'
                                                 }`}
                                         >
                                             Créer un nouveau profil
@@ -1429,7 +1432,7 @@ const TeamManagement: React.FC = () => {
                                             onClick={() => setLinkMode('existing')}
                                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${linkMode === 'existing'
                                                 ? 'bg-blue-100 text-blue-700 border-2 border-blue-400'
-                                                : 'bg-slate-100 text-slate-600 border-2 border-transparent'
+                                                : 'bg-muted text-text-muted border-2 border-transparent'
                                                 }`}
                                         >
                                             Lier à un profil existant
@@ -1439,21 +1442,21 @@ const TeamManagement: React.FC = () => {
                                     {linkMode === 'new' && (
                                         <>
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                                <label className="block text-sm font-medium text-text-base mb-1">
                                                     <UserCheck className="w-4 h-4 inline mr-1" /> Nom du Médecin *
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={formData.name}
                                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                                     placeholder="Dr Dupont"
                                                     required
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">Couleur</label>
+                                                <label className="block text-sm font-medium text-text-base mb-1">Couleur</label>
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="color"
@@ -1461,7 +1464,7 @@ const TeamManagement: React.FC = () => {
                                                         onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                                                         className="w-10 h-10 rounded cursor-pointer border"
                                                     />
-                                                    <span className="text-slate-500 text-sm">{formData.color}</span>
+                                                    <span className="text-text-muted text-sm">{formData.color}</span>
                                                 </div>
                                             </div>
                                         </>
@@ -1469,13 +1472,13 @@ const TeamManagement: React.FC = () => {
 
                                     {linkMode === 'existing' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            <label className="block text-sm font-medium text-text-base mb-1">
                                                 <Link2 className="w-4 h-4 inline mr-1" /> Profil Médecin Existant
                                             </label>
                                             <select
                                                 value={formData.existingDoctorId}
                                                 onChange={(e) => setFormData({ ...formData, existingDoctorId: e.target.value })}
-                                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                                 required={linkMode === 'existing'}
                                             >
                                                 <option value="">-- Sélectionner --</option>
@@ -1494,7 +1497,7 @@ const TeamManagement: React.FC = () => {
                             )}
 
                             {formData.roleId && isNonDoctorRole(formData.roleId) && (
-                                <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600">
+                                <div className="bg-muted p-3 rounded-lg text-sm text-text-muted">
                                     ℹ️ Le rôle "{getSelectedRoleName()}" n'a pas besoin de profil médecin.
                                 </div>
                             )}
@@ -1511,7 +1514,7 @@ const TeamManagement: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                                className="w-full bg-primary text-white py-2.5 rounded-btn font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                             >
                                 {isSubmitting ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Création...</>
@@ -1527,12 +1530,12 @@ const TeamManagement: React.FC = () => {
             {/* Edit Modal */}
             {isEditModalOpen && editingUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-surface rounded-card shadow-2xl w-full max-w-md p-6 border border-border max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                <Edit2 className="w-5 h-5 text-blue-600" /> Modifier l'Utilisateur
+                            <h2 className="font-heading font-bold text-xl text-text-base flex items-center gap-2">
+                                <Edit2 className="w-5 h-5 text-primary" /> Modifier l'Utilisateur
                             </h2>
-                            <button onClick={() => { setIsEditModalOpen(false); setEditingUser(null); }} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => { setIsEditModalOpen(false); setEditingUser(null); }} className="text-text-muted hover:text-text-base">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -1540,36 +1543,36 @@ const TeamManagement: React.FC = () => {
                         <form onSubmit={handleEditUser} className="space-y-4">
                             {/* Email (read-only) */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label className="block text-sm font-medium text-text-base mb-1">
                                     <Mail className="w-4 h-4 inline mr-1" /> Email
                                 </label>
                                 <input
                                     type="email"
                                     value={formData.email}
                                     disabled
-                                    className="w-full border rounded-lg px-3 py-2 bg-slate-50 text-slate-500"
+                                    className="w-full border border-border rounded-btn h-10 px-3 bg-muted text-text-muted"
                                 />
                             </div>
 
                             {/* Password */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label className="block text-sm font-medium text-text-base mb-1">
                                     <Key className="w-4 h-4 inline mr-1" /> Nouveau Mot de Passe
-                                    <span className="text-slate-400 font-normal ml-1">(optionnel)</span>
+                                    <span className="text-text-muted font-normal ml-1">(optionnel)</span>
                                 </label>
                                 <div className="relative">
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        className="w-full border rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        className="w-full border border-border rounded-btn h-10 px-3 pr-10 focus:border-primary focus:outline-none"
                                         placeholder="Laisser vide pour ne pas changer"
                                         minLength={6}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted"
                                     >
                                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
@@ -1578,13 +1581,13 @@ const TeamManagement: React.FC = () => {
 
                             {/* Role */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label className="block text-sm font-medium text-text-base mb-1">
                                     <Shield className="w-4 h-4 inline mr-1" /> Rôle *
                                 </label>
                                 <select
                                     value={formData.roleId}
                                     onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                     required
                                 >
                                     <option value="">-- Sélectionner --</option>
@@ -1603,7 +1606,7 @@ const TeamManagement: React.FC = () => {
                                             onClick={() => setLinkMode('existing')}
                                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${linkMode === 'existing'
                                                 ? 'bg-blue-100 text-blue-700 border-2 border-blue-400'
-                                                : 'bg-slate-100 text-slate-600 border-2 border-transparent'
+                                                : 'bg-muted text-text-muted border-2 border-transparent'
                                                 }`}
                                         >
                                             <Link2 className="w-4 h-4 inline mr-1" /> Lier à un profil
@@ -1613,7 +1616,7 @@ const TeamManagement: React.FC = () => {
                                             onClick={() => setLinkMode('new')}
                                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${linkMode === 'new'
                                                 ? 'bg-blue-100 text-blue-700 border-2 border-blue-400'
-                                                : 'bg-slate-100 text-slate-600 border-2 border-transparent'
+                                                : 'bg-muted text-text-muted border-2 border-transparent'
                                                 }`}
                                         >
                                             Créer nouveau
@@ -1622,13 +1625,13 @@ const TeamManagement: React.FC = () => {
 
                                     {linkMode === 'existing' && (
                                         <div>
-                                            <label className="block text-sm font-medium text-slate-700 mb-1">
+                                            <label className="block text-sm font-medium text-text-base mb-1">
                                                 Profil Médecin
                                             </label>
                                             <select
                                                 value={formData.existingDoctorId}
                                                 onChange={(e) => setFormData({ ...formData, existingDoctorId: e.target.value })}
-                                                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                             >
                                                 <option value="">-- Aucun --</option>
                                                 {/* Show current doctor + unlinked doctors */}
@@ -1647,20 +1650,20 @@ const TeamManagement: React.FC = () => {
                                     {linkMode === 'new' && (
                                         <>
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                                <label className="block text-sm font-medium text-text-base mb-1">
                                                     <UserCheck className="w-4 h-4 inline mr-1" /> Nom du Médecin
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={formData.name}
                                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                                    className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                                     placeholder="Dr Dupont"
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-sm font-medium text-slate-700 mb-1">Couleur</label>
+                                                <label className="block text-sm font-medium text-text-base mb-1">Couleur</label>
                                                 <div className="flex items-center gap-3">
                                                     <input
                                                         type="color"
@@ -1668,7 +1671,7 @@ const TeamManagement: React.FC = () => {
                                                         onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                                                         className="w-10 h-10 rounded cursor-pointer border"
                                                     />
-                                                    <span className="text-slate-500 text-sm">{formData.color}</span>
+                                                    <span className="text-text-muted text-sm">{formData.color}</span>
                                                 </div>
                                             </div>
                                         </>
@@ -1677,7 +1680,7 @@ const TeamManagement: React.FC = () => {
                             )}
 
                             {formData.roleId && isNonDoctorRole(formData.roleId) && (
-                                <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600">
+                                <div className="bg-muted p-3 rounded-lg text-sm text-text-muted">
                                     ℹ️ Le rôle "{getSelectedRoleName()}" n'a pas besoin de profil médecin.
                                 </div>
                             )}
@@ -1694,7 +1697,7 @@ const TeamManagement: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                                className="w-full bg-primary text-white py-2.5 rounded-btn font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                             >
                                 {isSubmitting ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Mise à jour...</>
@@ -1710,12 +1713,12 @@ const TeamManagement: React.FC = () => {
             {/* Edit Doctor Modal */}
             {isEditDoctorModalOpen && editingDoctor && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-slate-200 max-h-[90vh] overflow-y-auto">
+                    <div className="bg-surface rounded-card shadow-2xl w-full max-w-md p-6 border border-border max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                <Stethoscope className="w-5 h-5 text-blue-600" /> Modifier le Profil Médecin
+                            <h2 className="font-heading font-bold text-xl text-text-base flex items-center gap-2">
+                                <Stethoscope className="w-5 h-5 text-primary" /> Modifier le Profil Médecin
                             </h2>
-                            <button onClick={() => { setIsEditDoctorModalOpen(false); setEditingDoctor(null); setEditingDoctorId(null); }} className="text-slate-400 hover:text-slate-600">
+                            <button onClick={() => { setIsEditDoctorModalOpen(false); setEditingDoctor(null); setEditingDoctorId(null); }} className="text-text-muted hover:text-text-base">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -1723,14 +1726,14 @@ const TeamManagement: React.FC = () => {
                         <form onSubmit={handleEditDoctor} className="space-y-4">
                             {/* Doctor Name */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                <label className="block text-sm font-medium text-text-base mb-1">
                                     <UserCheck className="w-4 h-4 inline mr-1" /> Nom
                                 </label>
                                 <input
                                     type="text"
                                     value={doctorFormData.name}
                                     onChange={(e) => setDoctorFormData({ ...doctorFormData, name: e.target.value })}
-                                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full border border-border rounded-btn h-10 px-3 focus:border-primary focus:outline-none"
                                     placeholder="Dr Dupont"
                                     required
                                 />
@@ -1738,7 +1741,7 @@ const TeamManagement: React.FC = () => {
 
                             {/* Color */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Couleur</label>
+                                <label className="block text-sm font-medium text-text-base mb-1">Couleur</label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="color"
@@ -1752,17 +1755,17 @@ const TeamManagement: React.FC = () => {
                                     >
                                         {doctorFormData.name.substring(0, 2)}
                                     </div>
-                                    <span className="text-slate-500 text-sm">{doctorFormData.color}</span>
+                                    <span className="text-text-muted text-sm">{doctorFormData.color}</span>
                                 </div>
                             </div>
 
                             {/* Specialty */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <label className="block text-sm font-medium text-text-base mb-2">
                                     <Tag className="w-4 h-4 inline mr-1" /> Spécialités
                                 </label>
                                 {specialties.length === 0 ? (
-                                    <p className="text-sm text-slate-400 italic">
+                                    <p className="text-sm text-text-muted italic">
                                         Aucune spécialité définie. Créez-en dans l'onglet "Spécialités".
                                     </p>
                                 ) : (
@@ -1776,7 +1779,7 @@ const TeamManagement: React.FC = () => {
                                                     onClick={() => toggleDoctorSpecialty(spec.name)}
                                                     className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${isSelected
                                                         ? 'text-white border-transparent shadow-sm'
-                                                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                                                        : 'bg-surface text-text-muted border-border hover:border-text-muted'
                                                         }`}
                                                     style={isSelected ? { backgroundColor: spec.color } : {}}
                                                 >
@@ -1787,30 +1790,30 @@ const TeamManagement: React.FC = () => {
                                     </div>
                                 )}
                                 {doctorFormData.selectedSpecialties.length > 0 && (
-                                    <p className="text-xs text-slate-500 mt-2">
+                                    <p className="text-xs text-text-muted mt-2">
                                         Sélectionnées: {doctorFormData.selectedSpecialties.join(', ')}
                                     </p>
                                 )}
                             </div>
 
                             {/* Separator */}
-                            <div className="border-t border-slate-200 pt-4">
-                                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                            <div className="border-t border-border pt-4">
+                                <h3 className="text-sm font-bold text-text-base mb-3 flex items-center gap-2">
                                     <Ban className="w-4 h-4 text-red-500" /> Préférences & Exclusions
                                 </h3>
 
                                 {/* Excluded Half-Days (Recurring Weekly Absences) */}
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-slate-600 mb-2">
+                                    <label className="block text-sm font-medium text-text-muted mb-2">
                                         <Calendar className="w-4 h-4 inline mr-1 text-red-500" /> Demi-journées non travaillées (récurrentes)
                                     </label>
-                                    <p className="text-xs text-slate-400 mb-3">
+                                    <p className="text-xs text-text-muted mb-3">
                                         Cliquez sur une demi-journée pour l'exclure, ou cliquez sur le nom du jour pour exclure la journée entière.
                                     </p>
-                                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                    <div className="bg-muted rounded-lg p-3 border border-border">
                                         {/* Header row */}
                                         <div className="grid grid-cols-3 gap-1 mb-2 text-center">
-                                            <div className="text-xs font-medium text-slate-400">Jour</div>
+                                            <div className="text-xs font-medium text-text-muted">Jour</div>
                                             <div className="text-xs font-medium text-orange-600">Matin</div>
                                             <div className="text-xs font-medium text-blue-600">Après-midi</div>
                                         </div>
@@ -1830,7 +1833,7 @@ const TeamManagement: React.FC = () => {
                                                             ? 'bg-red-500 text-white border-red-500'
                                                             : (morningExcluded || afternoonExcluded)
                                                                 ? 'bg-red-100 text-red-700 border-red-200'
-                                                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                                : 'bg-surface text-text-muted border-border hover:bg-muted'
                                                             }`}
                                                         title={fullyExcluded ? 'Cliquez pour rétablir' : 'Cliquez pour exclure la journée entière'}
                                                     >
@@ -1884,22 +1887,22 @@ const TeamManagement: React.FC = () => {
 
                                 {/* Excluded Activities */}
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-slate-600 mb-2">
-                                        <Ban className="w-4 h-4 inline mr-1 text-slate-500" /> Activités Exclues
+                                    <label className="block text-sm font-medium text-text-muted mb-2">
+                                        <Ban className="w-4 h-4 inline mr-1 text-text-muted" /> Activités Exclues
                                     </label>
                                     {activityDefinitions.length === 0 ? (
-                                        <p className="text-xs text-slate-400 italic">Aucune activité définie.</p>
+                                        <p className="text-xs text-text-muted italic">Aucune activité définie.</p>
                                     ) : (
-                                        <div className="space-y-1 max-h-32 overflow-y-auto bg-slate-50 rounded-lg p-2">
+                                        <div className="space-y-1 max-h-32 overflow-y-auto bg-muted rounded-lg p-2">
                                             {activityDefinitions.map(act => (
                                                 <div
                                                     key={act.id}
-                                                    className="flex items-center p-1.5 hover:bg-white rounded cursor-pointer"
+                                                    className="flex items-center p-1.5 hover:bg-surface rounded cursor-pointer"
                                                     onClick={() => toggleExcludedActivity(act.id)}
                                                 >
                                                     <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 ${doctorFormData.excludedActivities.includes(act.id)
                                                         ? 'bg-red-500 border-red-500'
-                                                        : 'border-slate-300 bg-white'
+                                                        : 'border-border bg-surface'
                                                         }`}>
                                                         {doctorFormData.excludedActivities.includes(act.id) && (
                                                             <Ban className="w-2.5 h-2.5 text-white" />
@@ -1907,7 +1910,7 @@ const TeamManagement: React.FC = () => {
                                                     </div>
                                                     <span className={`text-sm ${doctorFormData.excludedActivities.includes(act.id)
                                                         ? 'text-red-700 font-medium line-through'
-                                                        : 'text-slate-700'
+                                                        : 'text-text-base'
                                                         }`}>
                                                         {act.name}
                                                     </span>
@@ -1919,7 +1922,7 @@ const TeamManagement: React.FC = () => {
 
                                 {/* Excluded Slot Types */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-600 mb-2">
+                                    <label className="block text-sm font-medium text-text-muted mb-2">
                                         <Ban className="w-4 h-4 inline mr-1 text-orange-500" /> Types de Créneau Exclus
                                     </label>
                                     <div className="flex flex-wrap gap-1">
@@ -1932,7 +1935,7 @@ const TeamManagement: React.FC = () => {
                                                     onClick={() => toggleExcludedSlotType(type)}
                                                     className={`px-2 py-1 text-xs rounded-lg border transition-all ${doctorFormData.excludedSlotTypes.includes(type)
                                                         ? 'bg-orange-100 text-orange-800 border-orange-200 font-bold'
-                                                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                                        : 'bg-muted text-text-muted border-border hover:bg-muted'
                                                         }`}
                                                 >
                                                     {type === SlotType.CONSULTATION ? 'Consultation' :
@@ -1945,27 +1948,27 @@ const TeamManagement: React.FC = () => {
                             </div>
 
                             {/* Unavailabilities Section (Admin Only) */}
-                            <div className="border-t border-slate-200 pt-4">
-                                <h3 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                            <div className="border-t border-border pt-4">
+                                <h3 className="text-sm font-bold text-text-base mb-3 flex items-center gap-2">
                                     <Calendar className="w-4 h-4 text-blue-500" /> Indisponibilités
                                 </h3>
 
                                 {/* Existing Unavailabilities List */}
                                 {getDoctorUnavailabilities().length > 0 && (
                                     <div className="mb-4">
-                                        <p className="text-xs text-slate-500 mb-2">Indisponibilités existantes :</p>
-                                        <div className="bg-slate-50 rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
+                                        <p className="text-xs text-text-muted mb-2">Indisponibilités existantes :</p>
+                                        <div className="bg-muted rounded-lg p-2 max-h-32 overflow-y-auto space-y-1">
                                             {getDoctorUnavailabilities().map(unavail => (
                                                 <div
                                                     key={unavail.id}
-                                                    className="flex justify-between items-center bg-white p-2 rounded border border-slate-100 hover:border-slate-300"
+                                                    className="flex justify-between items-center bg-surface p-2 rounded border border-border hover:border-text-muted"
                                                 >
                                                     <div className="text-xs">
-                                                        <div className="font-medium text-slate-700">{unavail.reason}</div>
-                                                        <div className="text-slate-500">
+                                                        <div className="font-medium text-text-base">{unavail.reason}</div>
+                                                        <div className="text-text-muted">
                                                             {unavail.startDate} → {unavail.endDate}
                                                             {unavail.period && unavail.period !== 'ALL_DAY' && (
-                                                                <span className="ml-1 text-[10px] bg-slate-100 px-1 rounded">
+                                                                <span className="ml-1 text-[10px] bg-muted px-1 rounded">
                                                                     {unavail.period === Period.MORNING ? 'Matin' : 'Après-midi'}
                                                                 </span>
                                                             )}
@@ -1976,7 +1979,7 @@ const TeamManagement: React.FC = () => {
                                                         onClick={() => handleDeleteUnavailability(unavail.id)}
                                                         className={`p-1.5 rounded transition-colors ${deleteUnavailConfirmId === unavail.id
                                                             ? 'bg-red-600 text-white'
-                                                            : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                            : 'text-text-muted hover:text-red-600 hover:bg-red-50'
                                                             }`}
                                                         title={deleteUnavailConfirmId === unavail.id ? "Confirmer suppression" : "Supprimer"}
                                                     >
@@ -1999,7 +2002,7 @@ const TeamManagement: React.FC = () => {
                                     </p>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div>
-                                            <label className="block text-[10px] text-slate-500 mb-0.5">Du</label>
+                                            <label className="block text-[10px] text-text-muted mb-0.5">Du</label>
                                             <input
                                                 type="date"
                                                 value={unavailStartDate}
@@ -2008,7 +2011,7 @@ const TeamManagement: React.FC = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] text-slate-500 mb-0.5">Au</label>
+                                            <label className="block text-[10px] text-text-muted mb-0.5">Au</label>
                                             <input
                                                 type="date"
                                                 value={unavailEndDate}
@@ -2020,7 +2023,7 @@ const TeamManagement: React.FC = () => {
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div>
-                                            <label className="block text-[10px] text-slate-500 mb-0.5">Période</label>
+                                            <label className="block text-[10px] text-text-muted mb-0.5">Période</label>
                                             <select
                                                 value={unavailPeriod}
                                                 onChange={(e) => setUnavailPeriod(e.target.value as any)}
@@ -2032,7 +2035,7 @@ const TeamManagement: React.FC = () => {
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] text-slate-500 mb-0.5">Motif</label>
+                                            <label className="block text-[10px] text-text-muted mb-0.5">Motif</label>
                                             <select
                                                 value={unavailReason}
                                                 onChange={(e) => setUnavailReason(e.target.value)}
@@ -2077,7 +2080,7 @@ const TeamManagement: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                                className="w-full bg-primary text-white py-2.5 rounded-btn font-medium hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
                             >
                                 {isSubmitting ? (
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Mise à jour...</>

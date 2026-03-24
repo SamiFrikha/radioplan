@@ -3,6 +3,7 @@ import { supabase } from '../../services/supabaseClient';
 import { AppRole, AppPermission } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { Save, Shield, Check, X } from 'lucide-react';
+import { Card, CardBody, EmptyState } from '../../src/components/ui';
 
 const RoleManagement: React.FC = () => {
     const { hasPermission } = useAuth();
@@ -55,50 +56,101 @@ const RoleManagement: React.FC = () => {
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <h1 className="font-heading font-bold text-xl text-text-base mb-6 flex items-center gap-2">
                 <Shield className="w-6 h-6" /> Gestion des Rôles
             </h1>
 
-            <div className="overflow-x-auto bg-white rounded-lg shadow">
-                <table className="min-w-full border-collapse">
-                    <thead>
-                        <tr>
-                            <th className="p-4 border-b text-left bg-gray-50">Permission</th>
-                            {roles.map(role => (
-                                <th key={role.id} className="p-4 border-b text-center bg-gray-50 min-w-[100px]">
-                                    <div className="font-bold">{role.name}</div>
-                                    <div className="text-xs text-gray-500 font-normal">{role.description}</div>
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {permissions.map(perm => (
-                            <tr key={perm.id} className="hover:bg-gray-50">
-                                <td className="p-4 border-b">
-                                    <div className="font-medium">{perm.code}</div>
-                                    <div className="text-sm text-gray-500">{perm.description}</div>
-                                </td>
-                                {roles.map(role => {
-                                    const hasPerm = (matrix[role.id] || []).includes(perm.code);
-                                    return (
-                                        <td key={`${role.id}-${perm.id}`} className="p-4 border-b text-center">
-                                            <button
-                                                onClick={() => togglePermission(role.id, perm.code, perm.id)}
-                                                disabled={role.name === 'Admin'} // Admin has all by default usually
-                                                className={`p-2 rounded-full transition-colors ${hasPerm ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-300'
-                                                    }`}
-                                            >
-                                                {hasPerm ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
-                                            </button>
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <Card>
+                <CardBody className="overflow-x-auto">
+                    {/* Desktop table */}
+                    <div className="hidden md:block">
+                        {permissions.length === 0 ? (
+                            <EmptyState
+                                icon={Shield}
+                                title="Aucune permission"
+                                description="Aucune permission n'a été définie pour cette application."
+                            />
+                        ) : (
+                            <table className="min-w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">
+                                            Permission
+                                        </th>
+                                        {roles.map(role => (
+                                            <th key={role.id} className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-center border-b border-border min-w-[100px]">
+                                                <div className="font-bold text-text-base">{role.name}</div>
+                                                <div className="text-[10px] text-text-muted font-normal">{role.description}</div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {permissions.map(perm => (
+                                        <tr key={perm.id} className="hover:bg-muted h-11 border-b border-border">
+                                            <td className="px-3 py-2">
+                                                <div className="font-medium text-sm text-text-base">{perm.code}</div>
+                                                <div className="text-[11px] text-text-muted">{perm.description}</div>
+                                            </td>
+                                            {roles.map(role => {
+                                                const hasPerm = (matrix[role.id] || []).includes(perm.code);
+                                                return (
+                                                    <td key={`${role.id}-${perm.id}`} className="px-3 py-2 text-center">
+                                                        <button
+                                                            onClick={() => togglePermission(role.id, perm.code, perm.id)}
+                                                            disabled={role.name === 'Admin'} // Admin has all by default usually
+                                                            className={`p-2 rounded-full transition-colors ${hasPerm ? 'bg-green-100 text-green-600' : 'bg-muted text-text-muted'
+                                                                }`}
+                                                        >
+                                                            {hasPerm ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+                                                        </button>
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden space-y-2 p-3">
+                        {permissions.length === 0 ? (
+                            <EmptyState
+                                icon={Shield}
+                                title="Aucune permission"
+                                description="Aucune permission n'a été définie pour cette application."
+                            />
+                        ) : (
+                            permissions.map(perm => (
+                                <Card key={perm.id}>
+                                    <div className="p-3">
+                                        <p className="font-medium text-sm text-text-base">{perm.code}</p>
+                                        <p className="text-[11px] text-text-muted mb-2">{perm.description}</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {roles.map(role => {
+                                                const hasPerm = (matrix[role.id] || []).includes(perm.code);
+                                                return (
+                                                    <button
+                                                        key={role.id}
+                                                        onClick={() => togglePermission(role.id, perm.code, perm.id)}
+                                                        disabled={role.name === 'Admin'}
+                                                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium transition-colors ${hasPerm ? 'bg-green-100 text-green-700' : 'bg-muted text-text-muted'}`}
+                                                    >
+                                                        {hasPerm ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                        {role.name}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                </CardBody>
+            </Card>
         </div>
     );
 };
