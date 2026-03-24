@@ -275,26 +275,41 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     // If the user cannot resolve this conflict, show an access denied message
     if (!canResolve) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal flex items-end md:items-center justify-center p-0 md:p-4"
+                onClick={onClose}
+            >
+                <div
+                    className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="modal-title-conflict"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+
                     {/* HEADER */}
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-orange-50">
-                        <div className="flex items-center space-x-2">
-                            <ShieldAlert className="w-5 h-5 text-orange-600" />
-                            <h2 className="font-bold text-lg text-orange-800">Accès Restreint</h2>
-                        </div>
-                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-black/5 p-2 transition-colors">
-                            <X className="w-6 h-6" />
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                        <h2 id="modal-title-conflict" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
+                            <ShieldAlert className="w-5 h-5 text-accent-amber" aria-hidden="true" />
+                            Accès Restreint
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            aria-label="Fermer"
+                            className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                        >
+                            <X className="w-5 h-5" aria-hidden="true" />
                         </button>
                     </div>
 
-                    <div className="p-6">
+                    <div className="px-4 py-4">
                         <div className="mb-4 text-center">
                             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <ShieldAlert className="w-8 h-8 text-orange-600" />
+                                <ShieldAlert className="w-8 h-8 text-accent-amber" />
                             </div>
-                            <h3 className="font-bold text-lg text-slate-800 mb-2">Ce conflit ne vous concerne pas</h3>
-                            <p className="text-slate-600 text-sm">
+                            <h3 className="font-bold text-base text-text-base mb-2">Ce conflit ne vous concerne pas</h3>
+                            <p className="text-text-muted text-sm">
                                 Vous ne pouvez résoudre que les conflits qui concernent vos propres créneaux.<br />
                                 Seuls les administrateurs peuvent résoudre les conflits des autres médecins.
                             </p>
@@ -302,24 +317,26 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
                         {/* Show conflict info */}
                         {conflict && (
-                            <div className="bg-red-50 p-3 rounded-lg border border-red-200 mb-4">
-                                <div className="text-xs font-bold text-red-500 uppercase mb-1">Conflit</div>
+                            <div className="bg-red-50 p-3 rounded-card border border-red-200 mb-4">
+                                <div className="text-xs font-bold text-accent-red uppercase mb-1">Conflit</div>
                                 <div className="text-sm text-red-700">{conflict.description}</div>
                             </div>
                         )}
 
                         {/* Show slot info */}
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
-                            <div className="text-xs font-bold text-slate-500 uppercase">{slot.day} {slot.period === 'Matin' ? 'Matin' : 'Après-Midi'}</div>
-                            <div className="font-bold text-slate-800 text-sm">{slot.location}</div>
+                        <div className="bg-muted p-3 rounded-card border border-border mb-4">
+                            <div className="text-xs font-bold text-text-muted uppercase">{slot.day} {slot.period === 'Matin' ? 'Matin' : 'Après-Midi'}</div>
+                            <div className="font-bold text-text-base text-sm">{slot.location}</div>
                             {assignedDoctor && (
-                                <div className="text-sm text-slate-600 mt-1">Médecin concerné : {assignedDoctor.name}</div>
+                                <div className="text-sm text-text-muted mt-1">Médecin concerné : {assignedDoctor.name}</div>
                             )}
                         </div>
+                    </div>
 
+                    <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
                         <button
                             onClick={onClose}
-                            className="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors"
+                            className="px-4 py-2 bg-text-base text-surface rounded-btn text-sm font-bold hover:opacity-90 transition-opacity"
                         >
                             Fermer
                         </button>
@@ -330,35 +347,50 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+        <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal flex items-end md:items-center justify-center p-0 md:p-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="modal-title-conflict"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
                 {/* HEADER */}
-                <div className={`p-5 border-b border-slate-100 flex justify-between items-center ${conflict ? 'bg-red-50' : 'bg-slate-50'}`}>
-                    <div className="flex items-center space-x-3">
+                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <h2 id="modal-title-conflict" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
                         {conflict ? (
-                            <div className="flex items-center">
-                                <div className="p-2 bg-red-100 rounded-full mr-3">
-                                    <AlertTriangle className="w-6 h-6 text-red-600" />
-                                </div>
-                                <div>
-                                    <h2 className="font-bold text-xl text-red-800">Conflit Détecté</h2>
-                                    <p className="text-sm text-red-600">{conflict.description}</p>
-                                </div>
-                            </div>
+                            <>
+                                <AlertTriangle className="w-5 h-5 text-accent-red" aria-hidden="true" />
+                                Conflit Détecté
+                            </>
                         ) : (
                             <>
-                                <UserCheck className="w-5 h-5 text-blue-600" />
-                                <h2 className="font-bold text-lg text-slate-800">Gérer le Créneau</h2>
+                                <UserCheck className="w-5 h-5 text-primary" aria-hidden="true" />
+                                Gérer le Créneau
                             </>
                         )}
-                    </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-black/5 p-2 transition-colors">
-                        <X className="w-6 h-6" />
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        aria-label="Fermer"
+                        className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                    >
+                        <X className="w-5 h-5" aria-hidden="true" />
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+                {conflict && (
+                    <div className="px-4 pt-3 pb-1">
+                        <p className="text-sm text-accent-red">{conflict.description}</p>
+                    </div>
+                )}
+
+                <div className="flex-1 overflow-y-auto px-4 py-4">
 
                     {/* ══════════════════════════════════════════════════
                         RCP CONFLICT — 3-option resolution panel
@@ -429,10 +461,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                             {/* 🅱️ REQUEST mode — pick a doctor to request */}
                             {rcpMode === 'REQUEST' && (
                                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
-                                    <button onClick={() => setRcpMode(null)} className="text-xs text-slate-500 hover:text-slate-700 mb-3 flex items-center gap-1">
+                                    <button onClick={() => setRcpMode(null)} className="text-xs text-text-muted hover:text-text-base mb-3 flex items-center gap-1">
                                         ← Retour
                                     </button>
-                                    <h4 className="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2">
+                                    <h4 className="font-bold text-sm text-text-base mb-3 flex items-center gap-2">
                                         <Send className="w-4 h-4 text-blue-600" /> Choisir un médecin à qui demander
                                     </h4>
                                     {requestSent ? (
@@ -450,7 +482,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                     {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).map(doc => (
                                                         <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-green-200 rounded-lg hover:border-green-400 transition mb-1.5">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                                <span className="text-sm font-medium text-text-base">{doc.name}</span>
                                                                 <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
                                                                 {availableDoctorIds.has(doc.id)
                                                                     ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
@@ -477,7 +509,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                     {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).map(doc => (
                                                         <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-amber-200 rounded-lg hover:border-amber-400 transition mb-1.5">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                                <span className="text-sm font-medium text-text-base">{doc.name}</span>
                                                                 <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
                                                                 {availableDoctorIds.has(doc.id)
                                                                     ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
@@ -503,10 +535,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                             {/* 🅾️ DIRECT mode — pick a doctor + confirm */}
                             {rcpMode === 'DIRECT' && (
                                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
-                                    <button onClick={() => setRcpMode(null)} className="text-xs text-slate-500 hover:text-slate-700 mb-3 flex items-center gap-1">
+                                    <button onClick={() => setRcpMode(null)} className="text-xs text-text-muted hover:text-text-base mb-3 flex items-center gap-1">
                                         ← Retour
                                     </button>
-                                    <h4 className="font-bold text-sm text-slate-700 mb-3 flex items-center gap-2">
+                                    <h4 className="font-bold text-sm text-text-base mb-3 flex items-center gap-2">
                                         <UserPlus className="w-4 h-4 text-green-600" /> Choisir le médecin remplaçant
                                     </h4>
                                     <div className="space-y-1.5 mb-3 max-h-64 overflow-y-auto">
@@ -522,7 +554,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                     >
                                                         <div className="flex items-center gap-2">
                                                             {rcpDirectDoctorId === doc.id && <span className="text-green-600 font-bold">✓</span>}
-                                                            <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                            <span className="text-sm font-medium text-text-base">{doc.name}</span>
                                                             <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
                                                             {availableDoctorIds.has(doc.id)
                                                                 ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
@@ -544,7 +576,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                 >
                                                     <div className="flex items-center gap-2">
                                                         {rcpDirectDoctorId === doc.id && <span className="text-amber-600 font-bold">✓</span>}
-                                                        <span className="text-sm font-medium text-slate-700">{doc.name}</span>
+                                                        <span className="text-sm font-medium text-text-base">{doc.name}</span>
                                                         <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
                                                         {availableDoctorIds.has(doc.id)
                                                             ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
@@ -575,7 +607,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     {/* --- DOUBLE BOOKING DECISION UI (non-RCP) --- */}
                     {!isRcpConflict && conflict?.type === 'DOUBLE_BOOKING' && otherSlot && assignedDoctor && (
                         <div className="mb-8">
-                            <h3 className="text-md font-bold text-slate-700 mb-4 text-center">
+                            <h3 className="text-md font-bold text-text-base mb-4 text-center">
                                 {assignedDoctor.name} est assigné à deux activités simultanément. Que souhaitez-vous faire ?
                             </h3>
 
@@ -591,9 +623,9 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                 {/* LEFT OPTION (Current Slot) */}
                                 <div
                                     onClick={() => handleKeepInSlot(slot, otherSlot, 'KEEP_CURRENT')}
-                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_CURRENT' ? 'border-green-500 bg-green-50 shadow-md' : 'border-slate-200 hover:border-slate-300'}`}
+                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_CURRENT' ? 'border-green-500 bg-green-50 shadow-md' : 'border-border hover:border-text-muted'}`}
                                 >
-                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white px-3 py-1 text-xs font-bold text-slate-500 rounded-full border">OPTION 1</div>
+                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-surface px-3 py-1 text-xs font-bold text-text-muted rounded-full border border-border">OPTION 1</div>
                                     <div className="flex items-center justify-between mb-3">
                                         <span className={`text-xs font-bold px-2 py-1 rounded border flex items-center ${getSlotColor(slot)}`}>
                                             {getSlotIcon(slot)}
@@ -601,26 +633,26 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         </span>
                                         {resolutionStrategy === 'KEEP_CURRENT' && <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white"><UserCheck className="w-4 h-4" /></div>}
                                     </div>
-                                    <h4 className="font-bold text-lg text-slate-800 mb-1">{slot.location}</h4>
-                                    <p className="text-sm text-slate-500 mb-4">{slot.subType}</p>
+                                    <h4 className="font-bold text-lg text-text-base mb-1">{slot.location}</h4>
+                                    <p className="text-sm text-text-muted mb-4">{slot.subType}</p>
 
-                                    <button className={`w-full py-2 rounded-lg font-bold text-sm ${resolutionStrategy === 'KEEP_CURRENT' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                    <button className={`w-full py-2 rounded-btn font-bold text-sm ${resolutionStrategy === 'KEEP_CURRENT' ? 'bg-green-600 text-white' : 'bg-muted text-text-muted'}`}>
                                         Maintenir ici
                                     </button>
-                                    <div className="mt-2 text-xs text-center text-slate-500">
+                                    <div className="mt-2 text-xs text-center text-text-muted">
                                         (Remplacer pour {otherSlot.location})
                                     </div>
                                 </div>
 
                                 {/* VS Badge */}
-                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow border font-bold text-slate-400 text-xs">VS</div>
+                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-surface rounded-full p-2 shadow border border-border font-bold text-text-muted text-xs">VS</div>
 
                                 {/* RIGHT OPTION (Other Slot) */}
                                 <div
                                     onClick={() => handleKeepInSlot(otherSlot, slot, 'KEEP_OTHER')}
-                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_OTHER' ? 'border-green-500 bg-green-50 shadow-md' : 'border-slate-200 hover:border-slate-300'}`}
+                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_OTHER' ? 'border-green-500 bg-green-50 shadow-md' : 'border-border hover:border-text-muted'}`}
                                 >
-                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white px-3 py-1 text-xs font-bold text-slate-500 rounded-full border">OPTION 2</div>
+                                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-surface px-3 py-1 text-xs font-bold text-text-muted rounded-full border border-border">OPTION 2</div>
                                     <div className="flex items-center justify-between mb-3">
                                         <span className={`text-xs font-bold px-2 py-1 rounded border flex items-center ${getSlotColor(otherSlot)}`}>
                                             {getSlotIcon(otherSlot)}
@@ -628,13 +660,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         </span>
                                         {resolutionStrategy === 'KEEP_OTHER' && <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white"><UserCheck className="w-4 h-4" /></div>}
                                     </div>
-                                    <h4 className="font-bold text-lg text-slate-800 mb-1">{otherSlot.location}</h4>
-                                    <p className="text-sm text-slate-500 mb-4">{otherSlot.subType}</p>
+                                    <h4 className="font-bold text-lg text-text-base mb-1">{otherSlot.location}</h4>
+                                    <p className="text-sm text-text-muted mb-4">{otherSlot.subType}</p>
 
-                                    <button className={`w-full py-2 rounded-lg font-bold text-sm ${resolutionStrategy === 'KEEP_OTHER' ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                    <button className={`w-full py-2 rounded-btn font-bold text-sm ${resolutionStrategy === 'KEEP_OTHER' ? 'bg-green-600 text-white' : 'bg-muted text-text-muted'}`}>
                                         Maintenir ici
                                     </button>
-                                    <div className="mt-2 text-xs text-center text-slate-500">
+                                    <div className="mt-2 text-xs text-center text-text-muted">
                                         (Remplacer pour {slot.location})
                                     </div>
                                 </div>
@@ -646,17 +678,17 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     {!isRcpConflict && resolutionStrategy && targetSlotForReplacement && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-md font-bold text-slate-800 flex items-center">
-                                    <RefreshCw className="w-5 h-5 mr-2 text-blue-600" />
-                                    Trouver un remplaçant pour : <span className="ml-2 bg-slate-100 px-2 py-1 rounded border border-slate-200">{targetSlotForReplacement.location}</span>
+                                <h3 className="text-md font-bold text-text-base flex items-center">
+                                    <RefreshCw className="w-5 h-5 mr-2 text-primary" />
+                                    Trouver un remplaçant pour : <span className="ml-2 bg-muted px-2 py-1 rounded-badge border border-border">{targetSlotForReplacement.location}</span>
                                 </h3>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                                 {/* ALGO SUGGESTIONS */}
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center">
+                                <div className="bg-muted p-4 rounded-card border border-border">
+                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">
                                         <Lightbulb className="w-4 h-4 mr-1 text-yellow-500" /> Suggestions IA / Algorithme
                                     </h4>
 
@@ -669,7 +701,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                             {error}
                                         </div>
                                     ) : suggestions.length === 0 ? (
-                                        <div className="text-center py-4 text-slate-400 text-sm">
+                                        <div className="text-center py-4 text-text-muted text-sm">
                                             Aucune suggestion automatique trouvée.
                                         </div>
                                     ) : (
@@ -685,21 +717,21 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                                     {doc.name.substring(0, 2)}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="font-bold text-slate-800 text-sm">{doc.name}</div>
-                                                                    <div className="text-xs text-slate-500">{doc.specialty.join(', ')}</div>
+                                                                    <div className="font-bold text-text-base text-sm">{doc.name}</div>
+                                                                    <div className="text-xs text-text-muted">{doc.specialty.join(', ')}</div>
                                                                 </div>
                                                             </div>
                                                             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800 border border-green-200">
                                                                 {sugg.score}%
                                                             </span>
                                                         </div>
-                                                        <p className="text-xs text-slate-500 mb-3 italic pl-11">
+                                                        <p className="text-xs text-text-muted mb-3 italic pl-11">
                                                             "{sugg.reasoning}"
                                                         </p>
                                                         <div className="flex gap-2">
                                                             <button
                                                                 onClick={() => onResolve(targetSlotForReplacement.id, doc.id)}
-                                                                className="flex-1 py-2 bg-slate-100 text-slate-700 hover:bg-blue-600 hover:text-white rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
+                                                                className="flex-1 py-2 bg-muted text-text-base hover:bg-primary hover:text-white rounded-btn text-sm font-bold transition-colors flex items-center justify-center"
                                                             >
                                                                 Choisir {doc.name}
                                                             </button>
@@ -725,15 +757,15 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
                                 {/* MANUAL & ACTIONS */}
                                 <div className="flex flex-col space-y-4">
-                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex-1">
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center">
-                                            <User className="w-4 h-4 mr-1 text-slate-500" /> Sélection Manuelle
+                                    <div className="bg-surface p-4 rounded-card border border-border shadow-card flex-1">
+                                        <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">
+                                            <User className="w-4 h-4 mr-1 text-text-muted" /> Sélection Manuelle
                                         </h4>
-                                        <p className="text-xs text-slate-500 mb-4">Si les suggestions ne conviennent pas, choisissez un médecin dans la liste complète.</p>
+                                        <p className="text-xs text-text-muted mb-4">Si les suggestions ne conviennent pas, choisissez un médecin dans la liste complète.</p>
 
                                         <div className="space-y-3">
                                             <select
-                                                className="w-full text-sm border-slate-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 p-2.5"
+                                                className="w-full text-sm border-border rounded-btn shadow-sm focus:border-primary focus:ring-1 focus:ring-primary p-2.5"
                                                 value={manualDoctorId}
                                                 onChange={(e) => setManualDoctorId(e.target.value)}
                                             >
@@ -768,27 +800,27 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                             <button
                                                 disabled={!manualDoctorId}
                                                 onClick={() => onResolve(targetSlotForReplacement.id, manualDoctorId)}
-                                                className="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all"
+                                                className="w-full py-2.5 bg-text-base text-surface rounded-btn text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-modal transition-all"
                                             >
                                                 Valider le choix manuel
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-3 flex items-center">
-                                            <Ban className="w-4 h-4 mr-1 text-red-500" /> Actions sur le créneau
+                                    <div className="bg-muted p-4 rounded-card border border-border">
+                                        <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">
+                                            <Ban className="w-4 h-4 mr-1 text-accent-red" /> Actions sur le créneau
                                         </h4>
                                         <div className="grid grid-cols-2 gap-3">
                                             <button
                                                 onClick={() => onCloseSlot(targetSlotForReplacement.id)}
-                                                className="flex items-center justify-center px-4 py-2 border border-slate-300 bg-white text-slate-600 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-xs font-bold transition-colors"
+                                                className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-red-50 hover:text-accent-red hover:border-red-200 text-xs font-bold transition-colors"
                                             >
                                                 Fermer le créneau
                                             </button>
                                             <button
                                                 onClick={() => onResolve(targetSlotForReplacement.id, "")}
-                                                className="flex items-center justify-center px-4 py-2 border border-slate-300 bg-white text-slate-600 rounded-lg hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 text-xs font-bold transition-colors"
+                                                className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 text-xs font-bold transition-colors"
                                             >
                                                 Laisser vide
                                             </button>
@@ -802,7 +834,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     {!conflict && !slot.isClosed && (
                         // Simple Management View (No Conflict)
                         <div className="mt-4">
-                            <p className="text-sm text-slate-500 mb-4">Gérez ce créneau normalement. Utilisez les suggestions ci-dessus ou fermez le créneau.</p>
+                            <p className="text-sm text-text-muted mb-4">Gérez ce créneau normalement. Utilisez les suggestions ci-dessus ou fermez le créneau.</p>
                         </div>
                     )}
 

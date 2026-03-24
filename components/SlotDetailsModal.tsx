@@ -72,43 +72,60 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
     // If the user cannot resolve this conflict, show an access denied message
     if (!canResolve) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal flex items-end md:items-center justify-center p-0 md:p-4"
+                onClick={onClose}
+            >
+                <div
+                    className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="modal-title-slot"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+
                     {/* HEADER */}
-                    <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-orange-50">
-                        <div className="flex items-center space-x-2">
-                            <ShieldAlert className="w-5 h-5 text-orange-600" />
-                            <h2 className="font-bold text-lg text-orange-800">Accès Restreint</h2>
-                        </div>
-                        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-black/5 p-1">
-                            <X className="w-6 h-6" />
+                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                        <h2 id="modal-title-slot" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
+                            <ShieldAlert className="w-5 h-5 text-accent-amber" aria-hidden="true" />
+                            Accès Restreint
+                        </h2>
+                        <button
+                            onClick={onClose}
+                            aria-label="Fermer"
+                            className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                        >
+                            <X className="w-5 h-5" aria-hidden="true" />
                         </button>
                     </div>
 
-                    <div className="p-6">
+                    <div className="px-4 py-4">
                         <div className="mb-4 text-center">
                             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <ShieldAlert className="w-8 h-8 text-orange-600" />
+                                <ShieldAlert className="w-8 h-8 text-accent-amber" />
                             </div>
-                            <h3 className="font-bold text-lg text-slate-800 mb-2">Ce créneau ne vous concerne pas</h3>
-                            <p className="text-slate-600 text-sm">
+                            <h3 className="font-bold text-base text-text-base mb-2">Ce créneau ne vous concerne pas</h3>
+                            <p className="text-text-muted text-sm">
                                 Vous ne pouvez modifier que les créneaux qui vous sont assignés.<br />
                                 Seuls les administrateurs peuvent modifier les créneaux des autres médecins.
                             </p>
                         </div>
 
                         {/* Show slot info */}
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mb-4">
-                            <div className="text-xs font-bold text-slate-500 uppercase">{slot.day} {slot.period === 'Matin' ? 'Matin' : 'Après-Midi'}</div>
-                            <div className="font-bold text-slate-800 text-sm">{slot.location}</div>
+                        <div className="bg-muted p-3 rounded-card border border-border mb-4">
+                            <div className="text-xs font-bold text-text-muted uppercase">{slot.day} {slot.period === 'Matin' ? 'Matin' : 'Après-Midi'}</div>
+                            <div className="font-bold text-text-base text-sm">{slot.location}</div>
                             {assignedDoctor && (
-                                <div className="text-sm text-slate-600 mt-1">Assigné à : {assignedDoctor.name}</div>
+                                <div className="text-sm text-text-muted mt-1">Assigné à : {assignedDoctor.name}</div>
                             )}
                         </div>
+                    </div>
 
+                    <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
                         <button
                             onClick={onClose}
-                            className="w-full py-2.5 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-700 transition-colors"
+                            className="px-4 py-2 bg-text-base text-surface rounded-btn text-sm font-bold hover:opacity-90 transition-opacity"
                         >
                             Fermer
                         </button>
@@ -120,45 +137,59 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
 
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+        <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal flex items-end md:items-center justify-center p-0 md:p-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="modal-title-slot"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
                 {/* HEADER */}
-                <div className={`p-5 border-b border-slate-100 flex justify-between items-center ${conflict ? 'bg-red-50' : 'bg-slate-50'}`}>
-                    <div className="flex items-center space-x-2">
+                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <h2 id="modal-title-slot" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
                         {conflict ? (
                             <>
-                                <AlertTriangle className="w-5 h-5 text-red-600" />
-                                <h2 className="font-bold text-lg text-red-800">Conflit détecté</h2>
+                                <AlertTriangle className="w-5 h-5 text-accent-red" aria-hidden="true" />
+                                Conflit détecté
                             </>
                         ) : (
                             <>
-                                <UserCheck className="w-5 h-5 text-blue-600" />
-                                <h2 className="font-bold text-lg text-slate-800">Gérer le Créneau</h2>
+                                <UserCheck className="w-5 h-5 text-primary" aria-hidden="true" />
+                                Gérer le Créneau
                             </>
                         )}
-                    </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 rounded-full hover:bg-black/5 p-1">
-                        <X className="w-6 h-6" />
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        aria-label="Fermer"
+                        className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                    >
+                        <X className="w-5 h-5" aria-hidden="true" />
                     </button>
                 </div>
 
-                <div className="p-6 overflow-y-auto">
+                <div className="px-4 py-4">
 
                     {/* SLOT INFO */}
-                    <div className="mb-6 flex items-center justify-between bg-slate-50 p-3 rounded border border-slate-200">
+                    <div className="mb-6 flex items-center justify-between bg-muted p-3 rounded-card border border-border">
                         <div>
-                            <div className="text-xs font-bold text-slate-500 uppercase">{slot.day} {slot.period === 'Matin' ? 'Matin' : 'Après-Midi'}</div>
-                            <div className="font-bold text-slate-800 text-sm">{slot.location} {slot.subType && slot.subType !== slot.location ? `(${slot.subType})` : ''}</div>
+                            <div className="text-xs font-bold text-text-muted uppercase">{slot.day} {slot.period === 'Matin' ? 'Matin' : 'Après-Midi'}</div>
+                            <div className="font-bold text-text-base text-sm">{slot.location} {slot.subType && slot.subType !== slot.location ? `(${slot.subType})` : ''}</div>
                         </div>
                         {slot.isClosed ? (
-                            <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-bold rounded flex items-center">
+                            <span className="px-2 py-1 bg-border text-text-muted text-xs font-bold rounded-badge flex items-center">
                                 <Lock className="w-3 h-3 mr-1" /> Fermé
                             </span>
                         ) : (
                             <div className="text-right">
-                                <div className="text-xs text-slate-500">Actuellement :</div>
-                                <div className={`font-bold ${assignedDoctor ? 'text-blue-600' : 'text-slate-400'}`}>
+                                <div className="text-xs text-text-muted">Actuellement :</div>
+                                <div className={`font-bold ${assignedDoctor ? 'text-primary' : 'text-text-muted'}`}>
                                     {assignedDoctor ? assignedDoctor.name : 'Non assigné'}
                                 </div>
                             </div>
@@ -167,8 +198,8 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
 
                     {conflict && (
                         <div className="mb-6">
-                            <p className="text-sm text-slate-500 mb-1 font-bold">Nature du conflit :</p>
-                            <p className="font-medium text-red-700 bg-red-50 p-3 rounded border border-red-100 text-sm">
+                            <p className="text-sm text-text-muted mb-1 font-bold">Nature du conflit :</p>
+                            <p className="font-medium text-red-700 bg-red-50 p-3 rounded-card border border-red-100 text-sm">
                                 {conflict.description}
                             </p>
                         </div>
@@ -179,7 +210,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                         {!slot.isClosed ? (
                             <button
                                 onClick={() => onCloseSlot(slot.id)}
-                                className="flex items-center justify-center px-4 py-2 border border-slate-300 text-slate-600 rounded hover:bg-slate-100 hover:text-slate-800 text-sm font-medium transition-colors"
+                                className="flex items-center justify-center px-4 py-2 border border-border text-text-muted rounded-btn hover:bg-muted hover:text-text-base text-sm font-medium transition-colors"
                             >
                                 <Ban className="w-4 h-4 mr-2" />
                                 Fermer le créneau
@@ -187,7 +218,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                         ) : (
                             <button
                                 onClick={() => onResolve(slot.id, "")} // "" triggers removal of override
-                                className="flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded hover:bg-blue-50 text-sm font-medium transition-colors"
+                                className="flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-btn hover:bg-blue-50 text-sm font-medium transition-colors"
                             >
                                 <Lock className="w-4 h-4 mr-2" />
                                 Réouvrir
@@ -197,7 +228,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                         {slot.isLocked && !slot.isClosed && (
                             <button
                                 onClick={() => onResolve(slot.id, "")}
-                                className="flex items-center justify-center px-4 py-2 border border-orange-300 text-orange-600 rounded hover:bg-orange-50 text-sm font-medium transition-colors"
+                                className="flex items-center justify-center px-4 py-2 border border-orange-300 text-orange-600 rounded-btn hover:bg-orange-50 text-sm font-medium transition-colors"
                             >
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Reset (Auto)
@@ -208,19 +239,19 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                     {/* ALGORITHMIC SUGGESTIONS */}
                     {!slot.isClosed && (
                         <>
-                            <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3 flex items-center">
+                            <h3 className="text-sm font-semibold text-text-base uppercase tracking-wider mb-3 flex items-center">
                                 <Lightbulb className="w-4 h-4 mr-2 text-yellow-500" />
                                 Suggestions Intelligentes
                             </h3>
 
                             {loading && (
                                 <div className="flex justify-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                 </div>
                             )}
 
                             {!loading && error && (
-                                <div className="text-center py-2 text-orange-500 text-sm mb-4 bg-orange-50 rounded">
+                                <div className="text-center py-2 text-orange-500 text-sm mb-4 bg-orange-50 rounded-card">
                                     {error}
                                 </div>
                             )}
@@ -231,24 +262,24 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                                         const doc = doctors.find(d => d.id === sugg.suggestedDoctorId);
                                         if (!doc) return null;
                                         return (
-                                            <div key={sugg.suggestedDoctorId} className="border border-slate-200 rounded-lg p-3 hover:border-blue-300 transition-colors bg-white">
+                                            <div key={sugg.suggestedDoctorId} className="border border-border rounded-card p-3 hover:border-primary transition-colors bg-surface">
                                                 <div className="flex justify-between items-start mb-1">
                                                     <div className="flex items-center">
                                                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold mr-2 ${doc.color}`}>
                                                             {doc.name.substring(0, 2)}
                                                         </div>
-                                                        <span className="font-bold text-slate-800 text-sm">{doc.name}</span>
+                                                        <span className="font-bold text-text-base text-sm">{doc.name}</span>
                                                     </div>
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-badge text-[10px] font-medium bg-green-100 text-green-800">
                                                         {sugg.score}% Match
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-slate-600 mb-2 italic">
+                                                <p className="text-xs text-text-muted mb-2 italic">
                                                     "{sugg.reasoning}"
                                                 </p>
                                                 <button
                                                     onClick={() => onResolve(slot.id, doc.id)}
-                                                    className="w-full py-1.5 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-xs font-bold"
+                                                    className="w-full py-1.5 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-btn text-xs font-bold"
                                                 >
                                                     Affecter {doc.name}
                                                 </button>
@@ -259,14 +290,14 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                             )}
 
                             {/* MANUAL SELECTION */}
-                            <div className="border-t border-slate-100 pt-4">
-                                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-3 flex items-center">
-                                    <User className="w-4 h-4 mr-2 text-slate-600" />
+                            <div className="border-t border-border pt-4">
+                                <h3 className="text-sm font-semibold text-text-base uppercase tracking-wider mb-3 flex items-center">
+                                    <User className="w-4 h-4 mr-2 text-text-muted" />
                                     Sélection Manuelle
                                 </h3>
                                 <div className="flex gap-2">
                                     <select
-                                        className="flex-1 text-sm border-slate-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                        className="flex-1 text-sm border-border rounded-btn shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
                                         value={manualDoctorId}
                                         onChange={(e) => setManualDoctorId(e.target.value)}
                                     >
@@ -278,7 +309,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                                     <button
                                         disabled={!manualDoctorId}
                                         onClick={() => onResolve(slot.id, manualDoctorId)}
-                                        className="px-4 py-2 bg-slate-800 text-white rounded-md text-sm font-medium hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-4 py-2 bg-text-base text-surface rounded-btn text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Valider
                                     </button>

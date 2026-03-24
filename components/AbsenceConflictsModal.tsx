@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Calendar, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Calendar, AlertTriangle, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import { ScheduleTemplateSlot, ScheduleSlot, Doctor, ActivityDefinition, Unavailability, Conflict, Period, ShiftHistory, RcpDefinition, RcpAttendance, RcpException } from '../types';
 import { generateScheduleForWeek } from '../services/scheduleService';
 import ConflictResolverModal from './ConflictResolverModal';
@@ -137,25 +137,47 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal flex items-end md:items-center justify-center p-0 md:p-4"
+      onClick={onDismiss}
+    >
+      <div
+        className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title-absence"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+
         {/* Header */}
-        <div className="p-4 border-b bg-amber-50 rounded-t-xl">
-          <div className="flex items-center gap-2 text-amber-700">
-            <AlertTriangle className="w-5 h-5" />
-            <h2 className="font-bold text-lg">Créneaux impactés</h2>
-          </div>
-          <p className="text-sm text-amber-600 mt-1">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <h2 id="modal-title-absence" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-accent-amber" aria-hidden="true" />
+            Créneaux impactés
+          </h2>
+          <button
+            onClick={onDismiss}
+            aria-label="Fermer"
+            className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+          >
+            <X className="w-5 h-5" aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Sub-header description */}
+        <div className="px-4 pt-3 pb-1">
+          <p className="text-sm text-text-muted">
             Vous avez {conflictingSlots.length} créneau{conflictingSlots.length > 1 ? 'x' : ''} pendant votre absence.
             Trouvez un remplaçant ou fermez chaque créneau.
           </p>
         </div>
 
         {/* Conflict list */}
-        <div className="overflow-y-auto flex-1 p-3 space-y-3">
+        <div className="px-4 py-4 overflow-y-auto flex-1 space-y-3">
           {conflictingSlots.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-green-500" />
+            <div className="text-center py-8 text-text-muted">
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-accent-green" />
               <p className="font-medium">Aucun créneau impacté</p>
               <p className="text-sm">Vous n'avez aucune activité planifiée pendant cette période.</p>
             </div>
@@ -163,8 +185,8 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
             groupedByDate.map(([date, slots]) => (
               <div key={date}>
                 <div className="flex items-center gap-2 mb-1">
-                  <Calendar className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-semibold text-gray-700 capitalize">{formatDate(date)}</span>
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-text-base capitalize">{formatDate(date)}</span>
                 </div>
                 <div className="space-y-1 ml-6">
                   {slots.map(slot => {
@@ -174,32 +196,32 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
                         key={slot.id}
                         onClick={() => !isResolved && setActiveConflictSlot(slot)}
                         disabled={isResolved}
-                        className={`w-full text-left flex items-center justify-between p-2 rounded-lg border transition-colors ${
+                        className={`w-full text-left flex items-center justify-between p-2 rounded-card border transition-colors ${
                           isResolved
                             ? 'bg-green-50 border-green-200 opacity-60'
-                            : 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
+                            : 'bg-surface border-border hover:bg-muted hover:border-primary cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          <span className={`px-2 py-0.5 rounded-badge text-xs font-medium ${
                             slot.period === 'Matin' ? 'bg-yellow-100 text-yellow-700' : 'bg-orange-100 text-orange-700'
                           }`}>
                             {slot.period}
                           </span>
-                          <span className="text-sm font-medium text-gray-800">
+                          <span className="text-sm font-medium text-text-base">
                             {SLOT_TYPE_LABELS[slot.type] || slot.type}
                           </span>
                           {slot.location && (
-                            <span className="text-xs text-gray-500">— {slot.location}</span>
+                            <span className="text-xs text-text-muted">— {slot.location}</span>
                           )}
                           {slot.subType && (
-                            <span className="text-xs text-gray-400">({slot.subType})</span>
+                            <span className="text-xs text-text-muted">({slot.subType})</span>
                           )}
                         </div>
                         {isResolved ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-accent-green flex-shrink-0" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" />
                         )}
                       </button>
                     );
@@ -211,13 +233,13 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t bg-gray-50 rounded-b-xl flex justify-between items-center">
-          <span className="text-xs text-gray-500">
+        <div className="px-4 py-3 border-t border-border flex justify-between items-center">
+          <span className="text-xs text-text-muted">
             {resolvedSlots.size}/{conflictingSlots.length} résolu{resolvedSlots.size > 1 ? 's' : ''}
           </span>
           <button
             onClick={onDismiss}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-btn hover:bg-primary-hover"
           >
             {conflictingSlots.length === 0 || resolvedSlots.size === conflictingSlots.length ? 'Terminé' : 'Passer pour le moment'}
           </button>
