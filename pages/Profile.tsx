@@ -1,13 +1,14 @@
 import React, { useContext, useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import {
     Calendar, Save, Trash2, UserCheck,
     Briefcase, Edit, Bell, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
-    Plus, Loader2, Tag
+    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown
 } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 import { markReplacementResolved } from '../services/replacementService';
 import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
@@ -120,8 +121,8 @@ const NotificationSection: React.FC<{
     return (
         <div className="space-y-3">
             {/* Push notification subscription */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm text-slate-600 min-w-0">
+            <div className="bg-muted border border-border rounded-card p-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-text-muted min-w-0">
                 <span className="text-base flex-shrink-0">
                   {permission === 'granted' ? '🔔' : '🔕'}
                 </span>
@@ -134,7 +135,7 @@ const NotificationSection: React.FC<{
                   </span>
                 )}
                 {permission === 'unsupported' && (
-                  <span className="text-xs text-slate-400">Non supporté</span>
+                  <span className="text-xs text-text-muted">Non supporté</span>
                 )}
                 {permission === 'default' && (
                   <button
@@ -161,19 +162,19 @@ const NotificationSection: React.FC<{
 
             {/* Per-type notification preferences — only visible when push is granted */}
             {permission === 'granted' && (
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-2.5">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <div className="bg-muted border border-border rounded-card p-3 space-y-2.5">
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">
                   Types de notifications push
                 </p>
                 {ALL_NOTIFICATION_TYPES.map(type => (
                   <div key={type} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-slate-700">{NOTIFICATION_TYPE_LABELS[type]}</span>
+                    <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
                     <button
                       disabled={prefsLoading}
                       onClick={() => toggle(type)}
                       aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
                       className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
-                        ${isEnabled(type) ? 'bg-blue-600' : 'bg-slate-300'}`}
+                        ${isEnabled(type) ? 'bg-blue-600' : 'bg-border'}`}
                     >
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform
                         ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -184,7 +185,7 @@ const NotificationSection: React.FC<{
             )}
 
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-text-base flex items-center gap-2">
                     Mes notifications
                     {filteredUnreadCount > 0 && (
                         <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">{filteredUnreadCount}</span>
@@ -205,9 +206,9 @@ const NotificationSection: React.FC<{
                 </div>
             </div>
 
-            {loading && <p className="text-sm text-gray-400 py-6 text-center">Chargement...</p>}
+            {loading && <p className="text-sm text-text-muted py-6 text-center">Chargement...</p>}
             {!loading && filteredNotifications.length === 0 && (
-                <p className="text-sm text-gray-400 py-6 text-center">Aucune notification de remplacement</p>
+                <p className="text-sm text-text-muted py-6 text-center">Aucune notification de remplacement</p>
             )}
 
             <div className="space-y-2">
@@ -219,16 +220,16 @@ const NotificationSection: React.FC<{
                         <div key={n.id}
                             onClick={() => !requestId && markRead(n.id)}
                             className={`rounded-xl p-3.5 border transition-colors
-                                ${n.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'}
-                                ${!requestId ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                                ${n.read ? 'bg-surface border-border' : 'bg-blue-50 border-blue-200'}
+                                ${!requestId ? 'cursor-pointer hover:bg-muted' : ''}`}
                         >
                             <div className="flex items-start gap-2">
                                 <span className="text-base mt-0.5 shrink-0">{icon}</span>
                                 {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />}
                                 <div className="flex-1">
-                                    <p className={`text-sm ${n.read ? 'text-gray-700' : 'font-semibold text-gray-800'}`}>{n.title}</p>
-                                    <p className="text-xs text-gray-500 mt-0.5">{n.body}</p>
-                                    <p className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString('fr-FR')}</p>
+                                    <p className={`text-sm ${n.read ? 'text-text-base' : 'font-semibold text-text-base'}`}>{n.title}</p>
+                                    <p className="text-xs text-text-muted mt-0.5">{n.body}</p>
+                                    <p className="text-xs text-text-muted mt-1">{new Date(n.created_at).toLocaleString('fr-FR')}</p>
                                     {n.type === 'REPLACEMENT_REQUEST' && requestId && (
                                         (resolution || n.data?.resolution) ? (
                                             <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${(resolution || n.data?.resolution) === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -284,7 +285,7 @@ const Profile: React.FC = () => {
         setManualOverrides,
     } = useContext(AppContext);
 
-    const { profile, loading: authLoading } = useAuth();
+    const { profile, loading: authLoading, isAdmin } = useAuth();
     const { notifications, unreadCount, markRead, markAllRead, clearAll, loading: notifLoading } = useNotifications();
     const navigate = useNavigate();
 
@@ -313,6 +314,9 @@ const Profile: React.FC = () => {
     const [conflictsWeekOffset, setConflictsWeekOffset] = useState(0);
     const [conflictModalSlot, setConflictModalSlot] = useState<ScheduleSlot | null>(null);
     const [conflictModalConflict, setConflictModalConflict] = useState<Conflict | null>(null);
+
+    // Admin collapsible state (mobile)
+    const [adminOpen, setAdminOpen] = useState(false);
 
     // Edit profile state
     const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -857,6 +861,12 @@ const Profile: React.FC = () => {
 
     const rcpNotifications = getUnconfirmedRcpNotifications();
 
+    const adminLinks = [
+        { to: '/admin/team',  icon: Users,    label: "Gestion d'équipe" },
+        { to: '/admin/roles', icon: Shield,   label: 'Gestion des rôles' },
+        { to: '/data',        icon: Database, label: 'Données' },
+    ];
+
     // Loading state
     if (authLoading || loadingDoctor) {
         return (
@@ -870,10 +880,10 @@ const Profile: React.FC = () => {
     if (!profile) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] p-6">
-                <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-slate-200 max-w-md">
-                    <UserCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-slate-800 mb-2">Connexion requise</h2>
-                    <p className="text-slate-500 mb-6">Veuillez vous connecter pour accéder à votre profil.</p>
+                <div className="text-center bg-surface p-8 rounded-card shadow-lg border border-border max-w-md">
+                    <UserCheck className="w-16 h-16 text-text-muted mx-auto mb-4" />
+                    <h2 className="text-xl font-bold text-text-base mb-2">Connexion requise</h2>
+                    <p className="text-text-muted mb-6">Veuillez vous connecter pour accéder à votre profil.</p>
                     <button
                         onClick={() => navigate('/login')}
                         className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
@@ -889,14 +899,14 @@ const Profile: React.FC = () => {
     if (!currentDoctor) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] p-6">
-                <div className="text-center bg-white p-8 rounded-xl shadow-lg border border-slate-200 max-w-md">
+                <div className="text-center bg-surface p-8 rounded-card shadow-lg border border-border max-w-md">
                     <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-slate-800 mb-2">Profil médecin non configuré</h2>
-                    <p className="text-slate-500 mb-4">
+                    <h2 className="text-xl font-bold text-text-base mb-2">Profil médecin non configuré</h2>
+                    <p className="text-text-muted mb-4">
                         Votre compte n'est pas encore lié à un profil médecin.
                         Contactez un administrateur pour configurer votre profil.
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-text-muted">
                         Connecté en tant que : <strong>{profile.email}</strong>
                     </p>
                 </div>
@@ -909,112 +919,171 @@ const Profile: React.FC = () => {
     const upcomingRcps = getUpcomingRcps();
 
     return (
-        <div className="max-w-5xl mx-auto space-y-3 md:space-y-6 pb-20 p-1 md:p-4">
+        <div className="max-w-5xl mx-auto pb-20 p-1 md:p-4">
 
-            {/* HEADER CARD */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 md:p-8 text-white">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div className="flex items-center">
-                            <div
-                                className="w-12 h-12 md:w-20 md:h-20 rounded-full flex items-center justify-center text-lg md:text-2xl font-bold shadow-lg mr-3 md:mr-6 border-4 border-white/20"
-                                style={{ backgroundColor: currentDoctor.color || '#3B82F6' }}
-                            >
-                                {currentDoctor.name.substring(0, 2)}
-                            </div>
-                            <div>
-                                {isEditingProfile ? (
-                                    <div className="space-y-3 bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                                        <div>
-                                            <label className="text-xs text-blue-200 mb-1 block">Nom</label>
-                                            <input
-                                                type="text"
-                                                className="w-full text-slate-900 px-3 py-2 rounded text-sm font-bold"
-                                                value={editName}
-                                                onChange={e => setEditName(e.target.value)}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-blue-200 mb-1 block flex items-center">
-                                                <Tag className="w-3 h-3 mr-1" /> Spécialités
-                                            </label>
-                                            {availableSpecialties.length === 0 ? (
-                                                <p className="text-xs text-blue-200 italic">Aucune spécialité disponible</p>
-                                            ) : (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {availableSpecialties.map(spec => {
-                                                        const isSelected = editSpecialties.includes(spec.name);
-                                                        return (
-                                                            <button
-                                                                key={spec.id}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    if (isSelected) {
-                                                                        setEditSpecialties(editSpecialties.filter(s => s !== spec.name));
-                                                                    } else {
-                                                                        setEditSpecialties([...editSpecialties, spec.name]);
-                                                                    }
-                                                                }}
-                                                                className={`px-2 py-1 rounded-full text-xs font-medium border transition-all ${isSelected
-                                                                    ? 'text-white border-transparent shadow-sm'
-                                                                    : 'bg-white/20 text-white border-white/30 hover:bg-white/30'
-                                                                    }`}
-                                                                style={isSelected ? { backgroundColor: spec.color } : {}}
-                                                            >
-                                                                {isSelected && '✓ '}{spec.name}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex space-x-2 mt-2">
-                                            <button onClick={handleSaveProfile} className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-xs font-bold text-white shadow">Enregistrer</button>
-                                            <button onClick={() => setIsEditingProfile(false)} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs text-white">Annuler</button>
-                                        </div>
+            {/* PAGE HEADER */}
+            <h1 className="font-heading font-bold text-xl text-text-base mb-4">Mon Profil</h1>
+
+            {/* DESKTOP: 2-col grid / MOBILE: stacked */}
+            <div className="grid lg:grid-cols-[320px_1fr] gap-4 items-start">
+
+                {/* LEFT COLUMN */}
+                <div className="space-y-4">
+                    {/* User info card */}
+                    <Card>
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white rounded-t-card">
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shadow-lg border-4 border-white/20 flex-shrink-0"
+                                        style={{ backgroundColor: currentDoctor.color || '#3B82F6' }}
+                                    >
+                                        {currentDoctor.name.substring(0, 2)}
                                     </div>
-                                ) : (
-                                    <>
-                                        <div className="flex items-center space-x-2">
-                                            <h1 className="text-lg md:text-2xl font-bold">{currentDoctor.name}</h1>
-                                            <button onClick={() => setIsEditingProfile(true)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded">
-                                                <Edit className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                        <p className="text-blue-100 mt-1 flex items-center">
-                                            <Briefcase className="w-3 h-3 mr-1 opacity-70" />
-                                            {currentDoctor.specialty?.join(' • ') || 'Généraliste'}
-                                        </p>
-                                        <div className="mt-3 inline-flex items-center bg-green-400/20 text-green-100 border border-green-400/30 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">
-                                            <UserCheck className="w-3 h-3 mr-1" /> Connecté
-                                        </div>
-                                    </>
-                                )}
+                                    <div>
+                                        {isEditingProfile ? (
+                                            <div className="space-y-3 bg-white/10 p-3 rounded-lg backdrop-blur-sm">
+                                                <div>
+                                                    <label className="text-xs text-blue-200 mb-1 block">Nom</label>
+                                                    <input
+                                                        type="text"
+                                                        className="w-full text-text-base px-3 py-2 rounded text-sm font-bold"
+                                                        value={editName}
+                                                        onChange={e => setEditName(e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs text-blue-200 mb-1 flex items-center">
+                                                        <Tag className="w-3 h-3 mr-1" /> Spécialités
+                                                    </label>
+                                                    {availableSpecialties.length === 0 ? (
+                                                        <p className="text-xs text-blue-200 italic">Aucune spécialité disponible</p>
+                                                    ) : (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {availableSpecialties.map(spec => {
+                                                                const isSelected = editSpecialties.includes(spec.name);
+                                                                return (
+                                                                    <button
+                                                                        key={spec.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            if (isSelected) {
+                                                                                setEditSpecialties(editSpecialties.filter(s => s !== spec.name));
+                                                                            } else {
+                                                                                setEditSpecialties([...editSpecialties, spec.name]);
+                                                                            }
+                                                                        }}
+                                                                        className={`px-2 py-1 rounded-full text-xs font-medium border transition-all ${isSelected
+                                                                            ? 'text-white border-transparent shadow-sm'
+                                                                            : 'bg-white/20 text-white border-white/30 hover:bg-white/30'
+                                                                            }`}
+                                                                        style={isSelected ? { backgroundColor: spec.color } : {}}
+                                                                    >
+                                                                        {isSelected && '✓ '}{spec.name}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex space-x-2 mt-2">
+                                                    <button onClick={handleSaveProfile} className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-xs font-bold text-white shadow">Enregistrer</button>
+                                                    <button onClick={() => setIsEditingProfile(false)} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-xs text-white">Annuler</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center space-x-2">
+                                                    <h2 className="text-lg font-bold">{currentDoctor.name}</h2>
+                                                    <button onClick={() => setIsEditingProfile(true)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded">
+                                                        <Edit className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                                <p className="text-blue-100 mt-0.5 flex items-center text-sm">
+                                                    <Briefcase className="w-3 h-3 mr-1 opacity-70" />
+                                                    {currentDoctor.specialty?.join(' • ') || 'Généraliste'}
+                                                </p>
+                                                <div className="mt-2 inline-flex items-center bg-green-400/20 text-green-100 border border-green-400/30 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">
+                                                    <UserCheck className="w-3 h-3 mr-1" /> Connecté
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="text-right text-xs text-blue-100 flex-shrink-0">
+                                    <div className="truncate max-w-[120px]">{profile.email}</div>
+                                    <div className="text-xs mt-1 opacity-75">{profile.role_name || profile.role}</div>
+                                </div>
                             </div>
                         </div>
-                        <div className="text-right text-xs md:text-sm text-blue-100">
-                            <div>{profile.email}</div>
-                            <div className="text-xs mt-1 opacity-75">{profile.role_name || profile.role}</div>
+                    </Card>
+
+                    {/* Admin links (desktop sidebar — always visible for admins) */}
+                    {isAdmin && (
+                        <Card className="hidden lg:block">
+                            <CardHeader>
+                                <CardTitle>Administration</CardTitle>
+                            </CardHeader>
+                            <CardBody className="p-0">
+                                {adminLinks.map(link => (
+                                    <NavLink
+                                        key={link.to}
+                                        to={link.to}
+                                        className="flex items-center gap-3 px-4 h-11 hover:bg-muted border-b border-border last:border-0 text-sm font-medium text-text-base"
+                                    >
+                                        <link.icon className="w-4 h-4 text-text-muted" aria-hidden="true" />
+                                        {link.label}
+                                    </NavLink>
+                                ))}
+                            </CardBody>
+                        </Card>
+                    )}
+
+                    {/* Admin collapsible (mobile only) */}
+                    {isAdmin && (
+                        <div className="lg:hidden">
+                            <button
+                                onClick={() => setAdminOpen(v => !v)}
+                                aria-expanded={adminOpen}
+                                className="w-full flex items-center justify-between px-4 h-11 bg-surface border border-border rounded-card font-heading font-semibold text-sm text-text-muted"
+                            >
+                                Administration
+                                <ChevronDown className={`w-4 h-4 transition-transform ${adminOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                            </button>
+                            {adminOpen && (
+                                <div className="mt-1 bg-surface border border-border rounded-card overflow-hidden">
+                                    {adminLinks.map(link => (
+                                        <NavLink
+                                            key={link.to}
+                                            to={link.to}
+                                            className="flex items-center gap-3 px-4 h-11 hover:bg-muted border-b border-border last:border-0 text-sm font-medium text-text-base"
+                                        >
+                                            <link.icon className="w-4 h-4 text-text-muted" aria-hidden="true" />
+                                            {link.label}
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    </div>
+                    )}
                 </div>
 
-            </div>
-
-            {/* BOTTOM SECTION: TABS */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                {/* RIGHT COLUMN: tabs content */}
+                <div>
+            {/* TABS */}
+            <Card className="overflow-hidden">
                 {/* Tab Navigation */}
-                <div className="flex border-b border-slate-200">
+                <div className="flex border-b border-border">
                     <button
                         onClick={() => setActiveTab('rcp')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'rcp' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'rcp' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
                     >
                         <CheckCircle2 className="w-4 h-4" />
                         RCP
                     </button>
                     <button
                         onClick={() => setActiveTab('notifications')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'notifications' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'notifications' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
                     >
                         <Bell className="w-4 h-4" />
                         Notifications
@@ -1026,21 +1095,21 @@ const Profile: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('absences')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'absences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'absences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
                     >
                         <Calendar className="w-4 h-4" />
                         Absences
                     </button>
                     <button
                         onClick={() => setActiveTab('preferences')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'preferences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'preferences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
                     >
                         <Briefcase className="w-4 h-4" />
                         Préférences
                     </button>
                     <button
                         onClick={() => setActiveTab('conflits')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'conflits' ? 'border-b-2 border-red-600 text-red-600' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'conflits' ? 'border-b-2 border-red-600 text-red-600' : 'text-text-muted hover:text-text-base'}`}
                     >
                         <AlertTriangle className="w-4 h-4" />
                         Conflits
@@ -1087,42 +1156,42 @@ const Profile: React.FC = () => {
 
                 {/* ABSENCES */}
                 <div>
-                    <h2 className="text-sm md:text-lg font-bold text-slate-800 mb-3 md:mb-4 flex items-center">
+                    <h2 className="text-sm md:text-lg font-bold text-text-base mb-3 md:mb-4 flex items-center">
                         <Calendar className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 text-blue-500" />
                         Déclarer une absence
                     </h2>
 
-                    <form onSubmit={handleAddUnavailability} className="bg-white p-3 md:p-5 rounded-xl border border-slate-200 mb-4 md:mb-6 space-y-3 md:space-y-4 shadow-sm">
+                    <form onSubmit={handleAddUnavailability} className="bg-surface p-3 md:p-5 rounded-card border border-border mb-4 md:mb-6 space-y-3 md:space-y-4 shadow-sm">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Du</label>
+                                <label className="block text-xs font-bold text-text-muted mb-1">Du</label>
                                 <input
                                     type="date"
                                     required
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full rounded border-slate-300 text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">Au</label>
+                                <label className="block text-xs font-bold text-text-muted mb-1">Au</label>
                                 <input
                                     type="date"
                                     required
                                     value={endDate}
                                     min={startDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full rounded border-slate-300 text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Période</label>
+                            <label className="block text-xs font-bold text-text-muted mb-1">Période</label>
                             <select
                                 value={absencePeriod}
                                 onChange={(e) => setAbsencePeriod(e.target.value as any)}
-                                className="w-full rounded border-slate-300 text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="ALL_DAY">Journée entière</option>
                                 <option value={Period.MORNING}>Matin uniquement</option>
@@ -1131,11 +1200,11 @@ const Profile: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">Motif</label>
+                            <label className="block text-xs font-bold text-text-muted mb-1">Motif</label>
                             <select
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
-                                className="w-full rounded border-slate-300 text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 <option value="CONGRES">Congrès</option>
                                 <option value="VACANCES">Vacances</option>
@@ -1148,7 +1217,7 @@ const Profile: React.FC = () => {
                             <input
                                 type="text"
                                 placeholder="Précisez..."
-                                className="w-full rounded border border-slate-300 text-sm p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full rounded border border-border text-sm p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                 value={customReason}
                                 onChange={e => setCustomReason(e.target.value)}
                                 required
@@ -1160,29 +1229,29 @@ const Profile: React.FC = () => {
                         </button>
                     </form>
 
-                    <h3 className="text-sm font-bold text-slate-800 mb-2 pl-1 flex items-center">
+                    <h3 className="text-sm font-bold text-text-base mb-2 pl-1 flex items-center">
                         Historique des absences
-                        <span className="ml-2 text-[10px] text-slate-400 font-normal">(lecture seule)</span>
+                        <span className="ml-2 text-[10px] text-text-muted font-normal">(lecture seule)</span>
                     </h3>
-                    <ul className="divide-y divide-slate-100 bg-white border border-slate-200 rounded-lg max-h-60 overflow-y-auto shadow-sm">
+                    <ul className="divide-y divide-border bg-surface border border-border rounded-card max-h-60 overflow-y-auto shadow-sm">
                         {myAbsences.length === 0 ? (
-                            <li className="p-4 text-slate-500 italic text-sm text-center">Aucune absence déclarée.</li>
+                            <li className="p-4 text-text-muted italic text-sm text-center">Aucune absence déclarée.</li>
                         ) : (
                             myAbsences.map(abs => (
-                                <li key={abs.id} className="p-3 flex justify-between items-center hover:bg-slate-50">
+                                <li key={abs.id} className="p-3 flex justify-between items-center hover:bg-muted">
                                     <div className="text-sm flex-1">
-                                        <div className="font-bold text-slate-700">{abs.reason}</div>
-                                        <div className="text-xs text-slate-500 mt-0.5">
+                                        <div className="font-bold text-text-base">{abs.reason}</div>
+                                        <div className="text-xs text-text-muted mt-0.5">
                                             {abs.startDate} → {abs.endDate}
                                             {abs.period && abs.period !== 'ALL_DAY' && (
-                                                <span className="ml-2 text-[10px] bg-slate-100 text-slate-500 px-1 rounded">
+                                                <span className="ml-2 text-[10px] bg-muted text-text-muted px-1 rounded">
                                                     {abs.period === Period.MORNING ? 'Matin' : 'Après-midi'}
                                                 </span>
                                             )}
                                         </div>
                                     </div>
                                     {/* No delete button - only admin can delete */}
-                                    <div className="text-slate-300 p-2" title="Contactez un administrateur pour modifier">
+                                    <div className="text-text-muted p-2" title="Contactez un administrateur pour modifier">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                         </svg>
@@ -1191,7 +1260,7 @@ const Profile: React.FC = () => {
                             ))
                         )}
                     </ul>
-                    <p className="text-[10px] text-slate-400 mt-2 pl-1 italic">
+                    <p className="text-[10px] text-text-muted mt-2 pl-1 italic">
                         Pour modifier ou supprimer une absence, contactez un administrateur.
                     </p>
                 </div>
@@ -1203,17 +1272,17 @@ const Profile: React.FC = () => {
                         <div>
                             {/* Week navigation */}
                             <div className="flex items-center justify-between mb-4">
-                                <button onClick={() => setNotifWeekOffset(notifWeekOffset - 1)} className="p-1 hover:bg-slate-100 rounded-lg">
-                                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                <button onClick={() => setNotifWeekOffset(notifWeekOffset - 1)} className="p-1 hover:bg-muted rounded-lg">
+                                    <ChevronLeft className="w-5 h-5 text-text-muted" />
                                 </button>
-                                <span className="text-sm font-semibold text-slate-700">{getNotificationWeekLabel()}</span>
-                                <button onClick={() => setNotifWeekOffset(notifWeekOffset + 1)} className="p-1 hover:bg-slate-100 rounded-lg">
-                                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                                <span className="text-sm font-semibold text-text-base">{getNotificationWeekLabel()}</span>
+                                <button onClick={() => setNotifWeekOffset(notifWeekOffset + 1)} className="p-1 hover:bg-muted rounded-lg">
+                                    <ChevronRight className="w-5 h-5 text-text-muted" />
                                 </button>
                             </div>
 
                             {upcomingRcps.length === 0 ? (
-                                <p className="text-center text-slate-400 py-8 text-sm italic">Aucun RCP cette semaine</p>
+                                <p className="text-center text-text-muted py-8 text-sm italic">Aucun RCP cette semaine</p>
                             ) : (
                                 <div className="space-y-3">
                                     {upcomingRcps.map((rcp, idx) => {
@@ -1221,11 +1290,11 @@ const Profile: React.FC = () => {
                                         const lockedByOther = lockedByDoctorId && lockedByDoctorId !== currentDoctor!.id;
                                         const lockedDoctor = lockedByOther ? doctors.find(d => d.id === lockedByDoctorId) : null;
                                         return (
-                                            <div key={idx} className={`border rounded-xl p-4 ${rcp.isCancelled ? 'opacity-50 bg-slate-50' : 'bg-white border-slate-200'}`}>
+                                            <div key={idx} className={`border rounded-xl p-4 ${rcp.isCancelled ? 'opacity-50 bg-muted' : 'bg-surface border-border'}`}>
                                                 {/* Header */}
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1">
-                                                        <p className="font-semibold text-slate-800 text-sm">
+                                                        <p className="font-semibold text-text-base text-sm">
                                                             {rcp.template.location || rcp.template.id}
                                                             {rcp.isExceptional && (
                                                                 <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 font-bold">
@@ -1233,7 +1302,7 @@ const Profile: React.FC = () => {
                                                                 </span>
                                                             )}
                                                         </p>
-                                                        <p className="text-xs text-slate-500 mt-0.5">
+                                                        <p className="text-xs text-text-muted mt-0.5">
                                                             {new Date(rcp.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}
                                                             {rcp.time !== 'N/A' && ` · ${rcp.time}`}
                                                         </p>
@@ -1272,7 +1341,7 @@ const Profile: React.FC = () => {
                                                                     <button
                                                                         onClick={() => handleAttendanceToggle(rcp.generatedId, 'PRESENT')}
                                                                         disabled={rcp.myStatus === 'PRESENT'}
-                                                                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'PRESENT' ? 'bg-green-600 text-white cursor-default' : 'bg-slate-100 text-slate-700 hover:bg-green-50 hover:text-green-700'}`}
+                                                                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'PRESENT' ? 'bg-green-600 text-white cursor-default' : 'bg-muted text-text-base hover:bg-green-50 hover:text-green-700'}`}
                                                                     >
                                                                         Présent
                                                                     </button>
@@ -1280,13 +1349,13 @@ const Profile: React.FC = () => {
                                                                 <button
                                                                     onClick={() => handleAttendanceToggle(rcp.generatedId, 'ABSENT')}
                                                                     disabled={rcp.myStatus === 'ABSENT'}
-                                                                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'ABSENT' ? 'bg-red-500 text-white cursor-default' : 'bg-slate-100 text-slate-700 hover:bg-red-50 hover:text-red-600'}`}
+                                                                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'ABSENT' ? 'bg-red-500 text-white cursor-default' : 'bg-muted text-text-base hover:bg-red-50 hover:text-red-600'}`}
                                                                 >
                                                                     Absent
                                                                 </button>
                                                                 {rcp.myStatus && (
                                                                     <button onClick={() => handleClearDecision(rcp.generatedId)}
-                                                                        className="text-xs px-2 py-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100" title="Réinitialiser">
+                                                                        className="text-xs px-2 py-1.5 rounded-lg text-text-muted hover:text-text-base hover:bg-muted" title="Réinitialiser">
                                                                         <RotateCcw className="w-3.5 h-3.5" />
                                                                     </button>
                                                                 )}
@@ -1295,11 +1364,11 @@ const Profile: React.FC = () => {
 
                                                         {/* Colleagues */}
                                                         {rcp.colleaguesStatus.length > 0 && (
-                                                            <div className="mt-3 pt-3 border-t border-slate-100">
-                                                                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1.5">Collègues</p>
+                                                            <div className="mt-3 pt-3 border-t border-border">
+                                                                <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider mb-1.5">Collègues</p>
                                                                 <div className="flex flex-wrap gap-1.5">
                                                                     {rcp.colleaguesStatus.map((col: any) => (
-                                                                        <span key={col.id} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${col.status === 'PRESENT' ? 'bg-green-100 text-green-700' : col.status === 'ABSENT' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                                        <span key={col.id} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${col.status === 'PRESENT' ? 'bg-green-100 text-green-700' : col.status === 'ABSENT' ? 'bg-red-100 text-red-600' : 'bg-muted text-text-muted'}`}>
                                                                             {col.name}{col.status === 'PRESENT' ? ' ✓' : col.status === 'ABSENT' ? ' ✗' : ' ?'}
                                                                         </span>
                                                                     ))}
@@ -1318,14 +1387,14 @@ const Profile: React.FC = () => {
 
                     {activeTab === 'preferences' && (
                         <div>
-                            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                            <h2 className="text-lg font-bold text-text-base mb-4 flex items-center">
                                 <Briefcase className="w-5 h-5 mr-2 text-purple-500" />
                                 Mes Préférences & Exclusions
                             </h2>
-                            <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                            <div className="bg-muted p-5 rounded-card border border-border shadow-sm space-y-4">
                                 {/* Demi-journées non travaillées (récurrentes) */}
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
+                                    <h3 className="text-sm font-bold text-text-base mb-2 flex items-center">
                                         <Calendar className="w-4 h-4 mr-2 text-red-500" />
                                         Demi-journées non travaillées (récurrentes)
                                     </h3>
@@ -1346,13 +1415,13 @@ const Profile: React.FC = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-slate-400 italic">Aucune demi-journée exclue</p>
+                                        <p className="text-sm text-text-muted italic">Aucune demi-journée exclue</p>
                                     )}
                                 </div>
                                 {/* Activités exclues */}
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
-                                        <AlertTriangle className="w-4 h-4 mr-2 text-slate-500" />
+                                    <h3 className="text-sm font-bold text-text-base mb-2 flex items-center">
+                                        <AlertTriangle className="w-4 h-4 mr-2 text-text-muted" />
                                         Activités exclues
                                     </h3>
                                     {currentDoctor.excludedActivities && currentDoctor.excludedActivities.length > 0 ? (
@@ -1360,19 +1429,19 @@ const Profile: React.FC = () => {
                                             {currentDoctor.excludedActivities.map(actId => {
                                                 const activity = activityDefinitions.find(a => a.id === actId);
                                                 return (
-                                                    <span key={actId} className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-600 font-medium line-through">
+                                                    <span key={actId} className="px-2 py-1 text-xs rounded bg-muted text-text-muted font-medium line-through">
                                                         {activity?.name || actId}
                                                     </span>
                                                 );
                                             })}
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-slate-400 italic">Aucune activité exclue</p>
+                                        <p className="text-sm text-text-muted italic">Aucune activité exclue</p>
                                     )}
                                 </div>
                                 {/* Types de créneaux exclus */}
                                 <div>
-                                    <h3 className="text-sm font-bold text-slate-700 mb-2 flex items-center">
+                                    <h3 className="text-sm font-bold text-text-base mb-2 flex items-center">
                                         <AlertTriangle className="w-4 h-4 mr-2 text-orange-500" />
                                         Types de créneaux exclus
                                     </h3>
@@ -1385,10 +1454,10 @@ const Profile: React.FC = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-slate-400 italic">Aucun type exclu</p>
+                                        <p className="text-sm text-text-muted italic">Aucun type exclu</p>
                                     )}
                                 </div>
-                                <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">
+                                <p className="text-xs text-text-muted pt-2 border-t border-border">
                                     Ces paramètres sont gérés par l'administrateur. Contactez votre responsable pour toute modification.
                                 </p>
                             </div>
@@ -1398,21 +1467,21 @@ const Profile: React.FC = () => {
                         <div>
                             {/* Week navigation */}
                             <div className="flex items-center justify-between mb-4">
-                                <button onClick={() => setConflictsWeekOffset(prev => prev - 1)} className="p-2 hover:bg-slate-100 rounded-lg transition">
-                                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                <button onClick={() => setConflictsWeekOffset(prev => prev - 1)} className="p-2 hover:bg-muted rounded-lg transition">
+                                    <ChevronLeft className="w-5 h-5 text-text-muted" />
                                 </button>
                                 <div className="text-center">
-                                    <h3 className="font-bold text-slate-800">{getConflictsWeekLabel()}</h3>
-                                    <p className="text-xs text-slate-500">{profileConflicts.length} conflit{profileConflicts.length !== 1 ? 's' : ''}</p>
+                                    <h3 className="font-bold text-text-base">{getConflictsWeekLabel()}</h3>
+                                    <p className="text-xs text-text-muted">{profileConflicts.length} conflit{profileConflicts.length !== 1 ? 's' : ''}</p>
                                 </div>
-                                <button onClick={() => setConflictsWeekOffset(prev => prev + 1)} className="p-2 hover:bg-slate-100 rounded-lg transition">
-                                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                                <button onClick={() => setConflictsWeekOffset(prev => prev + 1)} className="p-2 hover:bg-muted rounded-lg transition">
+                                    <ChevronRight className="w-5 h-5 text-text-muted" />
                                 </button>
                             </div>
 
                             {/* Conflict list */}
                             {profileConflicts.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                <div className="flex flex-col items-center justify-center py-12 text-text-muted">
                                     <CheckCircle2 className="w-10 h-10 mb-3 text-green-400" />
                                     <span className="text-sm font-medium">Aucun conflit sur cette semaine</span>
                                 </div>
@@ -1429,13 +1498,13 @@ const Profile: React.FC = () => {
                                                     setConflictModalSlot(slot);
                                                     setConflictModalConflict(conflict);
                                                 }}
-                                                className="p-3 bg-white border border-red-100 rounded-lg shadow-sm hover:border-red-300 hover:shadow-md transition-all cursor-pointer relative group"
+                                                className="p-3 bg-surface border border-red-100 rounded-card shadow-sm hover:border-red-300 hover:shadow-md transition-all cursor-pointer relative group"
                                             >
                                                 <div className="flex justify-between items-start mb-1">
                                                     <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase">
                                                         {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : conflict.type === 'COMPETENCE_MISMATCH' ? 'Compétence' : 'Indisponibilité'}
                                                     </span>
-                                                    <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                                                    <span className="text-[10px] text-text-muted font-mono flex items-center gap-1">
                                                         {slot.date
                                                             ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
                                                             : slot.day?.substring(0, 3)
@@ -1443,8 +1512,8 @@ const Profile: React.FC = () => {
                                                         {' · '}{slot.period === Period.MORNING ? 'Matin' : 'Après-midi'}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm font-medium text-slate-700 mt-2">{slot.location || slot.subType}</p>
-                                                <p className="text-xs text-slate-500 mt-1">{conflict.description}</p>
+                                                <p className="text-sm font-medium text-text-base mt-2">{slot.location || slot.subType}</p>
+                                                <p className="text-xs text-text-muted mt-1">{conflict.description}</p>
                                                 <div className="absolute right-2 bottom-2 text-xs text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                                                     Résoudre →
                                                 </div>
@@ -1456,7 +1525,10 @@ const Profile: React.FC = () => {
                         </div>
                     )}
                 </div>
-            </div>
+            </Card>
+                </div>{/* end right column */}
+            </div>{/* end grid */}
+
         {absenceConflictModal && currentDoctor && (
             <AbsenceConflictsModal
                 doctorId={currentDoctor.id}
