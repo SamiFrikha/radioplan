@@ -313,9 +313,9 @@ const Planning: React.FC = () => {
 
         if (holiday) {
             return (
-                <div className="h-full w-full bg-pink-50 flex items-center justify-center border-l-4 border-pink-200 flex-col opacity-80">
-                    <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Férié</span>
-                    <span className="text-[9px] text-pink-300">{holiday.name}</span>
+                <div className="h-full w-full bg-danger/5 flex items-center justify-center border-l-4 border-danger/20 flex-col opacity-80">
+                    <span className="text-[10px] text-danger/60 font-bold uppercase tracking-wider">Férié</span>
+                    <span className="text-[9px] text-danger/40">{holiday.name}</span>
                 </div>
             );
         }
@@ -404,14 +404,14 @@ const Planning: React.FC = () => {
                     borderClass = "border-transparent";
                 }
             } else if (slot.type === SlotType.RCP) {
-                bgClass = "bg-purple-100";
-                borderClass = "border-purple-500";
+                bgClass = "bg-secondary/10";
+                borderClass = "border-secondary";
             }
         }
 
         if (conflict) {
-            bgClass = "bg-red-50";
-            borderClass = "border-red-500";
+            bgClass = "bg-danger/10";
+            borderClass = "border-danger";
         }
 
         // Handle click based on access control
@@ -430,7 +430,7 @@ const Planning: React.FC = () => {
                 onClick={handleSlotClick}
             >
                 {conflict && (
-                    <div className="absolute top-1 right-1 text-red-500 animate-pulse">
+                    <div className="absolute top-1 right-1 text-danger animate-pulse">
                         <AlertCircle className="w-4 h-4" />
                     </div>
                 )}
@@ -460,7 +460,7 @@ const Planning: React.FC = () => {
                             </div>
                         )}
                         {slot.type === SlotType.ACTIVITY && colorMode === 'DOCTOR' && (
-                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 ml-7">
+                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-warning/10 text-warning-text ml-7">
                                 {slot.subType}
                             </span>
                         )}
@@ -471,7 +471,7 @@ const Planning: React.FC = () => {
                 ) : (
                     <div className="text-center">
                         <span className="text-xs text-text-muted italic">Non assigné</span>
-                        {conflict && <div className="text-[10px] text-red-500 font-bold mt-1">Absent</div>}
+                        {conflict && <div className="text-[10px] text-danger font-bold mt-1">Absent</div>}
                     </div>
                 )}
             </div>
@@ -488,7 +488,7 @@ const Planning: React.FC = () => {
 
         const isHoliday = isFrenchHoliday(date);
         if (isHoliday && slots.length === 0) {
-            return <div className="bg-pink-50 h-full text-[10px] text-pink-300 flex items-center justify-center">Férié</div>;
+            return <div className="bg-danger/5 h-full text-[10px] text-danger/40 flex items-center justify-center">Férié</div>;
         }
 
         if (slots.length === 0) return <div className="bg-muted h-full"></div>;
@@ -524,8 +524,8 @@ const Planning: React.FC = () => {
             {/* Access Denied Toast */}
             {accessDeniedMessage && (
                 <div className="fixed top-4 right-4 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-3 rounded-lg shadow-lg flex items-center">
-                        <ShieldAlert className="w-5 h-5 mr-2 text-orange-600" />
+                    <div className="bg-warning/10 border border-warning/30 text-warning-text px-4 py-3 rounded-lg shadow-lg flex items-center">
+                        <ShieldAlert className="w-5 h-5 mr-2 text-warning-text" />
                         <span className="font-medium text-sm">{accessDeniedMessage}</span>
                     </div>
                 </div>
@@ -534,7 +534,7 @@ const Planning: React.FC = () => {
             {/* Page header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                    <h1 className="font-heading font-bold text-xl text-text-base">Planning Global</h1>
+                    <h1 className="font-heading font-extrabold text-2xl text-text-base">Planning Global</h1>
                     <p className="text-xs text-text-muted mt-0.5 hidden sm:block">Généré automatiquement selon les règles de configuration</p>
                 </div>
 
@@ -543,14 +543,14 @@ const Planning: React.FC = () => {
                     <div className="relative">
                         <button
                             onClick={() => setShowSettings(!showSettings)}
-                            className={`p-2 rounded-btn border flex items-center text-sm font-medium transition-colors ${showSettings ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                            className={`p-2 rounded-btn border flex items-center text-sm font-medium transition-colors ${showSettings ? 'bg-primary/10 border-primary/30 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
                         >
                             <Settings className="w-4 h-4 mr-2" />
                             Affichage
                         </button>
 
                         {showSettings && (
-                            <div className="absolute top-full mt-2 right-0 w-64 bg-surface rounded-xl shadow-modal border border-border p-4 z-[50] animate-in fade-in zoom-in-95 duration-150">
+                            <div className="absolute top-full mt-2 right-0 w-64 bg-surface rounded-card shadow-modal border border-border p-4 z-[50] animate-in fade-in zoom-in-95 duration-150">
                                 <div className="mb-4">
                                     <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
                                         <LayoutGrid className="w-3 h-3 mr-1" /> Mode de Vue
@@ -578,16 +578,16 @@ const Planning: React.FC = () => {
                                     <div className="space-y-2">
                                         <button
                                             onClick={() => setColorMode('DOCTOR')}
-                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
                                         >
-                                            <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
+                                            <div className="w-3 h-3 rounded-full bg-primary mr-2"></div>
                                             Par Médecin
                                         </button>
                                         <button
                                             onClick={() => setColorMode('ACTIVITY')}
-                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
                                         >
-                                            <div className="w-3 h-3 rounded-full bg-orange-400 mr-2"></div>
+                                            <div className="w-3 h-3 rounded-full bg-warning mr-2"></div>
                                             Par Activité
                                         </button>
                                     </div>
@@ -701,13 +701,13 @@ const Planning: React.FC = () => {
                                     <React.Fragment key={loc}>
                                         <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             <td rowSpan={2} className={`sticky left-0 z-sticky p-1 md:p-3 border-r border-b border-border text-[9px] md:text-xs text-center font-bold shadow-card
-                                                ${postes.includes(loc) ? 'bg-surface text-text-base' : 'bg-orange-50 text-orange-800'}
+                                                ${postes.includes(loc) ? 'bg-surface text-text-base' : 'bg-warning/10 text-warning-text'}
                                             `}>
                                                 <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
                                             </td>
                                             {days.map(day => (
                                                 <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0`}>
-                                                    <div className="absolute top-0 left-0 right-0 bg-yellow-50/80 text-[9px] px-1 text-yellow-700 uppercase font-bold tracking-wider z-0 border-b border-yellow-100">Matin</div>
+                                                    <div className="absolute top-0 left-0 right-0 bg-warning/10 text-[9px] px-1 text-warning-text uppercase font-bold tracking-wider z-0 border-b border-warning/20">Matin</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.MORNING, loc)}
                                                     </div>
@@ -717,7 +717,7 @@ const Planning: React.FC = () => {
                                         <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
                                                 <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0`}>
-                                                    <div className="absolute top-0 left-0 right-0 bg-indigo-50/80 text-[9px] px-1 text-indigo-700 uppercase font-bold tracking-wider z-0 border-b border-indigo-100">A.Midi</div>
+                                                    <div className="absolute top-0 left-0 right-0 bg-primary/10 text-[9px] px-1 text-primary-text uppercase font-bold tracking-wider z-0 border-b border-primary/20">A.Midi</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.AFTERNOON, loc)}
                                                     </div>
