@@ -6,6 +6,7 @@ export default {
     "./App.tsx",
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
     "./context/**/*.{ts,tsx}",
     "./hooks/**/*.{ts,tsx}",
     "./services/**/*.{ts,tsx}",
