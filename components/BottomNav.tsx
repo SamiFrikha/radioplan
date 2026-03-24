@@ -12,37 +12,34 @@ const tabs = [
 
 const BottomNav: React.FC = () => (
   <nav
-    className="fixed bottom-0 left-0 right-0 z-bottomnav bg-surface border-t border-border
-               flex items-center justify-around lg:hidden print:hidden"
-    style={{
-      height: 'calc(64px + env(safe-area-inset-bottom))',
-      paddingBottom: 'env(safe-area-inset-bottom)',
-    }}
+    className="fixed bottom-0 left-0 right-0 z-bottomnav lg:hidden print:hidden bg-surface border-t border-border"
+    style={{ height: 'calc(64px + env(safe-area-inset-bottom))', paddingBottom: 'env(safe-area-inset-bottom)' }}
     aria-label="Navigation principale"
   >
-    {tabs.map(({ to, icon: Icon, label }) => (
-      <NavLink
-        key={to}
-        to={to}
-        end={to === '/'}
-        aria-label={label}
-        className={({ isActive }) =>
-          `flex flex-col items-center justify-center gap-0.5 px-2 min-w-[56px] h-full
-           transition-colors duration-150
-           ${isActive ? 'text-primary' : 'text-[#94A3B8]'}`
-        }
-      >
-        {({ isActive }) => (
-          <>
-            <Icon className="w-5 h-5" aria-hidden="true" />
-            <span className={`text-[10px] font-heading font-medium leading-none ${isActive ? 'text-primary' : ''}`}>
-              {label}
-            </span>
-            {isActive && <span className="sr-only">(page actuelle)</span>}
-          </>
-        )}
-      </NavLink>
-    ))}
+    <div className="flex items-stretch h-16">
+      {tabs.map(({ to, icon: Icon, label }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={to === '/'}
+          aria-label={label}
+          className="relative flex flex-col items-center justify-center gap-0.5 flex-1 pt-1 cursor-pointer"
+        >
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-gradient-primary" aria-hidden="true" />
+              )}
+              <Icon className={isActive ? 'w-6 h-6 text-primary' : 'w-6 h-6 text-text-muted'} aria-hidden="true" />
+              <span className={isActive ? 'text-[10px] font-bold text-primary leading-none' : 'text-[10px] font-medium text-text-muted leading-none'}>
+                {label}
+              </span>
+              {isActive && <span className="sr-only">(page actuelle)</span>}
+            </>
+          )}
+        </NavLink>
+      ))}
+    </div>
   </nav>
 );
 

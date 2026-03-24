@@ -20,19 +20,16 @@ const TopBar: React.FC = () => {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-topbar bg-surface border-b border-border
-                 flex items-center justify-between px-4 lg:hidden print:hidden"
-      style={{
-        height: 'calc(56px + env(safe-area-inset-top))',
-        paddingTop: 'env(safe-area-inset-top)',
-      }}
+      className="fixed top-0 left-0 right-0 z-topbar lg:hidden print:hidden bg-surface border-b border-border"
+      style={{ height: '56px', paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div className="w-9" aria-hidden="true" />
-      <h1 className="font-heading font-semibold text-base text-text-base absolute left-1/2 -translate-x-1/2">
-        {title}
-      </h1>
-      <div className="ml-auto">
-        <NotificationBell />
+      <div className="flex items-center h-14 px-4 gap-3">
+        <h1 className="text-base font-bold text-text-base tracking-tight flex-1 truncate">
+          {title}
+        </h1>
+        <div className="ml-auto">
+          <NotificationBell />
+        </div>
       </div>
     </header>
   );
