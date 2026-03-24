@@ -349,8 +349,8 @@ const Planning: React.FC = () => {
             const canClick = canInteractWithSlot(slot);
             return (
                 <div
-                    className={`relative h-full w-full bg-gray-100 border-l-4 border-gray-300 min-h-[60px] flex flex-col items-center justify-center opacity-80 ${canClick ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
-                    style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #e5e7eb 10px, #e5e7eb 20px)' }}
+                    className={`relative h-full w-full bg-muted border-l-4 border-border min-h-[60px] flex flex-col items-center justify-center opacity-80 ${canClick ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
+                    style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, var(--color-border) 10px, var(--color-border) 20px)' }}
                     onClick={() => {
                         if (canClick) {
                             setSelectedSlotId(slot.id);
@@ -361,8 +361,8 @@ const Planning: React.FC = () => {
                     }}
                 >
                     <div className="bg-white/80 p-1 rounded shadow-sm flex items-center">
-                        <Ban className="w-4 h-4 text-gray-500 mr-1" />
-                        <span className="text-[10px] font-bold text-gray-600 uppercase">Fermé</span>
+                        <Ban className="w-4 h-4 text-text-muted mr-1" />
+                        <span className="text-[10px] font-bold text-text-muted uppercase">Fermé</span>
                     </div>
                 </div>
             )
@@ -400,7 +400,7 @@ const Planning: React.FC = () => {
                 const def = activityDefinitions.find(a => a.id === slot.activityId);
                 if (def) {
                     const colorParts = def.color.split(' ');
-                    bgClass = colorParts.find(c => c.startsWith('bg-')) || 'bg-gray-100';
+                    bgClass = colorParts.find(c => c.startsWith('bg-')) || 'bg-muted';
                     borderClass = "border-transparent";
                 }
             } else if (slot.type === SlotType.RCP) {
