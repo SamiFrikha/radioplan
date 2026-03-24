@@ -174,9 +174,9 @@ const NotificationSection: React.FC<{
                       onClick={() => toggle(type)}
                       aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
                       className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
-                        ${isEnabled(type) ? 'bg-blue-600' : 'bg-border'}`}
+                        ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
                     >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform
                         ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
@@ -193,7 +193,7 @@ const NotificationSection: React.FC<{
                 </h2>
                 <div className="flex items-center gap-3">
                     {filteredUnreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">Tout marquer lu</button>
+                        <button onClick={markAllRead} className="text-sm text-primary hover:underline">Tout marquer lu</button>
                     )}
                     {filteredNotifications.length > 0 && (
                         <button
@@ -220,12 +220,12 @@ const NotificationSection: React.FC<{
                         <div key={n.id}
                             onClick={() => !requestId && markRead(n.id)}
                             className={`rounded-card p-3.5 border transition-colors
-                                ${n.read ? 'bg-surface border-border' : 'bg-blue-50 border-blue-200'}
+                                ${n.read ? 'bg-surface border-border' : 'bg-primary/5 border-primary/20'}
                                 ${!requestId ? 'cursor-pointer hover:bg-muted' : ''}`}
                         >
                             <div className="flex items-start gap-2">
                                 <span className="text-base mt-0.5 shrink-0">{icon}</span>
-                                {!n.read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />}
+                                {!n.read && <span className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />}
                                 <div className="flex-1">
                                     <p className={`text-sm ${n.read ? 'text-text-base' : 'font-semibold text-text-base'}`}>{n.title}</p>
                                     <p className="text-xs text-text-muted mt-0.5">{n.body}</p>
@@ -871,7 +871,7 @@ const Profile: React.FC = () => {
     if (authLoading || loadingDoctor) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -931,12 +931,12 @@ const Profile: React.FC = () => {
                 <div className="space-y-4">
                     {/* User info card */}
                     <Card>
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 text-white rounded-t-card">
+                        <div className="gradient-primary p-4 text-white rounded-t-card">
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-3">
                                     <div
                                         className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shadow-lg border-4 border-white/20 flex-shrink-0"
-                                        style={{ backgroundColor: currentDoctor.color || '#3B82F6' }}
+                                        style={{ background: currentDoctor.color || 'var(--color-primary)' }}
                                     >
                                         {currentDoctor.name.substring(0, 2)}
                                     </div>
@@ -944,7 +944,7 @@ const Profile: React.FC = () => {
                                         {isEditingProfile ? (
                                             <div className="space-y-3 bg-white/10 p-3 rounded-card backdrop-blur-sm">
                                                 <div>
-                                                    <label className="text-xs text-blue-200 mb-1 block">Nom</label>
+                                                    <label className="text-xs text-white/70 mb-1 block">Nom</label>
                                                     <input
                                                         type="text"
                                                         className="w-full text-text-base px-3 py-2 rounded text-sm font-bold"
@@ -953,11 +953,11 @@ const Profile: React.FC = () => {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-xs text-blue-200 mb-1 flex items-center">
+                                                    <label className="text-xs text-white/70 mb-1 flex items-center">
                                                         <Tag className="w-3 h-3 mr-1" /> Spécialités
                                                     </label>
                                                     {availableSpecialties.length === 0 ? (
-                                                        <p className="text-xs text-blue-200 italic">Aucune spécialité disponible</p>
+                                                        <p className="text-xs text-white/70 italic">Aucune spécialité disponible</p>
                                                     ) : (
                                                         <div className="flex flex-wrap gap-2">
                                                             {availableSpecialties.map(spec => {
@@ -999,7 +999,7 @@ const Profile: React.FC = () => {
                                                         <Edit className="w-4 h-4" />
                                                     </button>
                                                 </div>
-                                                <p className="text-blue-100 mt-0.5 flex items-center text-sm">
+                                                <p className="text-white/80 mt-0.5 flex items-center text-sm">
                                                     <Briefcase className="w-3 h-3 mr-1 opacity-70" />
                                                     {currentDoctor.specialty?.join(' • ') || 'Généraliste'}
                                                 </p>
@@ -1010,7 +1010,7 @@ const Profile: React.FC = () => {
                                         )}
                                     </div>
                                 </div>
-                                <div className="text-right text-xs text-blue-100 flex-shrink-0">
+                                <div className="text-right text-xs text-white/80 flex-shrink-0">
                                     <div className="truncate max-w-[120px]">{profile.email}</div>
                                     <div className="text-xs mt-1 opacity-75">{profile.role_name || profile.role}</div>
                                 </div>
@@ -1169,7 +1169,7 @@ const Profile: React.FC = () => {
                 {/* ABSENCES */}
                 <div>
                     <h2 className="text-sm md:text-lg font-bold text-text-base mb-3 md:mb-4 flex items-center">
-                        <Calendar className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 text-blue-500" />
+                        <Calendar className="w-4 h-4 md:w-5 md:h-5 mr-1.5 md:mr-2 text-primary" />
                         Déclarer une absence
                     </h2>
 
@@ -1330,7 +1330,7 @@ const Profile: React.FC = () => {
                                                     <>
                                                         {/* Lock: confirmed by colleague */}
                                                         {lockedByOther && (
-                                                            <div className="mt-2 text-xs text-blue-600 bg-blue-50 rounded-btn-sm px-3 py-1.5 flex items-center gap-1.5">
+                                                            <div className="mt-2 text-xs text-primary bg-primary/5 rounded-btn-sm px-3 py-1.5 flex items-center gap-1.5">
                                                                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                                                                 Confirmé par {lockedDoctor?.name || 'un collègue'}
                                                             </div>
@@ -1400,7 +1400,7 @@ const Profile: React.FC = () => {
                     {activeTab === 'preferences' && (
                         <div>
                             <h2 className="text-lg font-bold text-text-base mb-4 flex items-center">
-                                <Briefcase className="w-5 h-5 mr-2 text-purple-500" />
+                                <Briefcase className="w-5 h-5 mr-2 text-secondary" />
                                 Mes Préférences & Exclusions
                             </h2>
                             <div className="bg-muted p-5 rounded-card border border-border shadow-sm space-y-4">
@@ -1413,7 +1413,7 @@ const Profile: React.FC = () => {
                                     {(currentDoctor as any).excludedHalfDays && (currentDoctor as any).excludedHalfDays.length > 0 ? (
                                         <div className="flex flex-wrap gap-1">
                                             {(currentDoctor as any).excludedHalfDays.map((excl: any, idx: number) => (
-                                                <span key={idx} className={`px-2 py-1 text-xs rounded font-medium ${excl.period === Period.MORNING ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>
+                                                <span key={idx} className={`px-2 py-1 text-xs rounded font-medium ${excl.period === Period.MORNING ? 'bg-orange-100 text-orange-800' : 'bg-primary/10 text-primary'}`}>
                                                     {excl.day.substring(0, 3)} {excl.period === Period.MORNING ? 'matin' : 'ap-m.'}
                                                 </span>
                                             ))}
@@ -1526,7 +1526,7 @@ const Profile: React.FC = () => {
                                                 </div>
                                                 <p className="text-sm font-medium text-text-base mt-2">{slot.location || slot.subType}</p>
                                                 <p className="text-xs text-text-muted mt-1">{conflict.description}</p>
-                                                <div className="absolute right-2 bottom-2 text-xs text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="absolute right-2 bottom-2 text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                                                     Résoudre →
                                                 </div>
                                             </div>
