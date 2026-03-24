@@ -24,9 +24,9 @@ const PERIODS = [Period.MORNING, Period.AFTERNOON];
 
 // Base styles — used for all slot types except RCP which has dynamic status styles
 const BASE_STYLE: Record<string, { bg: string; border: string; text: string; dot: string }> = {
-  [SlotType.CONSULTATION]: { bg: 'bg-blue-50',   border: 'border-blue-300',   text: 'text-blue-800',   dot: 'bg-blue-500' },
-  [SlotType.ACTIVITY]:     { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-800', dot: 'bg-orange-500' },
-  LEAVE:                   { bg: 'bg-muted',      border: 'border-border',     text: 'text-text-muted', dot: 'bg-border' },
+  [SlotType.CONSULTATION]: { bg: 'bg-primary/5',  border: 'border-primary/30',  text: 'text-primary',        dot: 'bg-primary' },
+  [SlotType.ACTIVITY]:     { bg: 'bg-orange-50',  border: 'border-orange-300',  text: 'text-orange-800',     dot: 'bg-orange-500' },
+  LEAVE:                   { bg: 'bg-muted',       border: 'border-border',      text: 'text-text-muted',     dot: 'bg-border' },
 };
 
 // RCP styles vary by confirmation status
@@ -188,7 +188,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
         <div className="flex items-center justify-between">
           <button
             onClick={() => onOffsetChange(weekOffset - 1)}
-            className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+            className="p-1.5 hover:bg-muted rounded-btn-sm transition-colors"
           >
             <ChevronLeft size={18} />
           </button>
@@ -200,7 +200,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
           </div>
           <button
             onClick={() => onOffsetChange(weekOffset + 1)}
-            className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+            className="p-1.5 hover:bg-muted rounded-btn-sm transition-colors"
           >
             <ChevronRight size={18} />
           </button>
@@ -215,37 +215,63 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
 
         {days.map(({ day, date, dateStr, isToday, periods }) => {
           const allSlots = periods.flatMap(p => p.slots);
+          const dayNumber = date.getDate();
+          const dayName = DAY_LABELS[day];
+          const monthLabel = date.toLocaleDateString('fr-FR', { month: 'short' });
           return (
             <div key={day}>
-              <h3 className={`text-[11px] font-heading font-semibold uppercase tracking-wider py-1 px-1 ${isToday ? 'text-primary' : 'text-text-muted'}`}>
-                {DAY_LABELS[day]}&nbsp;{date.getDate()}&nbsp;
-                {date.toLocaleDateString('fr-FR', { month: 'short' })}
-                {isToday && <span className="ml-1 text-[10px] font-normal">(aujourd'hui)</span>}
-              </h3>
-              {allSlots.map((slot: any) => (
-                <div
-                  key={slot.id}
-                  className="w-full bg-surface border border-border rounded-card p-3 flex items-center gap-3 mb-2"
-                >
-                  <span className="font-heading font-semibold text-[12px] text-text-muted w-14 flex-shrink-0">
-                    {slot.period === Period.MORNING ? '08h00' : '14h00'}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate text-text-base">
-                      {slot.subType || slot.location || slot.type}
-                    </p>
-                    {slot.subType && slot.location && slot.location !== slot.subType && (
-                      <p className="text-[11px] text-text-muted truncate">{slot.location}</p>
-                    )}
+              {/* Day header — Medical Diary style */}
+              <div className="flex items-center gap-3 mb-2">
+                {isToday ? (
+                  <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-white tabular-nums">{dayNumber}</span>
                   </div>
-                  <Badge variant={getSlotBadgeVariant(slot)}>
-                    {getSlotBadgeLabel(slot)}
-                  </Badge>
-                  <ChevronRight className="w-4 h-4 text-text-muted flex-shrink-0" aria-hidden="true" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-medium text-text-muted tabular-nums">{dayNumber}</span>
+                  </div>
+                )}
+                <div>
+                  {isToday ? (
+                    <>
+                      <p className="text-sm font-bold text-primary">{dayName}</p>
+                      <p className="text-xs text-text-muted">{monthLabel}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-text-base">{dayName}</p>
+                      <p className="text-xs text-text-muted">{monthLabel}</p>
+                    </>
+                  )}
                 </div>
-              ))}
-              {allSlots.length === 0 && (
-                <p className="text-sm text-text-muted py-2 px-1">Aucun créneau</p>
+              </div>
+
+              {/* Timeline track */}
+              {allSlots.length > 0 ? (
+                <div className="ml-4 border-l-2 border-border pl-4 space-y-1 pb-2">
+                  {allSlots.map((slot: any) => (
+                    <div key={slot.id} className="relative">
+                      {/* Indigo dot on the hairline */}
+                      <div className="w-2 h-2 rounded-full bg-primary/40 -ml-[21px] mt-3 flex-shrink-0 absolute" aria-hidden="true" />
+                      <button className="flex items-center gap-3 w-full text-left py-2.5 px-3 rounded-btn-sm hover:bg-primary/5 press-scale transition-all group">
+                        <span className="text-xs font-semibold text-text-muted tabular-nums w-10 flex-shrink-0">
+                          {slot.period === Period.MORNING ? '08h00' : '14h00'}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="text-sm font-medium text-text-base truncate block">
+                            {slot.subType || slot.location || slot.type}
+                          </span>
+                        </span>
+                        <Badge variant={getSlotBadgeVariant(slot)}>
+                          {getSlotBadgeLabel(slot)}
+                        </Badge>
+                        <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary flex-shrink-0 transition-colors" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted py-2 px-1 ml-12">Aucun créneau</p>
               )}
             </div>
           );
@@ -259,7 +285,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
       {/* Week navigation */}
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => onOffsetChange(weekOffset - 1)}
-          className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+          className="p-1.5 hover:bg-muted rounded-btn-sm transition-colors">
           <ChevronLeft size={18} />
         </button>
         <div className="text-center">
@@ -269,7 +295,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
           {weekOffset < 0 && <p className="text-xs text-text-muted">il y a {-weekOffset} semaine{-weekOffset > 1 ? 's' : ''}</p>}
         </div>
         <button onClick={() => onOffsetChange(weekOffset + 1)}
-          className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+          className="p-1.5 hover:bg-muted rounded-btn-sm transition-colors">
           <ChevronRight size={18} />
         </button>
       </div>
@@ -286,7 +312,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
           {days.map(({ day, date, isToday, periods }) => (
             <div key={day} className="flex flex-col gap-1">
               {/* Day header */}
-              <div className={`text-center rounded-lg py-1.5 px-1 ${isToday ? 'bg-primary' : 'bg-muted'}`}>
+              <div className={`text-center rounded-card py-1.5 px-1 ${isToday ? 'bg-gradient-primary' : 'bg-muted'}`}>
                 <p className={`text-xs font-bold uppercase tracking-wide ${isToday ? 'text-white' : 'text-text-muted'}`}>
                   {DAY_LABELS[day]}
                 </p>
@@ -302,7 +328,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                   <div key={period} className="min-h-[56px]">
                     <p className="text-[10px] text-text-muted font-medium mb-0.5 text-center">{periodLabel}</p>
                     {slots.length === 0 ? (
-                      <div className="h-10 rounded-lg bg-muted border border-dashed border-border" />
+                      <div className="h-10 rounded-btn-sm bg-muted border border-dashed border-border" />
                     ) : (
                       slots.map((slot: any) => {
                         // RCP gets dynamic styling based on confirmation status
@@ -311,7 +337,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                           const s = RCP_STYLES[rcpStatus];
                           return (
                             <div key={slot.id}
-                              className={`rounded-lg border px-1.5 py-1 mb-0.5 ${s.bg} ${s.border}`}
+                              className={`rounded-btn-sm border px-1.5 py-1 mb-0.5 ${s.bg} ${s.border}`}
                               title={slot.subType || slot.location}>
                               {/* Status badge row */}
                               {rcpStatus !== 'NONE' && (
@@ -347,7 +373,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                         const style = BASE_STYLE[slot.type] ?? BASE_STYLE[SlotType.CONSULTATION];
                         return (
                           <div key={slot.id}
-                            className={`rounded-lg border px-1.5 py-1 mb-0.5 ${style.bg} ${style.border}`}
+                            className={`rounded-btn-sm border px-1.5 py-1 mb-0.5 ${style.bg} ${style.border}`}
                             title={slot.subType || slot.location}>
                             <div className="flex items-center gap-1">
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
@@ -373,7 +399,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
       {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 pt-3 border-t border-border">
         <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+          <span className="w-2.5 h-2.5 rounded-full bg-primary" />
           <span className="text-xs text-text-muted">Consultation</span>
         </div>
         <div className="flex items-center gap-1.5">

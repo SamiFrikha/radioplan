@@ -11,11 +11,8 @@ const MonPlanning: React.FC = () => {
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
       <div className="bg-surface rounded-card shadow-card border border-border p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-heading font-bold text-xl text-text-base flex items-center">
-            <LayoutGrid className="w-5 h-5 mr-2 text-primary" />
-            Mon Planning
-          </h1>
-          <div className="flex rounded-lg border border-border overflow-hidden">
+          <h1 className="text-2xl font-extrabold text-text-base tracking-tight">Mon Planning</h1>
+          <div className="flex rounded-btn-sm border border-border overflow-hidden">
             <button
               onClick={() => setAgendaView('week')}
               className={`px-4 py-2 text-sm font-medium transition-colors ${agendaView === 'week' ? 'bg-primary text-white' : 'bg-surface text-text-muted hover:bg-muted'}`}
