@@ -182,7 +182,7 @@ const NotificationItem: React.FC<{
             {notification.title}
           </p>
           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.body}</p>
-          <p className="text-xs text-gray-400 mt-1">{date}</p>
+          <p className="text-xs text-text-muted mt-1">{date}</p>
           {notification.type === 'REPLACEMENT_REQUEST' && requestId && (
             notification.data?.resolution ? (
               <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${notification.data.resolution === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -265,12 +265,12 @@ const NotificationBell: React.FC = () => {
             </div>
 
             {/* Notification list */}
-            <div className="overflow-y-auto max-h-[50vh] md:max-h-80 divide-y divide-gray-100">
+            <div className="overflow-y-auto max-h-[50vh] md:max-h-80 divide-y divide-border">
               {loading && (
-                <p className="text-center py-8 text-gray-400 text-sm">Chargement...</p>
+                <p className="text-center py-8 text-text-muted text-sm">Chargement...</p>
               )}
               {!loading && notifications.length === 0 && (
-                <p className="text-center py-8 text-gray-400 text-sm">Aucune notification</p>
+                <p className="text-center py-8 text-text-muted text-sm">Aucune notification</p>
               )}
               {notifications.slice(0, 5).map(n => (
                 <NotificationItem key={n.id} notification={n} onRead={() => markRead(n.id)} />
@@ -280,7 +280,7 @@ const NotificationBell: React.FC = () => {
             {/* Footer */}
             <button
               onClick={handleSeeAll}
-              className="w-full flex items-center justify-center gap-1.5 py-3 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors border-t border-gray-100"
+              className="w-full flex items-center justify-center gap-1.5 py-3 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors border-t border-border"
             >
               Voir toutes les notifications
               <ArrowRight size={14} />

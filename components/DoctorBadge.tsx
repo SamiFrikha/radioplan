@@ -97,7 +97,7 @@ export const DoctorBadge: React.FC<DoctorBadgeProps> = ({
                 {doctor.name.substring(0, 2)}
             </div>
             {showName && (
-                <span className={`${textSizeClasses[size]} font-semibold text-slate-700 truncate`}>
+                <span className={`${textSizeClasses[size]} font-semibold text-text-base truncate`}>
                     {showDrPrefix ? '' : 'Dr '}{doctor.name}
                 </span>
             )}
@@ -142,7 +142,7 @@ export const DoctorBadgeList: React.FC<DoctorBadgeListProps> = ({
                 );
             })}
             {remaining > 0 && (
-                <span className="text-xs text-slate-400 italic">+{remaining} autres</span>
+                <span className="text-xs text-text-muted italic">+{remaining} autres</span>
             )}
         </div>
     );

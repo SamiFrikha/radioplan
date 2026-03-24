@@ -30,7 +30,7 @@ import { settingsService } from './services/settingsService';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { session, loading } = useAuth();
-    if (loading) return <div className="flex items-center justify-center h-screen">Chargement...</div>;
+    if (loading) return <div className="flex items-center justify-center h-dvh">Chargement...</div>;
     if (!session) return <Navigate to="/login" replace />;
     return <>{children}</>;
 };
@@ -666,7 +666,7 @@ const App: React.FC = () => {
     };
 
     if (loadingData && session) {
-        return <div className="flex items-center justify-center h-screen">Chargement des données...</div>;
+        return <div className="flex items-center justify-center h-dvh">Chargement des données...</div>;
     }
 
     return (
