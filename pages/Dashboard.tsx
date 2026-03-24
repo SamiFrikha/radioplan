@@ -418,34 +418,33 @@ const Dashboard: React.FC = () => {
                         }
 
                         return (
-                            <div key={s.id} className="flex items-center justify-between p-2 bg-muted rounded-lg border border-border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
+                            <div key={s.id} className="flex items-center justify-between p-2 bg-muted rounded-card border border-border/60" style={{ borderLeftWidth: '3px', borderLeftColor: borderColor }}>
                                 <div className="flex items-center flex-1 min-w-0">
                                     {isRcpUnconfirmed ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-yellow-700 bg-yellow-100 px-1 rounded font-bold mb-1 w-fit">⚠️ À confirmer</span>
-                                            <div className="text-[9px] text-text-muted uppercase font-bold mb-0.5">Référents :</div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <Badge variant="amber">A confirmer</Badge>
+                                            <div className="text-[9px] text-text-muted uppercase font-bold mt-1">Référents :</div>
                                             <div className="text-xs text-text-muted italic">
                                                 {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].map(id => doctors.find(d => d.id === id)?.name).filter(Boolean).join(', ')}
                                             </div>
                                         </div>
                                     ) : s.type === SlotType.RCP ? (
-                                        // RCP confirmée - afficher les participants confirmés
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-green-700 bg-green-100 px-1 rounded font-bold mb-1 w-fit">✓ Confirmée</span>
-                                            <div className="text-[9px] text-green-600 uppercase font-bold mb-0.5">Présent(s) :</div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <Badge variant="green">Confirmee</Badge>
+                                            <div className="text-[9px] text-success uppercase font-bold mt-1">Present(s) :</div>
                                             <div className="flex flex-wrap gap-1">
                                                 {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].filter(Boolean).map(id => {
                                                     const d = doctors.find(doc => doc.id === id);
                                                     if (!d) return null;
                                                     return (
-                                                        <div key={id} className="flex items-center bg-white px-1.5 py-0.5 rounded border border-green-300">
+                                                        <div key={id} className="flex items-center bg-surface px-1.5 py-0.5 rounded-btn-sm border border-border">
                                                             <div
                                                                 className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold mr-1 text-white"
                                                                 style={{ backgroundColor: getDoctorHexColor(d.color) }}
                                                             >
                                                                 {d.name.substring(0, 2)}
                                                             </div>
-                                                            <span className="text-xs font-bold text-green-800">{d.name}</span>
+                                                            <span className="text-xs font-bold text-text-base">{d.name}</span>
                                                         </div>
                                                     );
                                                 })}
@@ -468,7 +467,7 @@ const Dashboard: React.FC = () => {
                                         </>
                                     )}
                                 </div>
-                                <div className="text-xs font-bold bg-white px-2 py-1 rounded border border-border text-text-muted flex-shrink-0 ml-2">
+                                <div className="text-xs font-bold bg-surface px-2 py-1 rounded-btn-sm border border-border text-text-muted flex-shrink-0 ml-2">
                                     {s.location}
                                 </div>
                             </div>
@@ -479,23 +478,29 @@ const Dashboard: React.FC = () => {
         );
 
         return (
-            <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6 h-full overflow-auto">
-                <div className="bg-white rounded-xl border border-border flex flex-col">
-                    <div className="p-2 md:p-3 bg-yellow-50 border-b border-yellow-100 text-yellow-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Matin
-                    </div>
-                    <div className="p-2 md:p-4 overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
+            <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4 h-full overflow-auto">
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center">
+                            <Clock className="w-3.5 h-3.5 mr-2 text-warning" aria-hidden="true" /> Matin
+                        </CardTitle>
+                        <Badge variant="amber">{morningSlots.length}</Badge>
+                    </CardHeader>
+                    <CardBody className="overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
                         {renderSlotList(morningSlots)}
-                    </div>
-                </div>
-                <div className="bg-white rounded-xl border border-border flex flex-col">
-                    <div className="p-2 md:p-3 bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Après-midi
-                    </div>
-                    <div className="p-2 md:p-4 overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
+                    </CardBody>
+                </Card>
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center">
+                            <Clock className="w-3.5 h-3.5 mr-2 text-primary" aria-hidden="true" /> Après-midi
+                        </CardTitle>
+                        <Badge variant="blue">{afternoonSlots.length}</Badge>
+                    </CardHeader>
+                    <CardBody className="overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
                         {renderSlotList(afternoonSlots)}
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
             </div>
         )
     };
@@ -527,25 +532,25 @@ const Dashboard: React.FC = () => {
                         const rcps = daySlots.filter(s => s.type === SlotType.RCP);
 
                         return (
-                            <div key={day} className={`flex flex-col border rounded-lg overflow-hidden ${isToday ? 'ring-2 ring-blue-400 border-blue-400' : 'bg-muted border-border'}`}>
-                                <div className={`text-[9px] md:text-xs font-bold text-center py-1 md:py-2 uppercase ${isToday ? 'bg-blue-500 text-white' : 'bg-border text-text-base'}`}>
+                            <div key={day} className={`flex flex-col border rounded-card overflow-hidden ${isToday ? 'ring-2 ring-primary border-primary' : 'bg-muted border-border'}`}>
+                                <div className={`text-[9px] md:text-xs font-bold text-center py-1 md:py-2 uppercase tracking-wider ${isToday ? 'bg-primary text-white' : 'bg-border/60 text-text-base'}`}>
                                     {day.substring(0, 3)} <span className="block text-[8px] md:text-[9px] font-normal opacity-80">{date.split('-').slice(1).reverse().join('/')}</span>
                                 </div>
-                                <div className="p-1 md:p-2 space-y-1 md:space-y-2 flex-1 bg-white">
+                                <div className="p-1 md:p-2 space-y-1 md:space-y-2 flex-1 bg-surface">
                                     {/* Key Roles Summary - Only show activities that have assignments */}
                                     {(docAstreinte || docUnity) && (
                                         <div className="text-[8px] md:text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5 md:mb-1">Clés</div>
                                     )}
 
                                     {astreinte?.assignedDoctorId && docAstreinte && (
-                                        <div className="flex items-center justify-between bg-red-50 p-1 md:p-1.5 rounded border border-red-200 border-l-4 border-l-red-500">
-                                            <span className="text-[8px] md:text-[9px] text-red-700 font-bold">Astr.</span>
+                                        <div className="flex items-center justify-between bg-danger/10 p-1 md:p-1.5 rounded-btn-sm border border-danger/20 border-l-2 border-l-danger">
+                                            <span className="text-[8px] md:text-[9px] text-danger font-bold">Astr.</span>
                                             <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
                                         </div>
                                     )}
                                     {unity?.assignedDoctorId && docUnity && (
-                                        <div className="flex items-center justify-between bg-orange-50 p-1 md:p-1.5 rounded border border-orange-200 border-l-4 border-l-orange-500">
-                                            <span className="text-[8px] md:text-[9px] text-orange-700 font-bold">UNITY</span>
+                                        <div className="flex items-center justify-between bg-warning/10 p-1 md:p-1.5 rounded-btn-sm border border-warning/20 border-l-2 border-l-warning">
+                                            <span className="text-[8px] md:text-[9px] text-warning-text font-bold">UNITY</span>
                                             <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
                                         </div>
                                     )}
@@ -562,8 +567,8 @@ const Dashboard: React.FC = () => {
                                         const docWorkflow = doctors.find(d => d.id === workflow?.assignedDoctorId);
                                         return workflow?.assignedDoctorId && docWorkflow ? (
                                             <>
-                                                <div className="flex items-center justify-between bg-emerald-50 p-1 md:p-1.5 rounded border border-emerald-200 border-l-4 border-l-emerald-500">
-                                                    <span className="text-[8px] md:text-[9px] text-emerald-700 font-bold">Wrkflw</span>
+                                                <div className="flex items-center justify-between bg-success/10 p-1 md:p-1.5 rounded-btn-sm border border-success/20 border-l-2 border-l-success">
+                                                    <span className="text-[8px] md:text-[9px] text-success font-bold">Wrkflw</span>
                                                     <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
                                                 </div>
                                                 <div className="h-px bg-border my-1 md:my-2"></div>
@@ -583,15 +588,15 @@ const Dashboard: React.FC = () => {
                                                         .filter(Boolean);
 
                                                     return (
-                                                        <div key={rcp.id} className="flex flex-col bg-yellow-50 p-1 rounded border border-yellow-100 border-l-4 border-l-yellow-500">
+                                                        <div key={rcp.id} className="flex flex-col bg-warning/10 p-1 rounded-btn-sm border border-warning/20 border-l-2 border-l-warning">
                                                             <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-[8px] text-purple-700 font-bold truncate max-w-[50px]">{rcp.location}</span>
-                                                                <span className="text-[8px] text-yellow-700 font-bold">⚠️ À confirmer</span>
+                                                                <span className="text-[8px] text-secondary font-bold truncate max-w-[50px]">{rcp.location}</span>
+                                                                <Badge variant="amber" className="text-[7px] px-1 py-0">A confirmer</Badge>
                                                             </div>
                                                             <div className="text-[6px] text-text-muted uppercase font-bold mb-0.5">Référents :</div>
                                                             <div className="flex flex-wrap gap-0.5">
                                                                 {referentNames.map(name => (
-                                                                    <span key={name} className="text-[7px] bg-white border border-border px-1 rounded text-text-muted italic">
+                                                                    <span key={name} className="text-[7px] bg-surface border border-border px-1 rounded-btn-sm text-text-muted italic">
                                                                         {name}
                                                                     </span>
                                                                 ))}
@@ -607,17 +612,15 @@ const Dashboard: React.FC = () => {
                                                     .filter(Boolean);
 
                                                 return (
-                                                    <div key={rcp.id} className="flex flex-col bg-green-50 p-1 rounded border border-green-200 border-l-4 border-l-green-500">
+                                                    <div key={rcp.id} className="flex flex-col bg-success/10 p-1 rounded-btn-sm border border-success/20 border-l-2 border-l-success">
                                                         <div className="flex justify-between items-center mb-1">
-                                                            <span className="text-[8px] text-purple-700 font-bold truncate max-w-[50px]">{rcp.location}</span>
-                                                            <span className="text-[8px] text-green-600 font-bold flex items-center">
-                                                                <span className="mr-0.5">✓</span> Confirmée
-                                                            </span>
+                                                            <span className="text-[8px] text-secondary font-bold truncate max-w-[50px]">{rcp.location}</span>
+                                                            <Badge variant="green" className="text-[7px] px-1 py-0">Confirmee</Badge>
                                                         </div>
-                                                        <div className="text-[6px] text-green-600 uppercase font-bold mb-0.5">Présent(s) :</div>
+                                                        <div className="text-[6px] text-success uppercase font-bold mb-0.5">Present(s) :</div>
                                                         <div className="flex flex-wrap gap-0.5">
                                                             {confirmedDocs.map((doc) => (
-                                                                <span key={doc?.id} className="text-[7px] bg-white border border-green-300 px-1 rounded text-green-800 font-bold">
+                                                                <span key={doc?.id} className="text-[7px] bg-surface border border-border px-1 rounded-btn-sm text-text-base font-bold">
                                                                     {doc?.name}
                                                                 </span>
                                                             ))}
@@ -630,12 +633,12 @@ const Dashboard: React.FC = () => {
 
                                     <div className="h-px bg-border my-2"></div>
 
-                                    {/* Consult Activity Count - Blue for consultations (Box 1-3) */}
+                                    {/* Consult Activity Count */}
                                     <div className="flex justify-between items-center">
                                         <span className="text-[10px] text-text-muted">Consultations</span>
-                                        <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 rounded border border-blue-200">
+                                        <Badge variant="blue" className="text-[9px] px-1.5 py-0">
                                             {daySlots.filter(s => s.type === SlotType.CONSULTATION).length}
-                                        </span>
+                                        </Badge>
                                     </div>
 
                                 </div>
@@ -696,55 +699,56 @@ const Dashboard: React.FC = () => {
 
 
     return (
-        <div className="space-y-4 lg:space-y-6">
+        <div className="space-y-5 lg:space-y-6">
             {/* Page header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-muted p-1 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-extrabold text-text-base tracking-tight leading-tight">
+                        Tableau de bord
+                    </h1>
+                    <p className="text-sm text-text-muted mt-0.5">Vue d'ensemble de la planification</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex bg-muted p-1 rounded-btn-sm">
                         <button
                             onClick={() => setViewMode('DAY')}
-                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'DAY' ? 'bg-white shadow text-primary' : 'text-text-muted hover:bg-border'}`}
+                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-btn-sm transition-all ${viewMode === 'DAY' ? 'bg-surface shadow-card text-primary' : 'text-text-muted hover:bg-border/60'}`}
                         >
                             <LayoutList className="w-4 h-4 md:mr-2" />
                             <span className="hidden md:inline">Vue Jour</span>
                         </button>
                         <button
                             onClick={() => setViewMode('WEEK')}
-                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'WEEK' ? 'bg-white shadow text-primary' : 'text-text-muted hover:bg-border'}`}
+                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-btn-sm transition-all ${viewMode === 'WEEK' ? 'bg-surface shadow-card text-primary' : 'text-text-muted hover:bg-border/60'}`}
                         >
                             <LayoutGrid className="w-4 h-4 md:mr-2" />
                             <span className="hidden md:inline">Vue Semaine</span>
                         </button>
                     </div>
-                    <h1 className="font-heading font-bold text-xl lg:text-[22px] text-text-base capitalize">
-                        {viewMode === 'DAY'
-                            ? selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                            : `Semaine du ${currentWeekStart.toLocaleDateString('fr-FR')}`
-                        }
-                    </h1>
-                </div>
 
-                <div className="flex items-center space-x-2">
-                    <button onClick={() => handleTimeChange('prev')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border">
-                        <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
-                    </button>
-                    <div className="relative">
-                        <input
-                            type="date"
-                            className="pl-7 md:pl-8 pr-2 py-1 md:py-1.5 border border-border rounded-md text-xs md:text-sm text-text-base focus:outline-none focus:ring-2 focus:ring-primary w-32 md:w-auto"
-                            value={selectedDate.toISOString().split('T')[0]}
-                            onChange={handleDateChange}
-                        />
-                        <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-text-muted absolute left-2 md:left-2.5 top-2 md:top-2.5 pointer-events-none" />
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => handleTimeChange('prev')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border transition-colors">
+                            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                className="pl-7 md:pl-8 pr-2 py-1 md:py-1.5 border border-border rounded-btn-sm text-xs md:text-sm text-text-base bg-surface focus:outline-none focus:ring-2 focus:ring-primary w-32 md:w-auto"
+                                value={selectedDate.toISOString().split('T')[0]}
+                                onChange={handleDateChange}
+                            />
+                            <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-text-muted absolute left-2 md:left-2.5 top-2 md:top-2.5 pointer-events-none" />
+                        </div>
+                        <button onClick={() => handleTimeChange('next')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border transition-colors">
+                            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
                     </div>
-                    <button onClick={() => handleTimeChange('next')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border">
-                        <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-                    </button>
                 </div>
             </div>
 
             {/* Dynamic Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                 <StatCard
                     label={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
                     value={stats.presentDoctorsCount}
@@ -761,13 +765,13 @@ const Dashboard: React.FC = () => {
                     label={viewMode === 'DAY' ? "Activités Prévues" : "Total Créneaux"}
                     value={stats.totalActivities}
                     icon={Activity}
-                    color="amber"
+                    color="violet"
                 />
                 <StatCard
                     label="Taux de Remplissage"
                     value={`${stats.occupancy}%`}
                     icon={Clock}
-                    color="blue"
+                    color="amber"
                 />
             </div>
 
@@ -805,41 +809,32 @@ const Dashboard: React.FC = () => {
                                         <div
                                             key={conflict.id}
                                             onClick={() => handleAlertClick(conflict)}
-                                            className="p-3 bg-white border border-red-100 rounded-lg shadow-sm hover:border-red-300 hover:shadow-md transition-all cursor-pointer relative group"
+                                            className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0 cursor-pointer group"
                                         >
-                                            <div className="flex justify-between items-start mb-1">
-                                                <Badge variant="red">
-                                                    {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : 'Indisponibilité'}
-                                                </Badge>
-                                                <span className="text-[10px] text-text-muted font-mono flex items-center gap-1">
-                                                    {slot?.date
-                                                        ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
-                                                        : slot?.day?.substring(0, 3)
-                                                    }
-                                                    {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'Après-midi'}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center mt-2">
-                                                <div
-                                                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold mr-2 text-white"
-                                                    style={{ backgroundColor: getDoctorHexColor(doc?.color) }}
-                                                >
-                                                    Dr
-                                                </div>
-                                                <p className="text-sm font-bold text-text-base">{doc?.name || 'Inconnu'}</p>
-                                            </div>
-                                            <p className="text-xs text-text-muted mt-1 pl-8">{conflict.description}</p>
-                                            {locationDetail && (
-                                                <div className="mt-2 pl-8">
-                                                    <span className="text-[10px] font-medium text-text-muted bg-muted px-2 py-1 rounded">
-                                                        {locationDetail}
+                                            <span className="w-2 h-2 rounded-full bg-danger mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                    <Badge variant="red">
+                                                        {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : 'Indisponibilité'}
+                                                    </Badge>
+                                                    <span className="text-[10px] text-text-muted font-mono flex-shrink-0">
+                                                        {slot?.date
+                                                            ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+                                                            : slot?.day?.substring(0, 3)
+                                                        }
+                                                        {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'PM'}
                                                     </span>
                                                 </div>
-                                            )}
-
-                                            <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 rounded-lg transition-colors pointer-events-none" />
-                                            <div className="absolute right-2 bottom-2 text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Résoudre →
+                                                <p className="text-sm font-medium text-text-base leading-snug">{doc?.name || 'Inconnu'}</p>
+                                                <p className="text-xs text-text-muted mt-0.5">{conflict.description}</p>
+                                                {locationDetail && (
+                                                    <span className="inline-block mt-1 text-[10px] font-medium text-text-muted bg-muted px-2 py-0.5 rounded-btn-sm">
+                                                        {locationDetail}
+                                                    </span>
+                                                )}
+                                                <span className="block text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Résoudre →
+                                                </span>
                                             </div>
                                         </div>
                                     );
@@ -861,7 +856,7 @@ const Dashboard: React.FC = () => {
                                 <Badge variant="amber">{rcpsOnHolidays.length}</Badge>
                             </CardHeader>
                             <CardBody>
-                                <p className="text-[10px] text-orange-600 mb-3">
+                                <p className="text-[10px] text-warning-text mb-3">
                                     Ces RCP tombent sur un jour férié ({selectedDate.toLocaleDateString('fr-FR', { month: 'long' })} & {new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1).toLocaleDateString('fr-FR', { month: 'long' })}). Cliquez pour les déplacer.
                                 </p>
                                 <div className="max-h-80 overflow-y-auto space-y-2">
@@ -879,59 +874,47 @@ const Dashboard: React.FC = () => {
                                             <div
                                                 key={slot.id}
                                                 onClick={() => setRcpExceptionSlot(slot)}
-                                                className="p-3 bg-gradient-to-r from-orange-50 to-white border border-orange-200 rounded-lg hover:border-orange-400 hover:shadow-md transition-all cursor-pointer relative group"
+                                                className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0 cursor-pointer group"
                                             >
-                                                {/* Top row: Holiday badge + Status */}
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <Badge variant="amber">⚠️ {holiday.name}</Badge>
-                                                    {isConfirmed ? (
-                                                        <Badge variant="green">✓ Confirmée</Badge>
-                                                    ) : (
-                                                        <Badge variant="amber">⚠ À confirmer</Badge>
-                                                    )}
-                                                </div>
-
-                                                {/* RCP Name & Date */}
-                                                <div className="flex items-center mb-1">
-                                                    <MapPin className="w-4 h-4 text-purple-500 mr-2" />
-                                                    <span className="font-bold text-sm text-text-base">{slot.location}</span>
-                                                    <span className="ml-2 text-[9px] text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
-                                                        RCP
-                                                    </span>
-                                                </div>
-
-                                                <div className="text-xs text-text-muted mb-2 pl-6 capitalize">
-                                                    📅 {formattedDate} à {slot.time || '--:--'}
-                                                </div>
-
-                                                {/* Doctors */}
-                                                <div className="flex flex-wrap gap-1 pl-6">
-                                                    {allDoctorIds.slice(0, 3).map(id => {
-                                                        const d = doctors.find(doc => doc.id === id);
-                                                        if (!d) return null;
-                                                        return (
-                                                            <div
-                                                                key={id}
-                                                                className="flex items-center bg-white px-1.5 py-0.5 rounded border border-border"
-                                                            >
-                                                                <div
-                                                                    className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold mr-1 text-white"
-                                                                    style={{ backgroundColor: getDoctorHexColor(d.color) }}
-                                                                >
-                                                                    {d.name.substring(0, 2)}
+                                                <span className="w-2 h-2 rounded-full bg-warning mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex justify-between items-start gap-2 mb-1">
+                                                        <Badge variant="amber">{holiday.name}</Badge>
+                                                        {isConfirmed ? (
+                                                            <Badge variant="green">Confirmee</Badge>
+                                                        ) : (
+                                                            <Badge variant="amber">A confirmer</Badge>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm font-medium text-text-base leading-snug flex items-center gap-1.5">
+                                                        <MapPin className="w-3.5 h-3.5 text-secondary flex-shrink-0" aria-hidden="true" />
+                                                        {slot.location}
+                                                        <Badge variant="violet" className="text-[9px] px-1.5 py-0">RCP</Badge>
+                                                    </p>
+                                                    <p className="text-xs text-text-muted mt-0.5 capitalize">{formattedDate} a {slot.time || '--:--'}</p>
+                                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                                        {allDoctorIds.slice(0, 3).map(id => {
+                                                            const d = doctors.find(doc => doc.id === id);
+                                                            if (!d) return null;
+                                                            return (
+                                                                <div key={id} className="flex items-center bg-surface px-1.5 py-0.5 rounded-btn-sm border border-border">
+                                                                    <div
+                                                                        className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold mr-1 text-white"
+                                                                        style={{ backgroundColor: getDoctorHexColor(d.color) }}
+                                                                    >
+                                                                        {d.name.substring(0, 2)}
+                                                                    </div>
+                                                                    <span className="text-[9px] text-text-base">{d.name}</span>
                                                                 </div>
-                                                                <span className="text-[9px] text-text-base">{d.name}</span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                    {allDoctorIds.length > 3 && (
-                                                        <span className="text-[9px] text-text-muted">+{allDoctorIds.length - 3}</span>
-                                                    )}
-                                                </div>
-
-                                                {/* Hover action hint */}
-                                                <div className="absolute right-2 bottom-2 text-xs text-orange-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    Déplacer →
+                                                            );
+                                                        })}
+                                                        {allDoctorIds.length > 3 && (
+                                                            <span className="text-[9px] text-text-muted">+{allDoctorIds.length - 3}</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="block text-xs text-warning-text font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Déplacer →
+                                                    </span>
                                                 </div>
                                             </div>
                                         );
@@ -951,27 +934,23 @@ const Dashboard: React.FC = () => {
                                 </span>
                             </CardTitle>
                         </CardHeader>
-                        <CardBody className="space-y-4 p-4">
+                        <CardBody className="space-y-4">
                             <div>
-                                <h4 className="text-[10px] font-bold text-text-muted uppercase mb-2">Matin</h4>
-                                <div className="flex flex-wrap gap-2">
+                                <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Matin</h4>
+                                <div className="flex flex-wrap gap-1.5">
                                     {unassignedDoctors[Period.MORNING].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.MORNING].map(d => (
-                                            <div key={d.id} className="text-[10px] px-2 py-1 rounded border bg-white text-text-muted border-border">
-                                                {d.name}
-                                            </div>
+                                            <Badge key={d.id} variant="gray">{d.name}</Badge>
                                         ))
                                     }
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-[10px] font-bold text-text-muted uppercase mb-2">Après-Midi</h4>
-                                <div className="flex flex-wrap gap-2">
+                                <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Après-Midi</h4>
+                                <div className="flex flex-wrap gap-1.5">
                                     {unassignedDoctors[Period.AFTERNOON].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.AFTERNOON].map(d => (
-                                            <div key={d.id} className="text-[10px] px-2 py-1 rounded border bg-white text-text-muted border-border">
-                                                {d.name}
-                                            </div>
+                                            <Badge key={d.id} variant="gray">{d.name}</Badge>
                                         ))
                                     }
                                 </div>
@@ -989,7 +968,7 @@ const Dashboard: React.FC = () => {
                                 </span>
                             </CardTitle>
                         </CardHeader>
-                        <CardBody className="max-h-40 overflow-y-auto space-y-2 p-4">
+                        <CardBody className="max-h-40 overflow-y-auto">
                             {stats.absentees.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-text-muted">
                                     <span className="text-xs">Tout le monde est présent.</span>
@@ -998,29 +977,20 @@ const Dashboard: React.FC = () => {
                                 stats.absentees.map(abs => {
                                     const doc = doctors.find(d => d.id === abs.doctorId);
                                     return (
-                                        <div key={abs.id} className="flex items-center justify-between p-2 bg-muted rounded border border-border">
-                                            <div className="flex items-center">
-                                                <div
-                                                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold mr-2 opacity-50 text-white"
-                                                    style={{ backgroundColor: getDoctorHexColor(doc?.color) }}
-                                                >
-                                                    Dr
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-bold text-text-base">{doc?.name}</div>
-                                                    <div className="text-[10px] text-text-muted uppercase font-bold flex items-center">
-                                                        {abs.reason}
-                                                        {abs.period && abs.period !== 'ALL_DAY' && (
-                                                            <span className="ml-1 text-[9px] bg-muted text-text-muted px-1 rounded uppercase">
-                                                                {abs.period === 'Matin' ? 'AM' : 'PM'}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                        <div key={abs.id} className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
+                                            <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-text-base leading-snug">{doc?.name}</p>
+                                                <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
+                                                    {abs.reason}
+                                                    {abs.period && abs.period !== 'ALL_DAY' && (
+                                                        <Badge variant="gray" className="text-[9px] px-1 py-0">{abs.period === 'Matin' ? 'AM' : 'PM'}</Badge>
+                                                    )}
+                                                </p>
                                             </div>
-                                            <div className="text-[10px] text-text-muted bg-white px-2 py-1 rounded border border-border">
+                                            <span className="text-[10px] text-text-muted bg-muted px-2 py-1 rounded-btn-sm border border-border flex-shrink-0">
                                                 {abs.startDate === abs.endDate ? abs.startDate : `Jusqu'au ${abs.endDate.split('-').slice(1).reverse().join('/')}`}
-                                            </div>
+                                            </span>
                                         </div>
                                     )
                                 })
