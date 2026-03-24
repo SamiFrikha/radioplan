@@ -485,7 +485,7 @@ const Configuration: React.FC = () => {
                             const doc = doctors.find(d => d.id === docId);
                             if (!doc) return null;
                             return (
-                                <div key={docId} className="flex items-center justify-start px-2 py-1.5 rounded-lg bg-white border border-border shadow-sm">
+                                <div key={docId} className="flex items-center justify-start px-2 py-1.5 rounded-btn-sm bg-white border border-border shadow-sm">
                                     <div
                                         className="w-6 h-6 rounded-full mr-2 flex-shrink-0 flex items-center justify-center text-white text-[9px] font-bold"
                                         style={{ backgroundColor: getDoctorHexColor(doc.color) }}
@@ -546,7 +546,7 @@ const Configuration: React.FC = () => {
             return (
                 <div
                     onClick={() => setSelectedExceptionSlot(slot)}
-                    className="p-2 h-full border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg group relative flex flex-col bg-gradient-to-br from-orange-50 to-pink-50 border-orange-300 hover:border-orange-500 min-h-[70px] animate-pulse-subtle"
+                    className="p-2 h-full border-2 rounded-card cursor-pointer transition-all hover:shadow-lg group relative flex flex-col bg-gradient-to-br from-orange-50 to-pink-50 border-orange-300 hover:border-orange-500 min-h-[70px] animate-pulse-subtle"
                 >
                     {/* Holiday warning badge */}
                     <div className="absolute -top-1 -right-1 z-10">
@@ -606,7 +606,7 @@ const Configuration: React.FC = () => {
             return (
                 <div
                     onClick={() => setSelectedExceptionSlot(slot)}
-                    className="p-2 h-full border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg group relative flex flex-col items-center justify-center bg-gradient-to-br from-red-50 to-white border-red-200 hover:border-red-400 min-h-[70px] opacity-80"
+                    className="p-2 h-full border-2 rounded-card cursor-pointer transition-all hover:shadow-lg group relative flex flex-col items-center justify-center bg-gradient-to-br from-red-50 to-white border-red-200 hover:border-red-400 min-h-[70px] opacity-80"
                 >
                     <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Edit3 className="w-3 h-3 text-red-400" />
@@ -623,7 +623,7 @@ const Configuration: React.FC = () => {
         return (
             <div
                 onClick={() => setSelectedExceptionSlot(slot)}
-                className="p-2 h-full border-2 rounded-lg cursor-pointer transition-all hover:shadow-lg group relative flex flex-col bg-gradient-to-br from-purple-50 to-white border-purple-200 hover:border-purple-400 min-h-[70px]"
+                className="p-2 h-full border-2 rounded-card cursor-pointer transition-all hover:shadow-lg group relative flex flex-col bg-gradient-to-br from-purple-50 to-white border-purple-200 hover:border-purple-400 min-h-[70px]"
             >
                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Edit3 className="w-3 h-3 text-purple-400" />
@@ -676,9 +676,9 @@ const Configuration: React.FC = () => {
         <div className="h-full flex flex-col space-y-4 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div className="mb-4 md:mb-0">
-                    <h1 className="font-heading font-bold text-xl text-text-base flex items-center">
+                    <h1 className="text-2xl font-extrabold text-text-base tracking-tight flex items-center">
                         <LayoutTemplate className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3 text-purple-600" />
-                        Règles & Postes
+                        Configuration
                     </h1>
                     <p className="text-xs md:text-sm text-text-muted mt-1 max-w-2xl hidden sm:block">
                         Définissez les postes fixes (Consultations) et les RCP hebdomadaires.
@@ -744,7 +744,7 @@ const Configuration: React.FC = () => {
                                     <input
                                         type="date"
                                         id="pending-start-date"
-                                        className="border border-border rounded-btn px-3 h-12 md:h-10 text-sm text-text-base focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none flex-1"
+                                        className="w-full h-11 px-3 rounded-input border border-border bg-surface text-text-base text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors flex-1"
                                         max={new Date().toISOString().split('T')[0]}
                                     />
                                     <button
@@ -769,7 +769,7 @@ const Configuration: React.FC = () => {
                         </div>
                     </div>
                     {!activitiesStartDate && (
-                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-card">
                             <div className="flex items-start gap-2">
                                 <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
                                 <div className="text-xs text-yellow-700">
@@ -783,7 +783,7 @@ const Configuration: React.FC = () => {
             </Card>
 
             <div className="flex items-center justify-between border-b border-border bg-surface">
-                <div className="flex overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="flex gap-1 border-b-2 border-border overflow-x-auto scrollbar-none -mx-4 px-4 mb-5" role="tablist">
                     {[
                         { id: SlotType.CONSULTATION, label: 'Consultations & Postes' },
                         { id: SlotType.RCP, label: 'RCP (Gestion)' },
@@ -791,11 +791,12 @@ const Configuration: React.FC = () => {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`px-4 h-10 font-heading font-medium text-sm whitespace-nowrap border-b-2 transition-colors flex-shrink-0
-                                ${activeTab === tab.id
-                                    ? 'border-primary text-primary'
-                                    : 'border-transparent text-text-muted hover:text-text-base'
-                                }`}
+                            role="tab"
+                            aria-selected={activeTab === tab.id}
+                            className={activeTab === tab.id
+                                ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors'
+                                : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors'
+                            }
                         >
                             {tab.label}
                         </button>
@@ -803,7 +804,7 @@ const Configuration: React.FC = () => {
                 </div>
 
                 {activeTab === SlotType.RCP && (
-                    <div className="flex bg-muted p-1 rounded-lg mr-2 flex-shrink-0">
+                    <div className="flex bg-muted p-1 rounded-btn mr-2 flex-shrink-0">
                         <button
                             onClick={() => setRcpViewMode('RULES')}
                             className={`px-3 py-1 text-xs font-bold rounded ${rcpViewMode === 'RULES' ? 'bg-white shadow text-primary' : 'text-text-muted'}`}
@@ -842,7 +843,7 @@ const Configuration: React.FC = () => {
                                     value={newPosteName}
                                     onChange={e => setNewPosteName(e.target.value)}
                                     placeholder="Nouveau (ex: Scanner)"
-                                    className="text-sm border border-border rounded-l h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none w-32 md:w-40"
+                                    className="text-sm border border-border rounded-l h-10 px-3 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none w-32 md:w-40"
                                     onKeyDown={e => e.key === 'Enter' && handleAddPoste()}
                                 />
                                 <button onClick={handleAddPoste} disabled={!newPosteName} className="bg-blue-600 text-white p-1.5 rounded-r hover:bg-blue-700 h-10 flex items-center">
@@ -871,7 +872,7 @@ const Configuration: React.FC = () => {
                                     <input
                                         type="text"
                                         placeholder="Nom de la RCP..."
-                                        className="flex-1 text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
+                                        className="flex-1 text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                                         value={newRcpName}
                                         onChange={e => setNewRcpName(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && handleAddRcp()}
@@ -896,7 +897,7 @@ const Configuration: React.FC = () => {
                                                 const r = rcpTypes.find(x => x.id === e.target.value);
                                                 if (r) setTempRcpName(r.name);
                                             }}
-                                            className="w-full h-10 px-3 border border-border rounded-btn text-sm bg-muted font-medium focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none cursor-pointer"
+                                            className="w-full h-10 px-3 border border-border rounded-btn text-sm bg-muted font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none cursor-pointer"
                                         >
                                             <option value="">-- Sélectionner une RCP --</option>
                                             {rcpTypes.map(r => (
@@ -912,24 +913,24 @@ const Configuration: React.FC = () => {
                                         <div className="flex-1 flex flex-col gap-3 animate-in fade-in slide-in-from-left-2 w-full">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 <div className="w-full">
-                                                    <label className="block text-label font-medium text-text-base mb-1.5">Renommer</label>
+                                                    <label className="block text-sm font-semibold text-text-base mb-1.5">Renommer</label>
                                                     <div className="flex items-center space-x-1">
                                                         <input
                                                             type="text"
                                                             value={tempRcpName}
                                                             onChange={e => setTempRcpName(e.target.value)}
-                                                            className="flex-1 text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
+                                                            className="flex-1 text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                                                         />
                                                         <button onClick={() => saveEditRcp(rcp)} className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 h-10 flex items-center" title="Valider le nom"><Check className="w-4 h-4" /></button>
                                                     </div>
                                                 </div>
 
                                                 <div className="w-full">
-                                                    <label className="block text-label font-medium text-text-base mb-1.5">Fréquence</label>
+                                                    <label className="block text-sm font-semibold text-text-base mb-1.5">Fréquence</label>
                                                     <select
                                                         value={rcp.frequency}
                                                         onChange={(e) => updateRcpDefinition({ ...rcp, frequency: e.target.value as any })}
-                                                        className="text-sm border border-border rounded-btn h-10 px-3 bg-white w-full cursor-pointer focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
+                                                        className="text-sm border border-border rounded-btn h-10 px-3 bg-white w-full cursor-pointer focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                                                     >
                                                         <option value="WEEKLY">Hebdomadaire</option>
                                                         <option value="BIWEEKLY">1 Semaine sur 2</option>
@@ -955,7 +956,7 @@ const Configuration: React.FC = () => {
 
                                             {rcp.frequency === 'BIWEEKLY' && (
                                                 <div className="bg-muted p-2 rounded-btn border border-border">
-                                                    <label className="block text-label font-medium text-text-base mb-1.5">Parité Semaine (Annuelle)</label>
+                                                    <label className="block text-sm font-semibold text-text-base mb-1.5">Parité Semaine (Annuelle)</label>
                                                     <div className="flex gap-2">
                                                         <button
                                                             onClick={() => updateRcpDefinition({ ...rcp, weekParity: 'ODD' })}
@@ -975,7 +976,7 @@ const Configuration: React.FC = () => {
 
                                             {rcp.frequency === 'MONTHLY' && (
                                                 <div className="bg-muted p-2 rounded-btn border border-border">
-                                                    <label className="block text-label font-medium text-text-base mb-1.5">Occurrence dans le mois</label>
+                                                    <label className="block text-sm font-semibold text-text-base mb-1.5">Occurrence dans le mois</label>
                                                     <div className="flex gap-1">
                                                         {[1, 2, 3, 4].map(num => (
                                                             <button
@@ -999,19 +1000,19 @@ const Configuration: React.FC = () => {
 
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                                                         <div>
-                                                            <label className="block text-label font-medium text-text-base mb-1.5">Date</label>
+                                                            <label className="block text-sm font-semibold text-text-base mb-1.5">Date</label>
                                                             <input
                                                                 type="date"
-                                                                className={`text-sm border rounded-btn h-10 px-3 w-full focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none ${manualHolidayWarning ? 'border-orange-300 bg-orange-50' : 'border-border'}`}
+                                                                className={`text-sm border rounded-btn h-10 px-3 w-full focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none ${manualHolidayWarning ? 'border-orange-300 bg-orange-50' : 'border-border'}`}
                                                                 value={manualDateInput}
                                                                 onChange={e => handleManualDateChange(e.target.value)}
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-label font-medium text-text-base mb-1.5">Heure</label>
+                                                            <label className="block text-sm font-semibold text-text-base mb-1.5">Heure</label>
                                                             <input
                                                                 type="time"
-                                                                className="text-sm border border-border rounded-btn h-10 px-3 w-full focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none"
+                                                                className="text-sm border border-border rounded-btn h-10 px-3 w-full focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
                                                                 value={manualTimeInput}
                                                                 onChange={e => setManualTimeInput(e.target.value)}
                                                             />
@@ -1027,29 +1028,29 @@ const Configuration: React.FC = () => {
 
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-2">
                                                         <div>
-                                                            <label className="block text-label font-medium text-text-base mb-1.5">Responsable</label>
-                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualLeadId} onChange={e => setManualLeadId(e.target.value)}>
+                                                            <label className="block text-sm font-semibold text-text-base mb-1.5">Responsable</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none" value={manualLeadId} onChange={e => setManualLeadId(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="block text-label font-medium text-text-base mb-1.5">Backup (Suppléant)</label>
-                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualBackupId} onChange={e => setManualBackupId(e.target.value)}>
+                                                            <label className="block text-sm font-semibold text-text-base mb-1.5">Backup (Suppléant)</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none" value={manualBackupId} onChange={e => setManualBackupId(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="block text-label font-medium text-text-base mb-1.5">Intervenant 1</label>
-                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualAssoc1Id} onChange={e => setManualAssoc1Id(e.target.value)}>
+                                                            <label className="block text-sm font-semibold text-text-base mb-1.5">Intervenant 1</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none" value={manualAssoc1Id} onChange={e => setManualAssoc1Id(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
                                                         </div>
                                                         <div>
-                                                            <label className="block text-label font-medium text-text-base mb-1.5">Intervenant 2</label>
-                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" value={manualAssoc2Id} onChange={e => setManualAssoc2Id(e.target.value)}>
+                                                            <label className="block text-sm font-semibold text-text-base mb-1.5">Intervenant 2</label>
+                                                            <select className="w-full text-sm border border-border rounded-btn h-10 px-3 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none" value={manualAssoc2Id} onChange={e => setManualAssoc2Id(e.target.value)}>
                                                                 <option value="">-- Choisir --</option>
                                                                 {doctors.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                                             </select>
@@ -1065,7 +1066,7 @@ const Configuration: React.FC = () => {
                                                     </button>
 
                                                     <div className="mt-3 border-t border-border pt-2">
-                                                        <label className="block text-label font-medium text-text-base mb-1.5">Dates Programmées</label>
+                                                        <label className="block text-sm font-semibold text-text-base mb-1.5">Dates Programmées</label>
                                                         <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
                                                             {rcp.manualInstances?.map((inst: RcpManualInstance) => (
                                                                 <div key={inst.id} className="bg-white px-2 py-1 rounded border border-border text-[10px] flex items-center shadow-sm w-full justify-between">
@@ -1111,19 +1112,19 @@ const Configuration: React.FC = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                             <div>
-                                <label className="block text-label font-medium text-text-base mb-1.5">Jour du tirage</label>
+                                <label className="block text-sm font-semibold text-text-base mb-1.5">Jour du tirage</label>
                                 <select value={autoConfigDay} onChange={e => setAutoConfigDay(e.target.value)}
-                                    className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-white focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none">
+                                    className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none">
                                     {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(d => (
                                         <option key={d}>{d}</option>
                                     ))}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-label font-medium text-text-base mb-1.5">Heure du tirage</label>
+                                <label className="block text-sm font-semibold text-text-base mb-1.5">Heure du tirage</label>
                                 <input type="time" value={autoConfigTime}
                                     onChange={e => setAutoConfigTime(e.target.value)}
-                                    className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-white focus:border-primary focus:shadow-[0_0_0_3px_rgba(37,99,235,0.15)] focus:outline-none" />
+                                    className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none" />
                             </div>
                             <button onClick={handleSaveAutoConfig} disabled={savingAutoConfig}
                                 className="bg-blue-600 text-white px-4 py-2 rounded-btn text-sm hover:bg-blue-700 disabled:opacity-50 font-medium whitespace-nowrap h-10 flex items-center justify-center md:col-span-2 w-full md:w-auto md:self-end">
@@ -1172,7 +1173,7 @@ const Configuration: React.FC = () => {
 
             {/* CALENDAR CONTROLS */}
             {activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR' && (
-                <div className="bg-gradient-to-r from-purple-50 to-white p-3 rounded-lg border border-purple-200 mb-4 flex items-center justify-between shadow-sm">
+                <div className="bg-gradient-to-r from-purple-50 to-white p-3 rounded-card border border-purple-200 mb-4 flex items-center justify-between shadow-sm">
                     <div className="flex items-center space-x-4">
                         <button
                             onClick={() => {
@@ -1180,7 +1181,7 @@ const Configuration: React.FC = () => {
                                 d.setDate(d.getDate() - 7);
                                 setCurrentCalendarDate(d);
                             }}
-                            className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                            className="p-2 hover:bg-purple-100 rounded-btn transition-colors"
                         >
                             <ChevronLeft className="w-5 h-5 text-purple-600" />
                         </button>
@@ -1195,7 +1196,7 @@ const Configuration: React.FC = () => {
                                 d.setDate(d.getDate() + 7);
                                 setCurrentCalendarDate(d);
                             }}
-                            className="p-2 hover:bg-purple-100 rounded-lg transition-colors"
+                            className="p-2 hover:bg-purple-100 rounded-btn transition-colors"
                         >
                             <ChevronRight className="w-5 h-5 text-purple-600" />
                         </button>
@@ -1207,7 +1208,7 @@ const Configuration: React.FC = () => {
                         </div>
                         <button
                             onClick={() => setIsFullscreen(!isFullscreen)}
-                            className="p-2 hover:bg-purple-100 rounded-lg transition-colors text-purple-600"
+                            className="p-2 hover:bg-purple-100 rounded-btn transition-colors text-purple-600"
                             title={isFullscreen ? "Réduire" : "Agrandir"}
                         >
                             {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
@@ -1218,12 +1219,12 @@ const Configuration: React.FC = () => {
 
             {/* MAIN GRID - with fullscreen support (only for RCP Calendar view) */}
             <div
-                className={`${isFullscreen && activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR' ? 'fixed inset-0 z-50 p-4 bg-muted' : 'flex-1'} overflow-auto bg-white rounded-xl shadow border border-border`}
+                className={`${isFullscreen && activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR' ? 'fixed inset-0 z-50 p-4 bg-muted' : 'flex-1'} overflow-auto bg-white rounded-card shadow border border-border`}
                 ref={tableContainerRef}
             >
                 {/* Fullscreen header - only shown for RCP Calendar */}
                 {isFullscreen && activeTab === SlotType.RCP && rcpViewMode === 'CALENDAR' && (
-                    <div className="flex justify-between items-center mb-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white p-4 rounded-lg shadow-lg">
+                    <div className="flex justify-between items-center mb-4 bg-gradient-to-r from-purple-600 to-purple-500 text-white p-4 rounded-card shadow-lg">
                         <div>
                             <h2 className="text-xl font-bold">Vue RCP - Calendrier</h2>
                             <p className="text-purple-100 text-sm">Semaine du {currentCalendarWeekStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
@@ -1235,7 +1236,7 @@ const Configuration: React.FC = () => {
                                     d.setDate(d.getDate() - 7);
                                     setCurrentCalendarDate(d);
                                 }}
-                                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg"
+                                className="p-2 bg-white/20 hover:bg-white/30 rounded-btn"
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
@@ -1245,13 +1246,13 @@ const Configuration: React.FC = () => {
                                     d.setDate(d.getDate() + 7);
                                     setCurrentCalendarDate(d);
                                 }}
-                                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg"
+                                className="p-2 bg-white/20 hover:bg-white/30 rounded-btn"
                             >
                                 <ChevronRight className="w-5 h-5" />
                             </button>
                             <button
                                 onClick={() => setIsFullscreen(false)}
-                                className="p-2 bg-white/20 hover:bg-white/30 rounded-lg"
+                                className="p-2 bg-white/20 hover:bg-white/30 rounded-btn"
                             >
                                 <Minimize2 className="w-5 h-5" />
                             </button>
@@ -1266,7 +1267,7 @@ const Configuration: React.FC = () => {
                         <p className="text-xs">Utilisez le panneau ci-dessus pour ajouter des RCP ou des Postes.</p>
                     </div>
                 ) : (
-                    <div className={`min-w-[800px] ${isFullscreen ? 'bg-white rounded-lg p-2' : ''}`}>
+                    <div className={`min-w-[800px] ${isFullscreen ? 'bg-white rounded-card p-2' : ''}`}>
                         <table className="w-full border-collapse table-fixed">
                             <thead>
                                 <tr>

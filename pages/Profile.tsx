@@ -141,7 +141,7 @@ const NotificationSection: React.FC<{
                   <button
                     onClick={subscribe}
                     disabled={pushLoading}
-                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    className="text-xs bg-primary text-white px-3 py-1.5 rounded-btn-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
                   >
                     {pushLoading ? 'Activation...' : 'Activer'}
                   </button>
@@ -219,7 +219,7 @@ const NotificationSection: React.FC<{
                     return (
                         <div key={n.id}
                             onClick={() => !requestId && markRead(n.id)}
-                            className={`rounded-xl p-3.5 border transition-colors
+                            className={`rounded-card p-3.5 border transition-colors
                                 ${n.read ? 'bg-surface border-border' : 'bg-blue-50 border-blue-200'}
                                 ${!requestId ? 'cursor-pointer hover:bg-muted' : ''}`}
                         >
@@ -232,7 +232,7 @@ const NotificationSection: React.FC<{
                                     <p className="text-xs text-text-muted mt-1">{new Date(n.created_at).toLocaleString('fr-FR')}</p>
                                     {n.type === 'REPLACEMENT_REQUEST' && requestId && (
                                         (resolution || n.data?.resolution) ? (
-                                            <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${(resolution || n.data?.resolution) === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            <div className={`mt-2 text-xs px-3 py-1.5 rounded-btn-sm font-medium inline-flex items-center gap-1 ${(resolution || n.data?.resolution) === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                 {(resolution || n.data?.resolution) === 'ACCEPTED' ? '✅ Vous avez accepté ce remplacement' : '❌ Vous avez refusé ce remplacement'}
                                             </div>
                                         ) : (
@@ -886,7 +886,7 @@ const Profile: React.FC = () => {
                     <p className="text-text-muted mb-6">Veuillez vous connecter pour accéder à votre profil.</p>
                     <button
                         onClick={() => navigate('/login')}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                        className="bg-primary text-white px-6 py-3 rounded-btn font-medium hover:bg-primary/90 transition-colors"
                     >
                         Se connecter
                     </button>
@@ -922,7 +922,7 @@ const Profile: React.FC = () => {
         <div className="max-w-5xl mx-auto pb-20 p-1 md:p-4">
 
             {/* PAGE HEADER */}
-            <h1 className="font-heading font-bold text-xl text-text-base mb-4">Mon Profil</h1>
+            <h1 className="text-2xl font-extrabold text-text-base tracking-tight mb-4">Mon Profil</h1>
 
             {/* DESKTOP: 2-col grid / MOBILE: stacked */}
             <div className="grid lg:grid-cols-[320px_1fr] gap-4 items-start">
@@ -942,7 +942,7 @@ const Profile: React.FC = () => {
                                     </div>
                                     <div>
                                         {isEditingProfile ? (
-                                            <div className="space-y-3 bg-white/10 p-3 rounded-lg backdrop-blur-sm">
+                                            <div className="space-y-3 bg-white/10 p-3 rounded-card backdrop-blur-sm">
                                                 <div>
                                                     <label className="text-xs text-blue-200 mb-1 block">Nom</label>
                                                     <input
@@ -1029,10 +1029,11 @@ const Profile: React.FC = () => {
                                     <NavLink
                                         key={link.to}
                                         to={link.to}
-                                        className="flex items-center gap-3 px-4 h-11 hover:bg-muted border-b border-border last:border-0 text-sm font-medium text-text-base"
+                                        className="flex items-center gap-3 py-2.5 px-3 rounded-btn-sm hover:bg-primary/5 text-sm font-medium text-text-base transition-colors group"
                                     >
-                                        <link.icon className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                                        {link.label}
+                                        <link.icon className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
+                                        <span className="flex-1">{link.label}</span>
+                                        <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors" />
                                     </NavLink>
                                 ))}
                             </CardBody>
@@ -1045,10 +1046,10 @@ const Profile: React.FC = () => {
                             <button
                                 onClick={() => setAdminOpen(v => !v)}
                                 aria-expanded={adminOpen}
-                                className="w-full flex items-center justify-between px-4 h-11 bg-surface border border-border rounded-card font-heading font-semibold text-sm text-text-muted"
+                                className="flex items-center justify-between w-full py-3 text-sm font-bold text-text-base lg:hidden"
                             >
-                                Administration
-                                <ChevronDown className={`w-4 h-4 transition-transform ${adminOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                                <span>Administration</span>
+                                <ChevronDown className={`w-4 h-4 text-text-muted transition-transform duration-200 ${adminOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {adminOpen && (
                                 <div className="mt-1 bg-surface border border-border rounded-card overflow-hidden">
@@ -1056,10 +1057,11 @@ const Profile: React.FC = () => {
                                         <NavLink
                                             key={link.to}
                                             to={link.to}
-                                            className="flex items-center gap-3 px-4 h-11 hover:bg-muted border-b border-border last:border-0 text-sm font-medium text-text-base"
+                                            className="flex items-center gap-3 py-2.5 px-3 rounded-btn-sm hover:bg-primary/5 text-sm font-medium text-text-base transition-colors group"
                                         >
-                                            <link.icon className="w-4 h-4 text-text-muted" aria-hidden="true" />
-                                            {link.label}
+                                            <link.icon className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
+                                            <span className="flex-1">{link.label}</span>
+                                            <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors" />
                                         </NavLink>
                                     ))}
                                 </div>
@@ -1073,17 +1075,21 @@ const Profile: React.FC = () => {
             {/* TABS */}
             <Card className="overflow-hidden">
                 {/* Tab Navigation */}
-                <div className="flex border-b border-border">
+                <div className="flex gap-1 border-b-2 border-border overflow-x-auto scrollbar-none -mx-4 px-4 mb-0" role="tablist">
                     <button
                         onClick={() => setActiveTab('rcp')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'rcp' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
+                        role="tab"
+                        aria-selected={activeTab === 'rcp'}
+                        className={activeTab === 'rcp' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
                     >
                         <CheckCircle2 className="w-4 h-4" />
                         RCP
                     </button>
                     <button
                         onClick={() => setActiveTab('notifications')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'notifications' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
+                        role="tab"
+                        aria-selected={activeTab === 'notifications'}
+                        className={activeTab === 'notifications' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
                     >
                         <Bell className="w-4 h-4" />
                         Notifications
@@ -1095,21 +1101,27 @@ const Profile: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setActiveTab('absences')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'absences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
+                        role="tab"
+                        aria-selected={activeTab === 'absences'}
+                        className={activeTab === 'absences' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
                     >
                         <Calendar className="w-4 h-4" />
                         Absences
                     </button>
                     <button
                         onClick={() => setActiveTab('preferences')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'preferences' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-text-muted hover:text-text-base'}`}
+                        role="tab"
+                        aria-selected={activeTab === 'preferences'}
+                        className={activeTab === 'preferences' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
                     >
                         <Briefcase className="w-4 h-4" />
                         Préférences
                     </button>
                     <button
                         onClick={() => setActiveTab('conflits')}
-                        className={`flex-1 py-3 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${activeTab === 'conflits' ? 'border-b-2 border-red-600 text-red-600' : 'text-text-muted hover:text-text-base'}`}
+                        role="tab"
+                        aria-selected={activeTab === 'conflits'}
+                        className={activeTab === 'conflits' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
                     >
                         <AlertTriangle className="w-4 h-4" />
                         Conflits
@@ -1164,34 +1176,34 @@ const Profile: React.FC = () => {
                     <form onSubmit={handleAddUnavailability} className="bg-surface p-3 md:p-5 rounded-card border border-border mb-4 md:mb-6 space-y-3 md:space-y-4 shadow-sm">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-xs font-bold text-text-muted mb-1">Du</label>
+                                <label className="block text-sm font-semibold text-text-base mb-1.5">Du</label>
                                 <input
                                     type="date"
                                     required
                                     value={startDate}
                                     onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full h-11 px-3 rounded-input border border-border bg-surface text-text-base text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-text-muted mb-1">Au</label>
+                                <label className="block text-sm font-semibold text-text-base mb-1.5">Au</label>
                                 <input
                                     type="date"
                                     required
                                     value={endDate}
                                     min={startDate}
                                     onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full h-11 px-3 rounded-input border border-border bg-surface text-text-base text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-text-muted mb-1">Période</label>
+                            <label className="block text-sm font-semibold text-text-base mb-1.5">Période</label>
                             <select
                                 value={absencePeriod}
                                 onChange={(e) => setAbsencePeriod(e.target.value as any)}
-                                className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full h-11 px-3 rounded-input border border-border bg-surface text-text-base text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                             >
                                 <option value="ALL_DAY">Journée entière</option>
                                 <option value={Period.MORNING}>Matin uniquement</option>
@@ -1200,11 +1212,11 @@ const Profile: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-text-muted mb-1">Motif</label>
+                            <label className="block text-sm font-semibold text-text-base mb-1.5">Motif</label>
                             <select
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
-                                className="w-full rounded border-border text-sm p-2 border focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full h-11 px-3 rounded-input border border-border bg-surface text-text-base text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                             >
                                 <option value="CONGRES">Congrès</option>
                                 <option value="VACANCES">Vacances</option>
@@ -1217,13 +1229,13 @@ const Profile: React.FC = () => {
                             <input
                                 type="text"
                                 placeholder="Précisez..."
-                                className="w-full rounded border border-border text-sm p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full h-11 px-3 rounded-input border border-border bg-surface text-text-base text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-colors"
                                 value={customReason}
                                 onChange={e => setCustomReason(e.target.value)}
                                 required
                             />
                         )}
-                        <button type="submit" className="w-full bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 flex items-center justify-center text-sm font-bold shadow-sm">
+                        <button type="submit" className="w-full bg-primary text-white px-4 py-2.5 rounded-btn hover:bg-primary/90 flex items-center justify-center text-sm font-bold shadow-sm">
                             <Save className="w-4 h-4 mr-2" />
                             Ajouter l'absence
                         </button>
@@ -1272,11 +1284,11 @@ const Profile: React.FC = () => {
                         <div>
                             {/* Week navigation */}
                             <div className="flex items-center justify-between mb-4">
-                                <button onClick={() => setNotifWeekOffset(notifWeekOffset - 1)} className="p-1 hover:bg-muted rounded-lg">
+                                <button onClick={() => setNotifWeekOffset(notifWeekOffset - 1)} className="p-1 hover:bg-muted rounded-btn">
                                     <ChevronLeft className="w-5 h-5 text-text-muted" />
                                 </button>
                                 <span className="text-sm font-semibold text-text-base">{getNotificationWeekLabel()}</span>
-                                <button onClick={() => setNotifWeekOffset(notifWeekOffset + 1)} className="p-1 hover:bg-muted rounded-lg">
+                                <button onClick={() => setNotifWeekOffset(notifWeekOffset + 1)} className="p-1 hover:bg-muted rounded-btn">
                                     <ChevronRight className="w-5 h-5 text-text-muted" />
                                 </button>
                             </div>
@@ -1290,7 +1302,7 @@ const Profile: React.FC = () => {
                                         const lockedByOther = lockedByDoctorId && lockedByDoctorId !== currentDoctor!.id;
                                         const lockedDoctor = lockedByOther ? doctors.find(d => d.id === lockedByDoctorId) : null;
                                         return (
-                                            <div key={idx} className={`border rounded-xl p-4 ${rcp.isCancelled ? 'opacity-50 bg-muted' : 'bg-surface border-border'}`}>
+                                            <div key={idx} className={`border rounded-card p-4 ${rcp.isCancelled ? 'opacity-50 bg-muted' : 'bg-surface border-border'}`}>
                                                 {/* Header */}
                                                 <div className="flex items-start justify-between gap-2">
                                                     <div className="flex-1">
@@ -1318,7 +1330,7 @@ const Profile: React.FC = () => {
                                                     <>
                                                         {/* Lock: confirmed by colleague */}
                                                         {lockedByOther && (
-                                                            <div className="mt-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+                                                            <div className="mt-2 text-xs text-blue-600 bg-blue-50 rounded-btn-sm px-3 py-1.5 flex items-center gap-1.5">
                                                                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                                                                 Confirmé par {lockedDoctor?.name || 'un collègue'}
                                                             </div>
@@ -1341,7 +1353,7 @@ const Profile: React.FC = () => {
                                                                     <button
                                                                         onClick={() => handleAttendanceToggle(rcp.generatedId, 'PRESENT')}
                                                                         disabled={rcp.myStatus === 'PRESENT'}
-                                                                        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'PRESENT' ? 'bg-green-600 text-white cursor-default' : 'bg-muted text-text-base hover:bg-green-50 hover:text-green-700'}`}
+                                                                        className={`text-xs px-3 py-1.5 rounded-btn-sm font-medium transition-colors ${rcp.myStatus === 'PRESENT' ? 'bg-green-600 text-white cursor-default' : 'bg-muted text-text-base hover:bg-green-50 hover:text-green-700'}`}
                                                                     >
                                                                         Présent
                                                                     </button>
@@ -1349,13 +1361,13 @@ const Profile: React.FC = () => {
                                                                 <button
                                                                     onClick={() => handleAttendanceToggle(rcp.generatedId, 'ABSENT')}
                                                                     disabled={rcp.myStatus === 'ABSENT'}
-                                                                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${rcp.myStatus === 'ABSENT' ? 'bg-red-500 text-white cursor-default' : 'bg-muted text-text-base hover:bg-red-50 hover:text-red-600'}`}
+                                                                    className={`text-xs px-3 py-1.5 rounded-btn-sm font-medium transition-colors ${rcp.myStatus === 'ABSENT' ? 'bg-red-500 text-white cursor-default' : 'bg-muted text-text-base hover:bg-red-50 hover:text-red-600'}`}
                                                                 >
                                                                     Absent
                                                                 </button>
                                                                 {rcp.myStatus && (
                                                                     <button onClick={() => handleClearDecision(rcp.generatedId)}
-                                                                        className="text-xs px-2 py-1.5 rounded-lg text-text-muted hover:text-text-base hover:bg-muted" title="Réinitialiser">
+                                                                        className="text-xs px-2 py-1.5 rounded-btn-sm text-text-muted hover:text-text-base hover:bg-muted" title="Réinitialiser">
                                                                         <RotateCcw className="w-3.5 h-3.5" />
                                                                     </button>
                                                                 )}
@@ -1467,14 +1479,14 @@ const Profile: React.FC = () => {
                         <div>
                             {/* Week navigation */}
                             <div className="flex items-center justify-between mb-4">
-                                <button onClick={() => setConflictsWeekOffset(prev => prev - 1)} className="p-2 hover:bg-muted rounded-lg transition">
+                                <button onClick={() => setConflictsWeekOffset(prev => prev - 1)} className="p-2 hover:bg-muted rounded-btn transition">
                                     <ChevronLeft className="w-5 h-5 text-text-muted" />
                                 </button>
                                 <div className="text-center">
                                     <h3 className="font-bold text-text-base">{getConflictsWeekLabel()}</h3>
                                     <p className="text-xs text-text-muted">{profileConflicts.length} conflit{profileConflicts.length !== 1 ? 's' : ''}</p>
                                 </div>
-                                <button onClick={() => setConflictsWeekOffset(prev => prev + 1)} className="p-2 hover:bg-muted rounded-lg transition">
+                                <button onClick={() => setConflictsWeekOffset(prev => prev + 1)} className="p-2 hover:bg-muted rounded-btn transition">
                                     <ChevronRight className="w-5 h-5 text-text-muted" />
                                 </button>
                             </div>
