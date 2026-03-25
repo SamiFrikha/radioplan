@@ -671,7 +671,7 @@ const Planning: React.FC = () => {
                         className="flex items-center gap-1.5"
                     >
                         {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-                        <span className="hidden md:inline">{isGeneratingPdf ? 'Génération...' : 'PDF'}</span>
+                        <span>{isGeneratingPdf ? 'Génération...' : 'PDF'}</span>
                     </Button>
                 </div>
             </div>
@@ -726,7 +726,7 @@ const Planning: React.FC = () => {
                                                 <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
                                             </td>
                                             {days.map(day => (
-                                                <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0`}>
+                                                <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
                                                     <div className="absolute top-0 left-0 right-0 bg-warning/10 text-[9px] px-1 text-warning-text uppercase font-bold tracking-wider z-0 border-b border-warning/20">Matin</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.MORNING, loc)}
@@ -736,7 +736,7 @@ const Planning: React.FC = () => {
                                         </tr>
                                         <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0`}>
+                                                <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
                                                     <div className="absolute top-0 left-0 right-0 bg-primary/10 text-[9px] px-1 text-primary-text uppercase font-bold tracking-wider z-0 border-b border-primary/20">A.Midi</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.AFTERNOON, loc)}
@@ -761,7 +761,7 @@ const Planning: React.FC = () => {
                                                 <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">{doc.name}</div>
                                             </td>
                                             {days.map(day => (
-                                                <td key={`${day}-matin`} className="border-r border-b border-border relative h-11 align-top p-0">
+                                                <td key={`${day}-matin`} className="border-r border-b border-border relative h-11 align-top p-0 overflow-hidden">
                                                     <div className="h-full">
                                                         {renderDoctorCell(doc, day, Period.MORNING)}
                                                     </div>
@@ -770,7 +770,7 @@ const Planning: React.FC = () => {
                                         </tr>
                                         <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className="border-r border-b-2 border-border relative h-11 align-top p-0">
+                                                <td key={`${day}-apres-midi`} className="border-r border-b-2 border-border relative h-11 align-top p-0 overflow-hidden">
                                                     <div className="h-full bg-muted/30">
                                                         {renderDoctorCell(doc, day, Period.AFTERNOON)}
                                                     </div>
