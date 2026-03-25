@@ -262,8 +262,8 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     };
 
     const getSlotColor = (s: ScheduleSlot) => {
-        if (s.type === SlotType.RCP) return 'bg-purple-100 border-purple-200 text-purple-800';
-        if (s.type === SlotType.ACTIVITY) return 'bg-orange-100 border-orange-200 text-orange-800';
+        if (s.type === SlotType.RCP) return 'bg-secondary/10 border-secondary/20 text-secondary';
+        if (s.type === SlotType.ACTIVITY) return 'bg-warning/10 border-warning/20 text-warning';
         return 'bg-muted border-border text-primary';
     };
 
@@ -281,7 +281,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                 onClick={onClose}
             >
                 <div
-                    className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                    className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[680px] mx-auto max-h-[90dvh] overflow-y-auto"
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="modal-title-conflict-denied"
@@ -348,7 +348,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
             onClick={onClose}
         >
             <div
-                className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
+                className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[680px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title-conflict"
@@ -386,12 +386,12 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     {isRcpConflict && (
                         <div className="mb-6">
                             {/* Intro */}
-                            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-5">
+                            <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4 mb-5">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <UserCheck className="w-5 h-5 text-purple-600" />
-                                    <span className="font-bold text-purple-800">Conflit sur une RCP</span>
+                                    <UserCheck className="w-5 h-5 text-secondary" />
+                                    <span className="font-bold text-secondary">Conflit sur une RCP</span>
                                 </div>
-                                <p className="text-sm text-purple-700">
+                                <p className="text-sm text-secondary">
                                     Ce médecin est indisponible ou en double réservation sur une RCP confirmée.
                                     La RCP bloque la demi-journée entière. Choisissez comment résoudre ce conflit.
                                 </p>
@@ -404,13 +404,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                     <button
                                         onClick={handleRcpLeaveEmpty}
                                         disabled={rcpActionLoading}
-                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-orange-200 bg-orange-50 hover:border-orange-400 hover:bg-orange-100 transition-all disabled:opacity-50 group"
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-warning/20 bg-warning/10 hover:border-warning/40 hover:bg-warning/20 transition-all disabled:opacity-50 group"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-orange-100 group-hover:bg-orange-200 flex items-center justify-center mb-2">
-                                            <UserX className="w-5 h-5 text-orange-600" />
+                                        <div className="w-10 h-10 rounded-full bg-warning/10 group-hover:bg-warning/20 flex items-center justify-center mb-2">
+                                            <UserX className="w-5 h-5 text-warning" />
                                         </div>
-                                        <span className="font-bold text-sm text-orange-800">Laisser vide</span>
-                                        <span className="text-[11px] text-orange-600 mt-1 leading-tight">
+                                        <span className="font-bold text-sm text-warning-text">Laisser vide</span>
+                                        <span className="text-[11px] text-warning mt-1 leading-tight">
                                             Aucun médecin assigné — la RCP reste visible comme non résolue
                                         </span>
                                     </button>
@@ -432,13 +432,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                     {/* 🅾️ Direct replacement */}
                                     <button
                                         onClick={() => setRcpMode('DIRECT')}
-                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-green-200 bg-green-50 hover:border-green-400 hover:bg-green-100 transition-all group"
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-success/20 bg-success/10 hover:border-success/40 hover:bg-success/20 transition-all group"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 flex items-center justify-center mb-2">
-                                            <UserPlus className="w-5 h-5 text-green-600" />
+                                        <div className="w-10 h-10 rounded-full bg-success/10 group-hover:bg-success/20 flex items-center justify-center mb-2">
+                                            <UserPlus className="w-5 h-5 text-success" />
                                         </div>
-                                        <span className="font-bold text-sm text-green-800">Remplacement direct</span>
-                                        <span className="text-[11px] text-green-600 mt-1 leading-tight">
+                                        <span className="font-bold text-sm text-success-text">Remplacement direct</span>
+                                        <span className="text-[11px] text-success mt-1 leading-tight">
                                             Assigner immédiatement un médecin — il est marqué présent et bloqué
                                         </span>
                                     </button>
@@ -455,7 +455,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         <Send className="w-4 h-4 text-primary" /> Choisir un médecin à qui demander
                                     </h4>
                                     {requestSent ? (
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700 font-medium">
+                                        <div className="bg-success/10 border border-success/20 rounded-lg p-3 text-sm text-success-text font-medium">
                                             ✓ Demande envoyée — le médecin recevra une notification
                                         </div>
                                     ) : (
@@ -463,17 +463,17 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                             {/* Referent doctors first */}
                                             {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).length > 0 && (
                                                 <div className="mb-1">
-                                                    <p className="text-[10px] uppercase font-bold text-green-700 mb-1.5">
+                                                    <p className="text-[10px] uppercase font-bold text-success-text mb-1.5">
                                                         Médecins référents ({doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).length})
                                                     </p>
                                                     {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).map(doc => (
-                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-green-200 rounded-lg hover:border-green-400 transition mb-1.5">
+                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-success/20 rounded-lg hover:border-success/40 transition mb-1.5">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium text-text-base">{doc.name}</span>
-                                                                <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
+                                                                <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Référent</span>
                                                                 {availableDoctorIds.has(doc.id)
-                                                                    ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
-                                                                    : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                                    ? <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Dispo</span>
+                                                                    : <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full border border-danger/20">Indispo</span>
                                                                 }
                                                             </div>
                                                             <button
@@ -490,17 +490,17 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                             {/* Exceptional doctors */}
                                             {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).length > 0 && (
                                                 <div>
-                                                    <p className="text-[10px] uppercase font-bold text-amber-700 mb-1.5">
+                                                    <p className="text-[10px] uppercase font-bold text-warning-text mb-1.5">
                                                         Autres médecins — sélection exceptionnelle ({doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).length})
                                                     </p>
                                                     {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).map(doc => (
-                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-amber-200 rounded-lg hover:border-amber-400 transition mb-1.5">
+                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-warning/20 rounded-lg hover:border-warning/40 transition mb-1.5">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium text-text-base">{doc.name}</span>
-                                                                <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
+                                                                <span className="text-[10px] bg-warning/10 text-warning px-2 py-0.5 rounded-full border border-warning/20">Exceptionnel</span>
                                                                 {availableDoctorIds.has(doc.id)
-                                                                    ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
-                                                                    : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                                    ? <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Dispo</span>
+                                                                    : <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full border border-danger/20">Indispo</span>
                                                                 }
                                                             </div>
                                                             <button
@@ -526,26 +526,26 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         ← Retour
                                     </button>
                                     <h4 className="font-bold text-sm text-text-base mb-3 flex items-center gap-2">
-                                        <UserPlus className="w-4 h-4 text-green-600" /> Choisir le médecin remplaçant
+                                        <UserPlus className="w-4 h-4 text-success" /> Choisir le médecin remplaçant
                                     </h4>
                                     <div className="space-y-1.5 mb-3 max-h-64 overflow-y-auto">
                                         {/* Referent doctors */}
                                         {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).length > 0 && (
                                             <div className="mb-1">
-                                                <p className="text-[10px] uppercase font-bold text-green-700 mb-1">Médecins référents</p>
+                                                <p className="text-[10px] uppercase font-bold text-success-text mb-1">Médecins référents</p>
                                                 {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).map(doc => (
                                                     <div
                                                         key={doc.id}
                                                         onClick={() => setRcpDirectDoctorId(doc.id)}
-                                                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-green-500 bg-green-50' : 'border-green-200 bg-surface hover:border-green-400'}`}
+                                                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-success bg-success/10' : 'border-success/20 bg-surface hover:border-success/40'}`}
                                                     >
                                                         <div className="flex items-center gap-2">
-                                                            {rcpDirectDoctorId === doc.id && <span className="text-green-600 font-bold">✓</span>}
+                                                            {rcpDirectDoctorId === doc.id && <span className="text-success font-bold">✓</span>}
                                                             <span className="text-sm font-medium text-text-base">{doc.name}</span>
-                                                            <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
+                                                            <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Référent</span>
                                                             {availableDoctorIds.has(doc.id)
-                                                                ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
-                                                                : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                                ? <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Dispo</span>
+                                                                : <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full border border-danger/20">Indispo</span>
                                                             }
                                                         </div>
                                                     </div>
@@ -554,20 +554,20 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         )}
                                         {/* Exceptional doctors */}
                                         <div>
-                                            <p className="text-[10px] uppercase font-bold text-amber-700 mb-1">Sélection exceptionnelle</p>
+                                            <p className="text-[10px] uppercase font-bold text-warning-text mb-1">Sélection exceptionnelle</p>
                                             {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).map(doc => (
                                                 <div
                                                     key={doc.id}
                                                     onClick={() => setRcpDirectDoctorId(doc.id)}
-                                                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-amber-500 bg-amber-50' : 'border-amber-200 bg-surface hover:border-amber-400'}`}
+                                                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-warning bg-warning/10' : 'border-warning/20 bg-surface hover:border-warning/40'}`}
                                                 >
                                                     <div className="flex items-center gap-2">
-                                                        {rcpDirectDoctorId === doc.id && <span className="text-amber-600 font-bold">✓</span>}
+                                                        {rcpDirectDoctorId === doc.id && <span className="text-warning font-bold">✓</span>}
                                                         <span className="text-sm font-medium text-text-base">{doc.name}</span>
-                                                        <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
+                                                        <span className="text-[10px] bg-warning/10 text-warning px-2 py-0.5 rounded-full border border-warning/20">Exceptionnel</span>
                                                         {availableDoctorIds.has(doc.id)
-                                                            ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">Dispo</span>
-                                                            : <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Indispo</span>
+                                                            ? <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Dispo</span>
+                                                            : <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full border border-danger/20">Indispo</span>
                                                         }
                                                     </div>
                                                 </div>
@@ -575,7 +575,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         </div>
                                     </div>
                                     {rcpDirectDoctorId && !referentDoctorIds.has(rcpDirectDoctorId) && (
-                                        <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800">
+                                        <div className="mb-3 bg-warning/10 border border-warning/20 rounded-lg p-2.5 text-xs text-warning-text">
                                             ⚠️ Ce médecin n'est pas dans l'affectation initiale de la RCP. Il sera ajouté exceptionnellement et bloqué sur cette demi-journée.
                                         </div>
                                     )}
@@ -602,7 +602,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
                             {/* RCP Specific Warning */}
                             {(slot.type === SlotType.RCP || otherSlot.type === SlotType.RCP) && (
-                                <div className="mb-4 bg-purple-50 p-3 rounded-lg border border-purple-200 flex items-center justify-center text-sm text-purple-800 font-medium">
+                                <div className="mb-4 bg-secondary/10 p-3 rounded-lg border border-secondary/20 flex items-center justify-center text-sm text-secondary font-medium">
                                     <UserCheck className="w-4 h-4 mr-2" />
                                     Attention : La présence à une RCP est prioritaire si elle a été confirmée.
                                 </div>
@@ -612,7 +612,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                 {/* LEFT OPTION (Current Slot) */}
                                 <div
                                     onClick={() => handleKeepInSlot(slot, otherSlot, 'KEEP_CURRENT')}
-                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_CURRENT' ? 'border-green-500 bg-green-50 shadow-md' : 'border-border hover:border-text-muted'}`}
+                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_CURRENT' ? 'border-success bg-success/10 shadow-md' : 'border-border hover:border-text-muted'}`}
                                 >
                                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-surface px-3 py-1 text-xs font-bold text-text-muted rounded-full border border-border">OPTION 1</div>
                                     <div className="flex items-center justify-between mb-3">
@@ -620,12 +620,12 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                             {getSlotIcon(slot)}
                                             {slot.type}
                                         </span>
-                                        {resolutionStrategy === 'KEEP_CURRENT' && <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white"><UserCheck className="w-4 h-4" /></div>}
+                                        {resolutionStrategy === 'KEEP_CURRENT' && <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center text-white"><UserCheck className="w-4 h-4" /></div>}
                                     </div>
                                     <h4 className="font-bold text-lg text-text-base mb-1">{slot.location}</h4>
                                     <p className="text-sm text-text-muted mb-4">{slot.subType}</p>
 
-                                    <button className={`w-full py-2 rounded-btn font-bold text-sm ${resolutionStrategy === 'KEEP_CURRENT' ? 'bg-green-600 text-white' : 'bg-muted text-text-muted'}`}>
+                                    <button className={`w-full py-2 rounded-btn font-bold text-sm ${resolutionStrategy === 'KEEP_CURRENT' ? 'bg-success text-white' : 'bg-muted text-text-muted'}`}>
                                         Maintenir ici
                                     </button>
                                     <div className="mt-2 text-xs text-center text-text-muted">
@@ -639,7 +639,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                 {/* RIGHT OPTION (Other Slot) */}
                                 <div
                                     onClick={() => handleKeepInSlot(otherSlot, slot, 'KEEP_OTHER')}
-                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_OTHER' ? 'border-green-500 bg-green-50 shadow-md' : 'border-border hover:border-text-muted'}`}
+                                    className={`relative border-2 rounded-xl p-5 cursor-pointer transition-all hover:scale-[1.02] ${resolutionStrategy === 'KEEP_OTHER' ? 'border-success bg-success/10 shadow-md' : 'border-border hover:border-text-muted'}`}
                                 >
                                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-surface px-3 py-1 text-xs font-bold text-text-muted rounded-full border border-border">OPTION 2</div>
                                     <div className="flex items-center justify-between mb-3">
@@ -647,12 +647,12 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                             {getSlotIcon(otherSlot)}
                                             {otherSlot.type}
                                         </span>
-                                        {resolutionStrategy === 'KEEP_OTHER' && <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white"><UserCheck className="w-4 h-4" /></div>}
+                                        {resolutionStrategy === 'KEEP_OTHER' && <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center text-white"><UserCheck className="w-4 h-4" /></div>}
                                     </div>
                                     <h4 className="font-bold text-lg text-text-base mb-1">{otherSlot.location}</h4>
                                     <p className="text-sm text-text-muted mb-4">{otherSlot.subType}</p>
 
-                                    <button className={`w-full py-2 rounded-btn font-bold text-sm ${resolutionStrategy === 'KEEP_OTHER' ? 'bg-green-600 text-white' : 'bg-muted text-text-muted'}`}>
+                                    <button className={`w-full py-2 rounded-btn font-bold text-sm ${resolutionStrategy === 'KEEP_OTHER' ? 'bg-success text-white' : 'bg-muted text-text-muted'}`}>
                                         Maintenir ici
                                     </button>
                                     <div className="mt-2 text-xs text-center text-text-muted">
@@ -683,10 +683,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
                                     {loading ? (
                                         <div className="flex justify-center py-10">
-                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                         </div>
                                     ) : error ? (
-                                        <div className="text-center py-4 text-orange-500 text-sm bg-orange-50 rounded border border-orange-100">
+                                        <div className="text-center py-4 text-warning text-sm bg-warning/10 rounded border border-warning/20">
                                             {error}
                                         </div>
                                     ) : suggestions.length === 0 ? (
@@ -699,38 +699,40 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                 const doc = doctors.find(d => d.id === sugg.suggestedDoctorId);
                                                 if (!doc) return null;
                                                 return (
-                                                    <div key={sugg.suggestedDoctorId} className="border border-border bg-surface rounded-lg p-3 hover:border-primary shadow-sm transition-all group">
-                                                        <div className="flex justify-between items-start mb-2">
+                                                    <div key={sugg.suggestedDoctorId} className="bg-surface rounded-card border border-border/50 hover:border-primary/30 hover:shadow-card transition-all p-3 mb-2">
+                                                        <div className="flex justify-between items-start mb-1">
                                                             <div className="flex items-center">
                                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold mr-3 ${doc.color}`}>
                                                                     {doc.name.substring(0, 2)}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="font-bold text-text-base text-sm">{doc.name}</div>
+                                                                    <div className="text-sm font-bold text-text-base">{doc.name}</div>
                                                                     <div className="text-xs text-text-muted">{doc.specialty.join(', ')}</div>
                                                                 </div>
                                                             </div>
-                                                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800 border border-green-200">
+                                                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-success/10 text-success">
                                                                 {sugg.score}%
                                                             </span>
                                                         </div>
-                                                        <p className="text-xs text-text-muted mb-3 italic pl-11">
+                                                        <p className="text-xs text-text-muted mb-2 italic pl-11">
                                                             "{sugg.reasoning}"
                                                         </p>
-                                                        <div className="flex gap-2">
-                                                            <button
+                                                        <div className="flex gap-2 mt-2">
+                                                            <Button
+                                                                variant="primary"
+                                                                size="sm"
                                                                 onClick={() => onResolve(targetSlotForReplacement.id, doc.id)}
-                                                                className="flex-1 py-2 bg-muted text-text-base hover:bg-primary hover:text-white rounded-btn text-sm font-bold transition-colors flex items-center justify-center"
                                                             >
-                                                                Choisir {doc.name}
-                                                            </button>
-                                                            <button
+                                                                Choisir
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
                                                                 onClick={() => handleRequestReplacement(doc.id)}
                                                                 disabled={sendingRequestTo === doc.id || requestSent}
-                                                                className="text-xs bg-muted text-primary px-3 py-1.5 rounded-btn border border-border hover:bg-muted/80 disabled:opacity-50 transition-colors"
                                                             >
                                                                 {sendingRequestTo === doc.id ? 'Envoi...' : 'Demander remplacement'}
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                     </div>
                                                 );
@@ -738,7 +740,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         </div>
                                     )}
                                     {requestSent && (
-                                        <p className="text-sm text-green-600 font-medium text-center py-2">
+                                        <p className="text-sm text-success font-medium text-center py-2">
                                             ✓ Demande envoyée — le médecin recevra une notification
                                         </p>
                                     )}
@@ -805,13 +807,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         <div className="grid grid-cols-2 gap-3">
                                             <button
                                                 onClick={() => onCloseSlot(targetSlotForReplacement.id)}
-                                                className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-red-50 hover:text-accent-red hover:border-red-200 text-xs font-bold transition-colors"
+                                                className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-danger/10 hover:text-danger hover:border-danger/20 text-xs font-bold transition-colors"
                                             >
                                                 Fermer le créneau
                                             </button>
                                             <button
                                                 onClick={() => onResolve(targetSlotForReplacement.id, "")}
-                                                className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 text-xs font-bold transition-colors"
+                                                className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-warning/10 hover:text-warning hover:border-warning/20 text-xs font-bold transition-colors"
                                             >
                                                 Laisser vide
                                             </button>
