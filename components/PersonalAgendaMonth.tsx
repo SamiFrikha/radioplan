@@ -53,7 +53,7 @@ const SlotPill: React.FC<{
     // Default RCP (no individual status)
     return (
       <div
-        className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full bg-violet-500 text-white"
+        className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full bg-secondary text-white"
         title={slot.subType || 'RCP'}
       >
         {slot.subType || 'RCP'}
@@ -63,7 +63,7 @@ const SlotPill: React.FC<{
 
   // Non-RCP
   const BG: Record<string, string> = {
-    [SlotType.CONSULTATION]: 'bg-blue-500 text-white',
+    [SlotType.CONSULTATION]: 'bg-primary text-white',
     [SlotType.ACTIVITY]:     'bg-orange-500 text-white',
   };
   const label =
@@ -82,8 +82,8 @@ const SlotPill: React.FC<{
 };
 
 const SLOT_DOT: Record<string, string> = {
-  [SlotType.CONSULTATION]: 'bg-blue-500',
-  [SlotType.RCP]:          'bg-violet-500',
+  [SlotType.CONSULTATION]: 'bg-primary',
+  [SlotType.RCP]:          'bg-secondary',
   [SlotType.ACTIVITY]:     'bg-orange-500',
 };
 
@@ -200,11 +200,11 @@ const PersonalAgendaMonth: React.FC = () => {
               className={`min-h-[72px] rounded-lg p-1 transition-colors flex flex-col
                 ${isCurrentMonth && !isWeekend ? 'cursor-pointer hover:bg-muted' : 'cursor-default'}
                 ${isWeekend || !isCurrentMonth ? 'opacity-30 bg-muted' : 'bg-surface'}
-                ${isToday ? 'ring-2 ring-blue-400' : ''}
-                ${isSelected ? 'ring-2 ring-indigo-500 bg-indigo-50' : ''}
+                ${isToday ? 'ring-2 ring-primary' : ''}
+                ${isSelected ? 'ring-2 ring-primary bg-primary/10' : ''}
               `}>
               {/* Day number */}
-              <div className={`text-xs text-center font-medium mb-0.5 ${isToday ? 'text-blue-600 font-bold' : 'text-text-base'}`}>
+              <div className={`text-xs text-center font-medium mb-0.5 ${isToday ? 'text-primary font-bold' : 'text-text-base'}`}>
                 {date.getDate()}
               </div>
 
@@ -242,8 +242,8 @@ const PersonalAgendaMonth: React.FC = () => {
 
       {/* Legend */}
       <div className="flex gap-3 mt-3 flex-wrap text-xs text-text-muted">
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />Consultation</div>
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-violet-500 inline-block" />RCP</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" />Consultation</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-secondary inline-block" />RCP</div>
         <div className="flex items-center gap-1.5"><AlertTriangle size={10} className="text-amber-500" />RCP à confirmer</div>
         <div className="flex items-center gap-1.5"><CheckCircle2 size={10} className="text-green-500" />RCP confirmé</div>
         <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />Activité</div>

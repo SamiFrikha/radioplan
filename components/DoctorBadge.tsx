@@ -89,13 +89,13 @@ export const DoctorBadge: React.FC<DoctorBadgeProps> = ({
 
     return (
         <div className={`flex items-center gap-1.5 ${className}`}>
-            <div
-                className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-bold font-heading text-white shadow-sm flex-shrink-0`}
-                style={{ backgroundColor: hexColor }}
+            <span
+                className={`${sizeClasses[size]} inline-flex items-center justify-center rounded-full gradient-primary text-white font-bold font-heading shadow-sm flex-shrink-0 select-none`}
                 aria-label={`Dr ${doctor.name}`}
+                title={`Dr ${doctor.name}`}
             >
                 {doctor.name.substring(0, 2)}
-            </div>
+            </span>
             {showName && (
                 <span className={`${textSizeClasses[size]} font-semibold text-text-base truncate`}>
                     {showDrPrefix ? '' : 'Dr '}{doctor.name}

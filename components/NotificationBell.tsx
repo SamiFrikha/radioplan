@@ -137,7 +137,7 @@ const ReplacementActions: React.FC<{
   if (confirmed) {
     return (
       <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${
-        confirmed === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        confirmed === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-danger/10 text-danger'
       }`}>
         {confirmed === 'ACCEPTED' ? '✅ Vous avez accepté' : '❌ Vous avez refusé'}
       </div>
@@ -151,7 +151,7 @@ const ReplacementActions: React.FC<{
         Accepter
       </button>
       <button onClick={() => handle('REJECTED')} disabled={loading}
-        className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full hover:bg-red-200 disabled:opacity-50 font-medium">
+        className="text-xs bg-danger/10 text-danger px-3 py-1 rounded-full hover:bg-danger/20 disabled:opacity-50 font-medium">
         Refuser
       </button>
     </div>
@@ -173,7 +173,7 @@ const NotificationItem: React.FC<{
     <div
       onClick={onRead}
       className={`px-4 py-3 hover:bg-muted cursor-pointer transition-colors
-        ${!notification.read ? 'bg-blue-50' : ''}`}
+        ${!notification.read ? 'bg-primary/5' : ''}`}
     >
       <div className="flex items-start gap-2">
         <span className="text-lg mt-0.5 shrink-0">{icon}</span>
@@ -185,7 +185,7 @@ const NotificationItem: React.FC<{
           <p className="text-xs text-text-muted mt-1">{date}</p>
           {notification.type === 'REPLACEMENT_REQUEST' && requestId && (
             notification.data?.resolution ? (
-              <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${notification.data.resolution === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${notification.data.resolution === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-danger/10 text-danger'}`}>
                 {notification.data.resolution === 'ACCEPTED' ? '✅ Vous avez accepté' : '❌ Vous avez refusé'}
               </div>
             ) : (
@@ -194,7 +194,7 @@ const NotificationItem: React.FC<{
           )}
         </div>
         {!notification.read && (
-          <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />
+          <span className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />
         )}
       </div>
     </div>
@@ -221,13 +221,13 @@ const NotificationBell: React.FC = () => {
   return (
     <>
       <button
-        className="relative w-9 h-9 rounded-lg bg-muted hover:bg-border flex items-center justify-center transition-colors"
+        className="w-9 h-9 rounded-btn-sm bg-primary/10 hover:bg-primary/15 text-primary flex items-center justify-center relative press-scale transition-colors"
         aria-label="Notifications"
         onClick={() => setIsOpen(v => !v)}
       >
-        <Bell className="w-5 h-5 text-text-muted" aria-hidden="true" />
+        <Bell className="w-5 h-5 text-primary" aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-2 h-2 bg-accent-red rounded-full border-2 border-surface" aria-hidden="true" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-danger border-2 border-surface" aria-hidden="true" />
         )}
       </button>
 
@@ -250,14 +250,14 @@ const NotificationBell: React.FC = () => {
                   <>
                     <span className="text-[11px] font-medium text-text-muted">{unreadCount} non lue(s)</span>
                     <button onClick={markAllRead}
-                      className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                      className="text-xs text-primary hover:underline flex items-center gap-1">
                       <CheckCheck size={12} /> Tout lu
                     </button>
                   </>
                 )}
                 {notifications.length > 0 && (
                   <button onClick={handleClearAll} disabled={clearing}
-                    className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 disabled:opacity-50">
+                    className="text-xs text-danger hover:opacity-80 flex items-center gap-1 disabled:opacity-50">
                     <Trash2 size={12} /> Vider
                   </button>
                 )}
@@ -280,7 +280,7 @@ const NotificationBell: React.FC = () => {
             {/* Footer */}
             <button
               onClick={handleSeeAll}
-              className="w-full flex items-center justify-center gap-1.5 py-3 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors border-t border-border"
+              className="w-full flex items-center justify-center gap-1.5 py-3 text-sm text-primary font-medium hover:bg-primary/5 transition-colors border-t border-border"
             >
               Voir toutes les notifications
               <ArrowRight size={14} />

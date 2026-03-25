@@ -11,7 +11,7 @@ const MonPlanning: React.FC = () => {
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
       <div className="bg-surface rounded-card shadow-card border border-border p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-extrabold text-text-base tracking-tight">Mon Planning</h1>
+          <h1 className="text-2xl font-extrabold text-text-base tracking-tight">Mon planning</h1>
           <div className="flex rounded-btn-sm border border-border overflow-hidden">
             <button
               onClick={() => setAgendaView('week')}

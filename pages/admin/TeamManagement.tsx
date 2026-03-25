@@ -1838,7 +1838,7 @@ const TeamManagement: React.FC = () => {
                                                         onClick={() => toggleExcludedHalfDay(day, Period.MORNING)}
                                                         className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${morningExcluded
                                                             ? 'bg-orange-500 text-white border-orange-500 font-bold'
-                                                            : 'bg-white text-orange-600 border-orange-200 hover:bg-orange-50'
+                                                            : 'bg-surface text-orange-600 border-orange-200 hover:bg-orange-50'
                                                             }`}
                                                         title={morningExcluded ? `${day} matin : EXCLU` : `Exclure ${day} matin`}
                                                     >
@@ -1850,7 +1850,7 @@ const TeamManagement: React.FC = () => {
                                                         onClick={() => toggleExcludedHalfDay(day, Period.AFTERNOON)}
                                                         className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${afternoonExcluded
                                                             ? 'bg-blue-500 text-white border-blue-500 font-bold'
-                                                            : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'
+                                                            : 'bg-surface text-primary border-primary/20 hover:bg-primary/5'
                                                             }`}
                                                         title={afternoonExcluded ? `${day} après-midi : EXCLU` : `Exclure ${day} après-midi`}
                                                     >
