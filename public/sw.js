@@ -38,7 +38,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(data.title ?? 'RadioPlan', {
       body: data.body ?? '',
       icon: '/radioplan/icon-192.png',
-      badge: '/radioplan/icon-192.png',
+      badge: '/radioplan/badge-96.png',
       data: data.data ?? {},
       tag: 'radioplan-notification',        // Replace instead of stacking
       renotify: false,
