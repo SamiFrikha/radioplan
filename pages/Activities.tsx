@@ -7,15 +7,24 @@ import { Drawer } from 'vaul';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button, EmptyState } from '../src/components/ui';
 import { generateMonthSchedule, getDateForDayOfWeek, generateScheduleForWeek, detectConflicts, getDoctorWorkRate, computeHistoryFromDate, isFrenchHoliday } from '../services/scheduleService';
 import ConflictResolverModal from '../components/ConflictResolverModal';
+import { getDoctorHexColor } from '../components/DoctorBadge';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { activityLogService, ActivityLogEntry } from '../services/activityLogService';
 
-// Predefined equity groups
+// Option C clinical palette hex constants
+const ACT_COLORS = {
+    ASTREINTE: '#DC4E3A',   // coral
+    WORKFLOW:  '#0F766E',   // deep teal
+    UNITY:     '#6D28D9',   // aubergine
+    CONSULT:   '#3B6FD4',   // slate blue
+} as const;
+
+// Predefined equity groups — bgStyle for inline, textClass for text color
 const EQUITY_GROUPS = [
-    { id: 'unity_astreinte', name: 'Unity + Astreinte', color: 'bg-warning/10 text-warning-text' },
-    { id: 'workflow', name: 'Supervision Workflow', color: 'bg-success/10 text-success-text' },
-    { id: 'custom', name: 'Équité indépendante', color: 'bg-secondary/10 text-secondary-text' }
+    { id: 'unity_astreinte', name: 'Unity + Astreinte', bgStyle: { backgroundColor: '#fff7ed', border: '1px solid #fed7aa' }, textClass: 'text-orange-700' },
+    { id: 'workflow',        name: 'Supervision Workflow', bgStyle: { backgroundColor: '#f0fdfa', border: '1px solid #99f6e4' }, textClass: 'text-teal-700' },
+    { id: 'custom',          name: 'Équité indépendante', bgStyle: { backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe' }, textClass: 'text-violet-700' }
 ];
 
 const Activities: React.FC = () => {
@@ -1291,9 +1300,36 @@ const Activities: React.FC = () => {
                             onChange={(e) => handleManualAssign(slot.id, e.target.value)}
                         >
                             <option value="">Choisir</option>
-                            {doctors.map(d => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
+                            {doctors.map(d => {
+                                // Compute availability indicator for this doctor on this slot's date/period
+                                const isOnLeave = unavailabilities.some(u => {
+                                    if (u.doctorId !== d.id) return false;
+                                    if (u.startDate > dateStr || u.endDate < dateStr) return false;
+                                    if (u.period && u.period !== 'ALL_DAY' && u.period !== period) return false;
+                                    return true;
+                                });
+                                const doctorSlotsHere = schedule.filter(s =>
+                                    s.date === dateStr &&
+                                    s.period === period &&
+                                    (s.assignedDoctorId === d.id || (s.secondaryDoctorIds && s.secondaryDoctorIds.includes(d.id)))
+                                );
+                                const rcpSlotHere = doctorSlotsHere.find(s => s.type === SlotType.RCP);
+                                const consultSlotHere = doctorSlotsHere.find(s => s.type === SlotType.CONSULTATION);
+                                let indicator = '✅';
+                                if (isOnLeave) {
+                                    indicator = '🏖';
+                                } else if (rcpSlotHere) {
+                                    const attendance = rcpAttendance[rcpSlotHere.id];
+                                    const doctorStatus = attendance?.[d.id];
+                                    const isConfirmed = doctorStatus === 'PRESENT' || (!doctorStatus && !!rcpSlotHere.assignedDoctorId);
+                                    indicator = isConfirmed ? '🔴' : '🟡';
+                                } else if (consultSlotHere) {
+                                    indicator = '🏥';
+                                }
+                                return (
+                                    <option key={d.id} value={d.id}>{indicator} {d.name}</option>
+                                );
+                            })}
                         </select>
                     </div>
                 ) : (
@@ -1488,7 +1524,10 @@ const Activities: React.FC = () => {
                                                     <div>
                                                         <div className="font-bold text-sm text-text-base">{act.name}</div>
                                                         <div className="flex items-center gap-2 mt-1">
-                                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${equityGrp?.color || 'bg-muted text-text-muted'}`}>
+                                                            <span
+                                                                className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${equityGrp?.textClass || 'text-text-muted'}`}
+                                                                style={equityGrp?.bgStyle || { backgroundColor: 'var(--color-muted)' }}
+                                                            >
                                                                 {equityGrp?.name || 'Aucun groupe'}
                                                             </span>
                                                             <span className="text-[10px] text-text-muted">
@@ -1556,32 +1595,42 @@ const Activities: React.FC = () => {
                         ) : (
                             activityDefinitions.map(act => {
                                 const isAstreinte = act.name.toLowerCase().includes('astreinte');
-                                const borderColor =
-                                    act.equityGroup === 'workflow' ? 'bg-secondary' :
-                                    isAstreinte ? 'bg-warning' :
-                                    act.equityGroup === 'unity_astreinte' ? 'bg-warning' :
-                                    'bg-primary';
-                                const badgeVariant: 'violet' | 'amber' | 'blue' =
-                                    act.equityGroup === 'workflow' ? 'violet' :
-                                    (act.equityGroup === 'unity_astreinte' || isAstreinte) ? 'amber' :
-                                    'blue';
+                                // Option C clinical palette — left border strip hex color
+                                const stripColor: string =
+                                    act.equityGroup === 'workflow'        ? ACT_COLORS.WORKFLOW :
+                                    isAstreinte                           ? ACT_COLORS.ASTREINTE :
+                                    act.equityGroup === 'unity_astreinte' ? ACT_COLORS.UNITY :
+                                    getDoctorHexColor(act.color) || '#F59E0B';
+                                // Badge inline style per activity type
+                                const badgeStyle: React.CSSProperties =
+                                    act.equityGroup === 'workflow'
+                                        ? { backgroundColor: '#f0fdfa', color: ACT_COLORS.WORKFLOW,  border: '1px solid #99f6e4' }
+                                    : isAstreinte || act.equityGroup === 'unity_astreinte'
+                                        ? { backgroundColor: '#fef3c7', color: ACT_COLORS.ASTREINTE, border: '1px solid #fde68a' }
+                                        : { backgroundColor: '#eff6ff', color: ACT_COLORS.CONSULT,   border: '1px solid #bfdbfe' };
                                 return (
                                 <div
                                     key={act.id}
                                     onClick={() => {
                                         setActiveTabId(act.id);
-                                        setMobileDetailOpen(true);
                                     }}
                                     className={`bg-surface rounded-card shadow-card border border-border/40 p-4 flex items-start gap-3 press-scale cursor-pointer hover:shadow-card-hover transition-shadow overflow-hidden relative mb-2 ${activeTabId === act.id ? 'ring-2 ring-primary/30' : ''}`}
                                 >
-                                    {/* Left color border */}
-                                    <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-card ${borderColor}`} aria-hidden="true" />
+                                    {/* Left color border — Option C palette */}
+                                    <div
+                                        className="absolute left-0 top-0 bottom-0 w-1 rounded-l-card"
+                                        style={{ backgroundColor: stripColor }}
+                                        aria-hidden="true"
+                                    />
                                     <div className="pl-3 flex-1 min-w-0">
                                         <div className="flex items-start justify-between gap-2">
                                             <p className="font-medium text-sm text-text-base truncate">{act.name}</p>
-                                            <Badge variant={badgeVariant} className="flex-shrink-0">
+                                            <span
+                                                className="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded font-bold"
+                                                style={badgeStyle}
+                                            >
                                                 {act.equityGroup === 'workflow' ? 'WF' : isAstreinte ? 'Astr.' : act.equityGroup === 'unity_astreinte' ? 'U+A' : 'Ind.'}
-                                            </Badge>
+                                            </span>
                                         </div>
                                         <p className="text-[11px] text-text-muted mt-0.5">{act.granularity === 'WEEKLY' ? 'Hebdomadaire' : 'Demi-journée'}</p>
                                     </div>
@@ -1912,11 +1961,17 @@ const Activities: React.FC = () => {
                                             Équité & Répartition par Groupe
                                         </span>
                                         <div className="ml-3 flex items-center space-x-2">
-                                            {currentActivity?.equityGroup && (
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${EQUITY_GROUPS.find(g => g.id === currentActivity.equityGroup)?.color || 'bg-muted'}`}>
-                                                    {EQUITY_GROUPS.find(g => g.id === currentActivity.equityGroup)?.name || currentActivity.equityGroup}
-                                                </span>
-                                            )}
+                                            {currentActivity?.equityGroup && (() => {
+                                                const grp = EQUITY_GROUPS.find(g => g.id === currentActivity.equityGroup);
+                                                return (
+                                                    <span
+                                                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${grp?.textClass || 'text-text-muted'}`}
+                                                        style={grp?.bgStyle || { backgroundColor: 'var(--color-muted)' }}
+                                                    >
+                                                        {grp?.name || currentActivity.equityGroup}
+                                                    </span>
+                                                );
+                                            })()}
                                             {activitiesStartDate && (
                                                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">
                                                     Depuis {new Date(activitiesStartDate).toLocaleDateString()}

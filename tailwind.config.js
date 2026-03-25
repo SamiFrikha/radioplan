@@ -19,6 +19,10 @@ export default {
         success:   { DEFAULT: '#10B981', light: '#D1FAE5', text: '#065F46' },
         warning:   { DEFAULT: '#F59E0B', light: '#FEF3C7', text: '#92400E' },
         danger:    { DEFAULT: '#DC2626', light: '#FEE2E2', hover: '#B91C1C' },
+        /* Slot-type semantic tokens — clinical palette */
+        'slot-consult':     '#3B6FD4',
+        'slot-rcp-pending': '#D97706',
+        'slot-rcp-done':    '#059669',
         'app-bg':  '#F8FAFC',
         surface:   '#FFFFFF',
         border:    '#E2E8F0',

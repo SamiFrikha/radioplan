@@ -13,13 +13,14 @@ import { markReplacementResolved } from '../services/replacementService';
 import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
 import { createNotification } from '../services/notificationService';
-import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot } from '../types';
+import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import AbsenceConflictsModal from '../components/AbsenceConflictsModal';
 import ConflictResolverModal from '../components/ConflictResolverModal';
+import RcpExceptionModal from '../components/RcpExceptionModal';
 
 const NOTIF_ICON: Record<string, string> = {
     RCP_AUTO_ASSIGNED: '🎲', RCP_SLOT_FILLED: '✅', RCP_REMINDER_24H: '⏰',
@@ -291,6 +292,9 @@ const Profile: React.FC = () => {
 
     // Tab state for bottom section
     const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences' | 'rcp' | 'conflits'>('rcp');
+
+    // RCP Exception Modal state (for moving holiday RCPs)
+    const [rcpExceptionSlot, setRcpExceptionSlot] = useState<ScheduleSlot | null>(null);
 
     // Find the doctor linked to the current user
     const [currentDoctor, setCurrentDoctor] = useState<Doctor | null>(null);
@@ -1296,11 +1300,20 @@ const Profile: React.FC = () => {
                                         const { lockedByDoctorId } = getRcpLockInfo(rcp.generatedId);
                                         const lockedByOther = lockedByDoctorId && lockedByDoctorId !== currentDoctor!.id;
                                         const lockedDoctor = lockedByOther ? doctors.find(d => d.id === lockedByDoctorId) : null;
+                                        // Option C clinical palette: status-driven left accent color
+                                        const RCP_DONE    = '#059669'; // sage green — confirmed / present
+                                        const RCP_PENDING = '#D97706'; // amber gold — unconfirmed
+                                        const RCP_NONE    = '#7C3AED'; // violet — scheduled, no personal status
+                                        const rcpAccentColor =
+                                            rcp.myStatus === 'PRESENT' ? RCP_DONE :
+                                            lockedByOther              ? RCP_NONE :
+                                            !rcp.myStatus              ? RCP_PENDING :
+                                            RCP_NONE;
                                         return (
                                             <div key={idx} className={`bg-surface rounded-card shadow-card border border-border/40 overflow-hidden ${rcp.isCancelled ? 'opacity-50' : ''}`}>
                                                 <div className="flex">
-                                                    {/* Violet left accent strip */}
-                                                    <div className="w-1 bg-secondary flex-shrink-0" />
+                                                    {/* Status-driven left accent strip */}
+                                                    <div className="w-1 flex-shrink-0" style={{ backgroundColor: rcpAccentColor }} />
                                                     <div className="flex-1 p-4">
 
                                                         {/* Header */}
@@ -1320,6 +1333,19 @@ const Profile: React.FC = () => {
                                                                 </p>
                                                             </div>
                                                             <div className="flex flex-wrap gap-1 justify-end shrink-0">
+                                                                {/* RCP attendance status badge — Option C palette */}
+                                                                {!rcp.isCancelled && (
+                                                                    <span
+                                                                        className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                                                                        style={
+                                                                            rcp.myStatus === 'PRESENT' ? { backgroundColor: '#d1fae5', color: '#059669', border: '1px solid #a7f3d0' } :
+                                                                            lockedByOther              ? { backgroundColor: '#ede9fe', color: '#7C3AED', border: '1px solid #ddd6fe' } :
+                                                                                                         { backgroundColor: '#fef3c7', color: '#D97706', border: '1px solid #fde68a' }
+                                                                        }
+                                                                    >
+                                                                        {rcp.myStatus === 'PRESENT' ? 'Confirmé' : lockedByOther ? 'Programmé' : 'À confirmer'}
+                                                                    </span>
+                                                                )}
                                                                 {rcp.isCancelled && <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full font-medium">Annulé</span>}
                                                                 {rcp.isMoved && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Déplacé</span>}
                                                                 {rcp.holiday && <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Férié</span>}
@@ -1344,9 +1370,14 @@ const Profile: React.FC = () => {
                                                                             disabled={rcp.myStatus === 'PRESENT'}
                                                                             className={`flex-1 py-2 rounded-btn text-sm font-semibold transition-all press-scale ${
                                                                                 rcp.myStatus === 'PRESENT'
-                                                                                    ? 'bg-success text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)] cursor-default'
-                                                                                    : 'bg-muted text-text-muted hover:bg-success/10 hover:text-success border border-border'
+                                                                                    ? 'cursor-default text-white'
+                                                                                    : 'bg-muted text-text-muted border border-border'
                                                                             }`}
+                                                                            style={
+                                                                                rcp.myStatus === 'PRESENT'
+                                                                                    ? { backgroundColor: '#059669', boxShadow: '0 2px 8px rgba(5,150,105,0.3)' }
+                                                                                    : undefined
+                                                                            }
                                                                         >
                                                                             Présent
                                                                         </button>
@@ -1384,6 +1415,31 @@ const Profile: React.FC = () => {
                                                                             </span>
                                                                         ))}
                                                                     </div>
+                                                                )}
+
+                                                                {/* Move button for holiday RCPs */}
+                                                                {rcp.holiday && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const syntheticSlot: ScheduleSlot = {
+                                                                                id: `${rcp.template.id}-${rcp.originalDate}`,
+                                                                                date: rcp.originalDate,
+                                                                                day: rcp.template.day,
+                                                                                period: rcp.template.period ?? Period.MORNING,
+                                                                                time: rcp.template.time,
+                                                                                location: rcp.template.location || rcp.template.id,
+                                                                                type: SlotType.RCP,
+                                                                                assignedDoctorId: rcp.template.defaultDoctorId ?? null,
+                                                                                secondaryDoctorIds: rcp.template.secondaryDoctorIds,
+                                                                                backupDoctorId: rcp.template.backupDoctorId,
+                                                                            };
+                                                                            setRcpExceptionSlot(syntheticSlot);
+                                                                        }}
+                                                                        className="mt-2 w-full py-2 rounded-btn text-sm font-semibold border transition-all"
+                                                                        style={{ color: '#D97706', borderColor: '#D97706', background: 'rgba(217,119,6,0.06)' }}
+                                                                    >
+                                                                        Déplacer
+                                                                    </button>
                                                                 )}
                                                             </>
                                                         )}
@@ -1571,6 +1627,24 @@ const Profile: React.FC = () => {
                 onClose={() => { setConflictModalSlot(null); setConflictModalConflict(null); }}
                 onResolve={handleConflictResolve}
                 onCloseSlot={handleConflictCloseSlot}
+            />
+        )}
+
+        {/* RCP Exception Modal — move holiday RCPs */}
+        {rcpExceptionSlot && (
+            <RcpExceptionModal
+                slot={rcpExceptionSlot}
+                doctors={doctors}
+                existingException={rcpExceptions.find(ex =>
+                    ex.rcpTemplateId === rcpExceptionSlot.id.split('-').slice(0, -3).join('-') &&
+                    ex.originalDate === rcpExceptionSlot.date
+                )}
+                onSave={(exception: RcpException) => {
+                    addRcpException(exception);
+                    setRcpExceptionSlot(null);
+                }}
+                onClose={() => setRcpExceptionSlot(null)}
+                onRemoveException={() => setRcpExceptionSlot(null)}
             />
         )}
         </div>

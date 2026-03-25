@@ -1,10 +1,11 @@
 // components/PersonalAgendaMonth.tsx
 import React, { useMemo, useContext, useState } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
 import { SlotType, Period } from '../types';
+import { getDoctorHexColor } from './DoctorBadge';
 
 // RCP status helper
 const getRcpStatus = (
@@ -18,22 +19,52 @@ const getRcpStatus = (
   return 'NONE';
 };
 
-// Pill shown in the compact month grid cell — color depends on RCP status
+// Clinical hex constants (shared with week view)
+const SLOT_COLORS = {
+  CONSULT:       '#3B6FD4',
+  RCP_PENDING:   '#D97706',
+  RCP_DONE:      '#059669',
+  RCP_NONE:      '#7C3AED',
+  ACT_ASTREINTE: '#DC4E3A',
+  ACT_WORKFLOW:  '#0F766E',
+  ACT_UNITY:     '#6D28D9',
+  LEAVE:         '#64748B',
+};
+
+// Named-activity color map — matched case-insensitively via includes/startsWith
+const ACTIVITY_COLOR_MAP: Array<{ match: string; color: string }> = [
+  { match: 'astreinte', color: SLOT_COLORS.ACT_ASTREINTE },
+  { match: 'workflow',  color: SLOT_COLORS.ACT_WORKFLOW  },
+  { match: 'unity',     color: SLOT_COLORS.ACT_UNITY     },
+];
+
+const getActivityColor = (slot: any, actDef: any): string => {
+  const name = (slot.subType || actDef?.name || '').toLowerCase();
+  for (const { match, color } of ACTIVITY_COLOR_MAP) {
+    if (name.includes(match) || name.startsWith(match)) return color;
+  }
+  return getDoctorHexColor(actDef?.color) || '#F59E0B';
+};
+
+// Pill shown in the compact month grid cell — Option C clinical palette (inline styles for reliability)
 const SlotPill: React.FC<{
   slot: any;
   doctorId: string | undefined;
   rcpAttendance: Record<string, Record<string, string>>;
-}> = ({ slot, doctorId, rcpAttendance }) => {
+  activityDefinitions: any[];
+}> = ({ slot, doctorId, rcpAttendance, activityDefinitions }) => {
+  const base = "text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full";
+
   if (slot.type === SlotType.RCP) {
     const status = getRcpStatus(slot, doctorId, rcpAttendance);
     if (status === 'UNCONFIRMED') {
       return (
         <div
-          className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full
-                     bg-amber-100 text-amber-800 border border-dashed border-amber-400 flex items-center gap-0.5"
+          className={`${base} border border-dashed flex items-center gap-0.5`}
+          style={{ backgroundColor: 'rgba(217,119,6,0.12)', borderColor: 'rgba(217,119,6,0.5)', color: SLOT_COLORS.RCP_PENDING }}
           title={slot.subType || 'RCP — À confirmer'}
         >
-          <AlertTriangle size={7} className="shrink-0 text-amber-600" />
+          <AlertTriangle size={7} className="shrink-0" />
           <span className="truncate">{slot.subType || 'RCP'}</span>
         </div>
       );
@@ -41,8 +72,8 @@ const SlotPill: React.FC<{
     if (status === 'PRESENT') {
       return (
         <div
-          className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full
-                     bg-green-500 text-white flex items-center gap-0.5"
+          className={`${base} flex items-center gap-0.5 text-white`}
+          style={{ backgroundColor: SLOT_COLORS.RCP_DONE }}
           title={slot.subType || 'RCP — Confirmé'}
         >
           <CheckCircle2 size={7} className="shrink-0" />
@@ -50,10 +81,11 @@ const SlotPill: React.FC<{
         </div>
       );
     }
-    // Default RCP (no individual status)
+    // Default RCP
     return (
       <div
-        className="text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full bg-secondary text-white"
+        className={`${base} text-white`}
+        style={{ backgroundColor: '#7C3AED' }}
         title={slot.subType || 'RCP'}
       >
         {slot.subType || 'RCP'}
@@ -61,30 +93,46 @@ const SlotPill: React.FC<{
     );
   }
 
-  // Non-RCP
-  const BG: Record<string, string> = {
-    [SlotType.CONSULTATION]: 'bg-primary text-white',
-    [SlotType.ACTIVITY]:     'bg-orange-500 text-white',
-  };
-  const label =
-    slot.type === SlotType.CONSULTATION ? 'Consultation' :
-    slot.type === SlotType.ACTIVITY ? (slot.subType || slot.location || 'Activité') :
-    '?';
-  const bg = BG[slot.type] ?? 'bg-muted text-text-base';
+  // Activity — named-activity map first, then per-definition color
+  if (slot.type === SlotType.ACTIVITY) {
+    const actDef = activityDefinitions.find((a: any) => a.id === slot.activityId);
+    const actColor = getActivityColor(slot, actDef);
+    const label = slot.subType || slot.location || 'Activité';
+    return (
+      <div
+        className={`${base} text-white`}
+        style={{ backgroundColor: actColor }}
+        title={label}
+      >
+        {label}
+      </div>
+    );
+  }
+
+  // Consultation — clinical slate blue
+  if (slot.type === SlotType.CONSULTATION) {
+    return (
+      <div
+        className={`${base} text-white`}
+        style={{ backgroundColor: SLOT_COLORS.CONSULT }}
+        title="Consultation"
+      >
+        Consultation
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full ${bg}`}
-      title={label}
-    >
-      {label}
+    <div className={`${base} bg-muted text-text-muted`}>
+      {slot.subType || '?'}
     </div>
   );
 };
 
 const SLOT_DOT: Record<string, string> = {
-  [SlotType.CONSULTATION]: 'bg-primary',
+  [SlotType.CONSULTATION]: 'bg-slot-consult',
   [SlotType.RCP]:          'bg-secondary',
-  [SlotType.ACTIVITY]:     'bg-orange-500',
+  [SlotType.ACTIVITY]:     'bg-warning',
 };
 
 const getLabel = (slot: any): string => {
@@ -178,75 +226,128 @@ const PersonalAgendaMonth: React.FC = () => {
         ))}
       </div>
 
-      {/* Calendar grid */}
+      {/* Calendar grid — weeks rendered individually to support per-week activity banners */}
       <div className="grid grid-cols-7 gap-0.5">
-        {weeks.flat().map((date, i) => {
-          const key = toKey(date);
-          const slots = scheduleByDate[key] ?? [];
-          const onLeave = unavailabilities.some(u =>
-            u.doctorId === doctorId && key >= u.startDate && key <= u.endDate
-          );
-          const isCurrentMonth = date.getMonth() === month;
-          const isToday = key === toKey(today);
-          const isSelected = key === selectedDate;
-          const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-          const morningSlots = slots.filter((s: any) => s.period === Period.MORNING);
-          const afternoonSlots = slots.filter((s: any) => s.period === Period.AFTERNOON);
+        {weeks.map((week, wi) => {
+          // Detect WEEKLY activities for this week (from Monday's schedule, deduped)
+          const mondayKey = toKey(week[0]);
+          const mondaySlots = scheduleByDate[mondayKey] ?? [];
+          const seenAct = new Set<string>();
+          const weeklyActs = mondaySlots
+            .filter((s: any) => {
+              if (s.type !== SlotType.ACTIVITY) return false;
+              const def = activityDefinitions.find((a: any) => a.id === s.activityId);
+              return def?.granularity === 'WEEKLY';
+            })
+            .filter((s: any) => {
+              if (seenAct.has(s.activityId)) return false;
+              seenAct.add(s.activityId);
+              return true;
+            })
+            .map((s: any) => {
+              const def = activityDefinitions.find((a: any) => a.id === s.activityId);
+              return { id: s.activityId, name: def?.name || s.subType || 'Activité', color: getActivityColor(s, def) };
+            });
 
           return (
-            <div key={i}
-              onClick={() => isCurrentMonth && !isWeekend && setSelectedDate(isSelected ? null : key)}
-              className={`min-h-[72px] rounded-lg p-1 transition-colors flex flex-col
-                ${isCurrentMonth && !isWeekend ? 'cursor-pointer hover:bg-muted' : 'cursor-default'}
-                ${isWeekend || !isCurrentMonth ? 'opacity-30 bg-muted' : 'bg-surface'}
-                ${isToday ? 'ring-2 ring-primary' : ''}
-                ${isSelected ? 'ring-2 ring-primary bg-primary/10' : ''}
-              `}>
-              {/* Day number */}
-              <div className={`text-xs text-center font-medium mb-0.5 ${isToday ? 'text-primary font-bold' : 'text-text-base'}`}>
-                {date.getDate()}
-              </div>
-
-              {onLeave && isCurrentMonth && !isWeekend ? (
-                <div className="text-[8px] bg-muted text-text-muted rounded px-1 py-0.5 text-center font-medium leading-tight">
-                  Congé
-                </div>
-              ) : (
-                <div className="flex flex-col gap-0.5 flex-1">
-                  {/* Morning slots */}
-                  {morningSlots.length > 0 && (
-                    <div className="space-y-0.5">
-                      {morningSlots.map((s: any) => (
-                        <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} />
-                      ))}
-                    </div>
-                  )}
-                  {morningSlots.length > 0 && afternoonSlots.length > 0 && (
-                    <div className="border-t border-border my-0.5" />
-                  )}
-                  {/* Afternoon slots */}
-                  {afternoonSlots.length > 0 && (
-                    <div className="space-y-0.5">
-                      {afternoonSlots.map((s: any) => (
-                        <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} />
-                      ))}
-                    </div>
-                  )}
+            <React.Fragment key={wi}>
+              {/* Per-week WEEKLY activity banner — spans all 7 columns */}
+              {weeklyActs.length > 0 && (
+                <div className="col-span-7 flex flex-wrap gap-1 px-1 py-1 mb-0.5 bg-muted/50 rounded-lg border border-border/40">
+                  {weeklyActs.map(act => (
+                    <span
+                      key={act.id}
+                      className="inline-flex items-center gap-1 rounded-full text-[9px] font-semibold px-2 py-0.5 text-white"
+                      style={{ backgroundColor: act.color }}
+                    >
+                      <CalendarDays size={8} className="shrink-0" />
+                      {act.name}
+                    </span>
+                  ))}
+                  <span className="text-[9px] text-text-muted self-center ml-0.5">— semaine entière</span>
                 </div>
               )}
-            </div>
+
+              {/* Day cells for this week */}
+              {week.map((date, di) => {
+                const key = toKey(date);
+                const allSlots = scheduleByDate[key] ?? [];
+                // Filter out WEEKLY activities — shown in banner above
+                const slots = allSlots.filter((s: any) => {
+                  if (s.type !== SlotType.ACTIVITY) return true;
+                  const def = activityDefinitions.find((a: any) => a.id === s.activityId);
+                  return def?.granularity !== 'WEEKLY';
+                });
+                const onLeave = unavailabilities.some((u: any) =>
+                  u.doctorId === doctorId && key >= u.startDate && key <= u.endDate
+                );
+                const isCurrentMonth = date.getMonth() === month;
+                const isToday = key === toKey(today);
+                const isSelected = key === selectedDate;
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+                const morningSlots = slots.filter((s: any) => s.period === Period.MORNING);
+                const afternoonSlots = slots.filter((s: any) => s.period === Period.AFTERNOON);
+
+                return (
+                  <div key={di}
+                    onClick={() => isCurrentMonth && !isWeekend && setSelectedDate(isSelected ? null : key)}
+                    className={`min-h-[72px] rounded-lg p-1 transition-colors flex flex-col
+                      ${isCurrentMonth && !isWeekend ? 'cursor-pointer hover:bg-muted' : 'cursor-default'}
+                      ${isWeekend || !isCurrentMonth ? 'opacity-30 bg-muted' : 'bg-surface'}
+                      ${isToday ? 'ring-2 ring-primary' : ''}
+                      ${isSelected ? 'ring-2 ring-primary bg-primary/10' : ''}
+                    `}>
+                    {/* Day number */}
+                    <div className={`text-xs text-center font-medium mb-0.5 ${isToday ? 'text-primary font-bold' : 'text-text-base'}`}>
+                      {date.getDate()}
+                    </div>
+
+                    {onLeave && isCurrentMonth && !isWeekend ? (
+                      <div
+                        className="text-[8px] rounded px-1 py-0.5 text-center font-semibold leading-tight text-white"
+                        style={{ backgroundColor: SLOT_COLORS.LEAVE }}
+                      >
+                        Congé
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-0.5 flex-1">
+                        {morningSlots.length > 0 && (
+                          <div className="space-y-0.5">
+                            {morningSlots.map((s: any) => (
+                              <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
+                            ))}
+                          </div>
+                        )}
+                        {morningSlots.length > 0 && afternoonSlots.length > 0 && (
+                          <div className="border-t border-border my-0.5" />
+                        )}
+                        {afternoonSlots.length > 0 && (
+                          <div className="space-y-0.5">
+                            {afternoonSlots.map((s: any) => (
+                              <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </React.Fragment>
           );
         })}
       </div>
 
       {/* Legend */}
       <div className="flex gap-3 mt-3 flex-wrap text-xs text-text-muted">
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" />Consultation</div>
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-secondary inline-block" />RCP</div>
-        <div className="flex items-center gap-1.5"><AlertTriangle size={10} className="text-amber-500" />RCP à confirmer</div>
-        <div className="flex items-center gap-1.5"><CheckCircle2 size={10} className="text-green-500" />RCP confirmé</div>
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />Activité</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: SLOT_COLORS.CONSULT }} />Consultation</div>
+        <div className="flex items-center gap-1.5"><AlertTriangle size={10} style={{ color: SLOT_COLORS.RCP_PENDING }} />RCP à confirmer</div>
+        <div className="flex items-center gap-1.5"><CheckCircle2 size={10} style={{ color: SLOT_COLORS.RCP_DONE }} />RCP confirmé</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: SLOT_COLORS.ACT_ASTREINTE }} />Astreinte</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: SLOT_COLORS.ACT_WORKFLOW }} />Workflow</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: SLOT_COLORS.ACT_UNITY }} />Unity</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: SLOT_COLORS.LEAVE }} />Congé</div>
       </div>
 
       {/* Selected day detail panel */}

@@ -1,6 +1,7 @@
 
 import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../App';
+import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/StatCard';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import RcpExceptionModal from '../components/RcpExceptionModal';
@@ -29,6 +30,8 @@ const Dashboard: React.FC = () => {
         addRcpException,
         validatedWeeks
     } = useContext(AppContext);
+
+    const { profile } = useAuth();
 
     // Compute week start from offset (stored in context to survive re-renders)
     const currentWeekStart = useMemo(() => {
@@ -400,20 +403,24 @@ const Dashboard: React.FC = () => {
                         const doc = doctors.find(d => d.id === s.assignedDoctorId);
                         const isRcpUnconfirmed = s.type === SlotType.RCP && s.isUnconfirmed;
 
-                        // Determine border color based on activity type
+                        // Determine border color — Option C clinical palette
                         let borderColor = 'var(--color-border)';
                         if (s.type === SlotType.RCP) {
-                            borderColor = 'var(--color-secondary)'; // purple
+                            borderColor = s.isUnconfirmed ? '#D97706' : '#059669';
                         } else if (s.type === SlotType.CONSULTATION) {
-                            borderColor = 'var(--color-primary)'; // blue
+                            borderColor = '#3B6FD4';
                         } else if (s.type === SlotType.ACTIVITY) {
                             const subTypeLower = (s.subType || s.location || '').toLowerCase();
                             if (subTypeLower.includes('astreinte')) {
-                                borderColor = 'var(--color-danger)'; // red
+                                borderColor = '#DC4E3A';
                             } else if (subTypeLower.includes('unity')) {
-                                borderColor = 'var(--color-warning)'; // orange
+                                borderColor = '#6D28D9';
                             } else if (subTypeLower.includes('workflow') || subTypeLower.includes('supervision')) {
-                                borderColor = 'var(--color-success)'; // emerald
+                                borderColor = '#0F766E';
+                            } else {
+                                // fallback: use activityDef color
+                                const actDef = activityDefinitions?.find((a: any) => a.id === s.activityId);
+                                if (actDef?.color) borderColor = getDoctorHexColor(actDef.color);
                             }
                         }
 
@@ -543,14 +550,14 @@ const Dashboard: React.FC = () => {
                                     )}
 
                                     {astreinte?.assignedDoctorId && docAstreinte && (
-                                        <div className="flex items-center justify-between bg-danger/10 p-1 md:p-1.5 rounded-btn-sm border border-danger/20 border-l-2 border-l-danger">
-                                            <span className="text-[8px] md:text-[9px] text-danger font-bold">Astr.</span>
+                                        <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(220,78,58,0.10)', borderColor: 'rgba(220,78,58,0.25)', borderLeftColor: '#DC4E3A' }}>
+                                            <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#DC4E3A' }}>Astr.</span>
                                             <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
                                         </div>
                                     )}
                                     {unity?.assignedDoctorId && docUnity && (
-                                        <div className="flex items-center justify-between bg-warning/10 p-1 md:p-1.5 rounded-btn-sm border border-warning/20 border-l-2 border-l-warning">
-                                            <span className="text-[8px] md:text-[9px] text-warning-text font-bold">UNITY</span>
+                                        <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(109,40,217,0.10)', borderColor: 'rgba(109,40,217,0.25)', borderLeftColor: '#6D28D9' }}>
+                                            <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#6D28D9' }}>UNITY</span>
                                             <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
                                         </div>
                                     )}
@@ -567,8 +574,8 @@ const Dashboard: React.FC = () => {
                                         const docWorkflow = doctors.find(d => d.id === workflow?.assignedDoctorId);
                                         return workflow?.assignedDoctorId && docWorkflow ? (
                                             <>
-                                                <div className="flex items-center justify-between bg-success/10 p-1 md:p-1.5 rounded-btn-sm border border-success/20 border-l-2 border-l-success">
-                                                    <span className="text-[8px] md:text-[9px] text-success font-bold">Wrkflw</span>
+                                                <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(15,118,110,0.10)', borderColor: 'rgba(15,118,110,0.25)', borderLeftColor: '#0F766E' }}>
+                                                    <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#0F766E' }}>Wrkflw</span>
                                                     <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
                                                 </div>
                                                 <div className="h-px bg-border my-1 md:my-2"></div>
@@ -843,8 +850,8 @@ const Dashboard: React.FC = () => {
                         </CardBody>
                     </Card>
 
-                    {/* RCPs ON HOLIDAYS ALERT */}
-                    {rcpsOnHolidays.length > 0 && (
+                    {/* RCPs ON HOLIDAYS ALERT — only shown to the referring (lead) doctor */}
+                    {rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).length > 0 && (
                         <Card>
                             <CardHeader>
                                 <CardTitle>
@@ -853,14 +860,14 @@ const Dashboard: React.FC = () => {
                                         RCP sur Jour Férié
                                     </span>
                                 </CardTitle>
-                                <Badge variant="amber">{rcpsOnHolidays.length}</Badge>
+                                <Badge variant="amber">{rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).length}</Badge>
                             </CardHeader>
                             <CardBody>
                                 <p className="text-[10px] text-warning-text mb-3">
                                     Ces RCP tombent sur un jour férié ({selectedDate.toLocaleDateString('fr-FR', { month: 'long' })} & {new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1).toLocaleDateString('fr-FR', { month: 'long' })}). Cliquez pour les déplacer.
                                 </p>
                                 <div className="max-h-80 overflow-y-auto space-y-2">
-                                    {rcpsOnHolidays.map(({ slot, holiday, weekStart }) => {
+                                    {rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).map(({ slot, holiday, weekStart }) => {
                                         const allDoctorIds = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean);
                                         const formattedDate = new Date(slot.date).toLocaleDateString('fr-FR', {
                                             weekday: 'long',

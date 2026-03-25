@@ -236,8 +236,9 @@ const NotificationBell: React.FC = () => {
           <Drawer.Overlay className="fixed inset-0 bg-black/40 z-modal" />
           <Drawer.Content
             className="fixed bottom-0 left-0 right-0 z-modal bg-surface rounded-t-2xl
-                       border-t border-border outline-none
+                       border-t border-border outline-none overflow-hidden
                        md:left-auto md:right-4 md:bottom-14 md:top-auto md:w-80 md:rounded-card md:border"
+            data-vaul-custom-container="true"
           >
             {/* Drag handle — mobile only */}
             <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-2 md:hidden" aria-hidden="true" />
@@ -280,7 +281,7 @@ const NotificationBell: React.FC = () => {
             {/* Footer */}
             <button
               onClick={handleSeeAll}
-              className="w-full flex items-center justify-center gap-1.5 py-3 text-sm text-primary font-medium hover:bg-primary/5 transition-colors border-t border-border"
+              className="w-full flex items-center justify-center gap-1.5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-sm text-primary font-medium hover:bg-primary/5 transition-colors border-t border-border"
             >
               Voir toutes les notifications
               <ArrowRight size={14} />

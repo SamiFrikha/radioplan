@@ -378,6 +378,7 @@ const Planning: React.FC = () => {
         let baseClasses = `relative h-full w-full p-2 border-l-4 flex flex-col justify-center transition-all ${canClick ? 'cursor-pointer hover:brightness-95' : 'cursor-default'}`;
         let bgClass = "";
         let borderClass = "";
+        let slotInlineStyle: React.CSSProperties = {};
 
         if (doc) {
             bgClass = "bg-surface";
@@ -399,19 +400,40 @@ const Planning: React.FC = () => {
             if (slot.type === SlotType.ACTIVITY) {
                 const def = activityDefinitions.find(a => a.id === slot.activityId);
                 if (def) {
-                    const colorParts = def.color.split(' ');
-                    bgClass = colorParts.find(c => c.startsWith('bg-')) || 'bg-muted';
-                    borderClass = "border-transparent";
+                    const name = (slot.subType || def.name || '').toLowerCase();
+                    let actHex: string;
+                    if (name.includes('astreinte')) actHex = '#DC4E3A';
+                    else if (name.includes('workflow')) actHex = '#0F766E';
+                    else if (name.includes('unity')) actHex = '#6D28D9';
+                    else actHex = getDoctorHexColor(def.color) || '#F59E0B';
+                    bgClass = '';
+                    borderClass = '';
+                    slotInlineStyle = {
+                        backgroundColor: actHex + '26', // ~15% opacity
+                        borderLeftColor: actHex,
+                    };
                 }
             } else if (slot.type === SlotType.RCP) {
-                bgClass = "bg-secondary/10";
-                borderClass = "border-secondary";
+                bgClass = '';
+                borderClass = '';
+                slotInlineStyle = {
+                    backgroundColor: 'rgba(124,58,237,0.10)',
+                    borderLeftColor: '#7C3AED',
+                };
+            } else if (slot.type === SlotType.CONSULTATION) {
+                bgClass = '';
+                borderClass = '';
+                slotInlineStyle = {
+                    backgroundColor: 'rgba(59,111,212,0.08)',
+                    borderLeftColor: '#3B6FD4',
+                };
             }
         }
 
         if (conflict) {
             bgClass = "bg-danger/10";
             borderClass = "border-danger";
+            slotInlineStyle = {};
         }
 
         // Handle click based on access control
@@ -427,6 +449,7 @@ const Planning: React.FC = () => {
         return (
             <div
                 className={`${baseClasses} ${bgClass} ${borderClass}`}
+                style={slotInlineStyle}
                 onClick={handleSlotClick}
             >
                 {conflict && (
@@ -520,7 +543,7 @@ const Planning: React.FC = () => {
     const rowHeightClass = density === 'COMPACT' ? 'h-20' : 'h-28';
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="h-full flex flex-col gap-4">
             {/* Access Denied Toast */}
             {accessDeniedMessage && (
                 <div className="fixed top-4 right-4 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
@@ -654,15 +677,12 @@ const Planning: React.FC = () => {
             </div>
 
             {/* Planning grid card */}
-            <Card>
+            <Card className="flex-1 min-h-0 flex flex-col">
                 {/* Dual-axis scroll container */}
                 <div
                     ref={tableContainerRef}
-                    className="overflow-x-auto overflow-y-auto overscroll-contain"
-                    style={{
-                        touchAction: 'pan-x pan-y',
-                        maxHeight: 'calc(100dvh - var(--header-height, 56px) - var(--bottom-nav-height, 64px) - 140px)'
-                    }}
+                    className="flex-1 overflow-x-auto overflow-y-auto overscroll-contain"
+                    style={{ touchAction: 'pan-x pan-y' }}
                 >
                     <table className="w-full border-collapse" style={{ minWidth: '600px' }}>
                         <thead>

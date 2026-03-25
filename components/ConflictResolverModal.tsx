@@ -34,9 +34,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const [rcpMode, setRcpMode] = useState<'CHOICE' | 'REQUEST' | 'DIRECT' | null>(null);
     const [rcpDirectDoctorId, setRcpDirectDoctorId] = useState<string>("");
     const [rcpActionLoading, setRcpActionLoading] = useState(false);
+    // Consultation conflict mode — mirrors rcpMode for the 3-card layout
+    const [consultMode, setConsultMode] = useState<'CHOICE' | 'REQUEST' | 'DIRECT' | null>(null);
 
     // Is this an RCP conflict? (doctor is absent/double-booked on an RCP slot)
     const isRcpConflict = slot.type === SlotType.RCP && !!conflict;
+    // Is this a simple consultation/activity conflict (not RCP, not double-booking)?
+    const isSimpleConsultConflict = !isRcpConflict && !!conflict && conflict.type !== 'DOUBLE_BOOKING';
 
     // Compute referent doctor IDs from the template slot (the source of truth for who should attend this RCP)
     const referentDoctorIds = useMemo(() => {
@@ -593,6 +597,160 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                         </div>
                     )}
 
+                    {/* ══════════════════════════════════════════════════
+                        CONSULTATION / ACTIVITY CONFLICT — same 3-card layout as RCP
+                        Shown for simple unavailability conflicts on non-RCP slots.
+                    ════════════════════════════════════════════════════ */}
+                    {isSimpleConsultConflict && (
+                        <div className="mb-6">
+                            {/* Intro banner — slate-blue for consultation */}
+                            <div
+                                className="border rounded-xl p-4 mb-5"
+                                style={{ backgroundColor: 'rgba(59,111,212,0.08)', borderColor: 'rgba(59,111,212,0.25)' }}
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Calendar className="w-5 h-5" style={{ color: '#3B6FD4' }} />
+                                    <span className="font-bold" style={{ color: '#3B6FD4' }}>
+                                        Conflit sur une consultation
+                                    </span>
+                                </div>
+                                <p className="text-sm" style={{ color: '#3B6FD4' }}>
+                                    Ce médecin est indisponible ou en double réservation sur ce créneau.
+                                    Choisissez comment résoudre ce conflit.
+                                </p>
+                            </div>
+
+                            {/* 3-card choice panel */}
+                            {(consultMode === 'CHOICE' || consultMode === null) && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                                    {/* 🔴 Fermer le créneau */}
+                                    <button
+                                        onClick={() => { onCloseSlot(slot.id); onClose(); }}
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-danger/20 bg-danger/10 hover:border-danger/40 hover:bg-danger/20 transition-all group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-danger/10 group-hover:bg-danger/20 flex items-center justify-center mb-2">
+                                            <Ban className="w-5 h-5 text-danger" />
+                                        </div>
+                                        <span className="font-bold text-sm text-danger">Fermer le créneau</span>
+                                        <span className="text-[11px] text-danger/70 mt-1 leading-tight">
+                                            Marquer ce créneau comme fermé — aucun médecin ne sera assigné
+                                        </span>
+                                    </button>
+
+                                    {/* ⚪ Demander remplacement */}
+                                    <button
+                                        onClick={() => setConsultMode('REQUEST')}
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-border bg-muted hover:border-primary hover:bg-muted/80 transition-all group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-surface group-hover:bg-muted flex items-center justify-center mb-2 border border-border">
+                                            <Send className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <span className="font-bold text-sm text-text-base">Demander remplacement</span>
+                                        <span className="text-[11px] text-text-muted mt-1 leading-tight">
+                                            Envoyer une demande à un médecin — il sera assigné s'il accepte
+                                        </span>
+                                    </button>
+
+                                    {/* 🟢 Remplacement direct */}
+                                    <button
+                                        onClick={() => setConsultMode('DIRECT')}
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-success/20 bg-success/10 hover:border-success/40 hover:bg-success/20 transition-all group"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-success/10 group-hover:bg-success/20 flex items-center justify-center mb-2">
+                                            <UserPlus className="w-5 h-5 text-success" />
+                                        </div>
+                                        <span className="font-bold text-sm text-success-text">Remplacement direct</span>
+                                        <span className="text-[11px] text-success mt-1 leading-tight">
+                                            Assigner immédiatement un médecin à ce créneau
+                                        </span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* REQUEST sub-screen */}
+                            {consultMode === 'REQUEST' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
+                                    <button onClick={() => setConsultMode(null)} className="text-xs text-text-muted hover:text-text-base mb-3 flex items-center gap-1">
+                                        ← Retour
+                                    </button>
+                                    <h4 className="font-bold text-sm text-text-base mb-3 flex items-center gap-2">
+                                        <Send className="w-4 h-4 text-primary" /> Choisir un médecin à qui demander
+                                    </h4>
+                                    {requestSent ? (
+                                        <div className="bg-success/10 border border-success/20 rounded-lg p-3 text-sm text-success-text font-medium">
+                                            ✓ Demande envoyée — le médecin recevra une notification
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                                            {doctors.filter(d => d.id !== assignedDoctor?.id).map(doc => (
+                                                <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-border rounded-lg hover:border-primary/30 transition mb-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-medium text-text-base">{doc.name}</span>
+                                                        {availableDoctorIds.has(doc.id)
+                                                            ? <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Disponible</span>
+                                                            : <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full border border-danger/20">Indispo</span>
+                                                        }
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRequestReplacement(doc.id)}
+                                                        disabled={sendingRequestTo === doc.id}
+                                                        className="text-xs bg-muted text-primary px-3 py-1.5 rounded-btn border border-border hover:bg-muted/80 disabled:opacity-50 font-medium transition-colors"
+                                                    >
+                                                        {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* DIRECT sub-screen */}
+                            {consultMode === 'DIRECT' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
+                                    <button onClick={() => setConsultMode(null)} className="text-xs text-text-muted hover:text-text-base mb-3 flex items-center gap-1">
+                                        ← Retour
+                                    </button>
+                                    <h4 className="font-bold text-sm text-text-base mb-3 flex items-center gap-2">
+                                        <UserPlus className="w-4 h-4 text-success" /> Choisir le médecin remplaçant
+                                    </h4>
+                                    <div className="space-y-1.5 mb-3 max-h-64 overflow-y-auto">
+                                        {doctors.filter(d => d.id !== assignedDoctor?.id).map(doc => (
+                                            <div
+                                                key={doc.id}
+                                                onClick={() => setManualDoctorId(doc.id)}
+                                                className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${manualDoctorId === doc.id ? 'border-success bg-success/10' : 'border-border bg-surface hover:border-primary/30'}`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    {manualDoctorId === doc.id && <span className="text-success font-bold">✓</span>}
+                                                    <span className="text-sm font-medium text-text-base">{doc.name}</span>
+                                                    {availableDoctorIds.has(doc.id)
+                                                        ? <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Disponible</span>
+                                                        : <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full border border-danger/20">Indispo</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button
+                                        variant="primary"
+                                        size="md"
+                                        onClick={() => {
+                                            if (manualDoctorId && targetSlotForReplacement) {
+                                                onResolve(targetSlotForReplacement.id, manualDoctorId);
+                                                onClose();
+                                            }
+                                        }}
+                                        disabled={!manualDoctorId}
+                                        className="w-full"
+                                    >
+                                        Confirmer le remplacement
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* --- DOUBLE BOOKING DECISION UI (non-RCP) --- */}
                     {!isRcpConflict && conflict?.type === 'DOUBLE_BOOKING' && otherSlot && assignedDoctor && (
                         <div className="mb-8">
@@ -663,8 +821,8 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                         </div>
                     )}
 
-                    {/* --- REPLACEMENT SUGGESTIONS (non-RCP only) --- */}
-                    {!isRcpConflict && resolutionStrategy && targetSlotForReplacement && (
+                    {/* --- REPLACEMENT SUGGESTIONS (double-booking only — simple conflicts use 3-card UI above) --- */}
+                    {!isRcpConflict && !isSimpleConsultConflict && resolutionStrategy && targetSlotForReplacement && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-md font-bold text-text-base flex items-center">
@@ -825,9 +983,23 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     )}
 
                     {!conflict && !slot.isClosed && (
-                        // Simple Management View (No Conflict)
+                        // Simple Management View (No Conflict) — show close slot option matching RCP card style
                         <div className="mt-4">
                             <p className="text-sm text-text-muted mb-4">Gérez ce créneau normalement. Utilisez les suggestions ci-dessus ou fermez le créneau.</p>
+                            <div className="grid grid-cols-1 gap-3">
+                                <button
+                                    onClick={() => onCloseSlot(slot.id)}
+                                    className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-danger/20 bg-danger/10 hover:border-danger/40 hover:bg-danger/20 transition-all group"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-danger/10 group-hover:bg-danger/20 flex items-center justify-center mb-2">
+                                        <Ban className="w-5 h-5 text-danger" />
+                                    </div>
+                                    <span className="font-bold text-sm text-danger">Fermer le créneau</span>
+                                    <span className="text-[11px] text-danger/70 mt-1 leading-tight">
+                                        Marquer ce créneau comme fermé — aucun médecin ne sera assigné
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     )}
 
