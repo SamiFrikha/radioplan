@@ -1090,7 +1090,7 @@ const Profile: React.FC = () => {
                         aria-selected={activeTab === 'rcp'}
                         className={activeTab === 'rcp' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className="w-4 h-4 hidden md:block" />
                         RCP
                     </button>
                     <button
@@ -1099,8 +1099,9 @@ const Profile: React.FC = () => {
                         aria-selected={activeTab === 'notifications'}
                         className={activeTab === 'notifications' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
-                        <Bell className="w-4 h-4" />
-                        Notifications
+                        <Bell className="w-4 h-4 hidden md:block" />
+                        <span className="md:hidden">Notifs</span>
+                        <span className="hidden md:inline">Notifications</span>
                         {unreadCount > 0 && (
                             <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
                                 {unreadCount}
@@ -1113,7 +1114,7 @@ const Profile: React.FC = () => {
                         aria-selected={activeTab === 'absences'}
                         className={activeTab === 'absences' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="w-4 h-4 hidden md:block" />
                         Absences
                     </button>
                     <button
@@ -1122,8 +1123,9 @@ const Profile: React.FC = () => {
                         aria-selected={activeTab === 'preferences'}
                         className={activeTab === 'preferences' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
-                        <Briefcase className="w-4 h-4" />
-                        Préférences
+                        <Briefcase className="w-4 h-4 hidden md:block" />
+                        <span className="md:hidden">Prefs</span>
+                        <span className="hidden md:inline">Préférences</span>
                     </button>
                     <button
                         onClick={() => setActiveTab('conflits')}
@@ -1131,7 +1133,7 @@ const Profile: React.FC = () => {
                         aria-selected={activeTab === 'conflits'}
                         className={activeTab === 'conflits' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
-                        <AlertTriangle className="w-4 h-4" />
+                        <AlertTriangle className="w-4 h-4 hidden md:block" />
                         Conflits
                         {profileConflicts.length > 0 && (
                             <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">

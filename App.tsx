@@ -9,7 +9,7 @@ import DataAdministration from './pages/DataAdministration';
 import Activities from './pages/Activities';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
-import TopBar from './components/TopBar';
+import NotificationBell from './components/NotificationBell';
 import { DEFAULT_TEMPLATE, INITIAL_DOCTORS, INITIAL_ACTIVITIES } from './constants';
 import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, ActivityDefinition, RcpDefinition, AppContextType, ShiftHistory, ManualOverrides, RcpAttendance, RcpException, GlobalBackupData } from './types';
 import { detectConflicts, generateScheduleForWeek, computeHistoryFromDate, getDateForDayOfWeek } from './services/scheduleService';
@@ -57,6 +57,14 @@ const AppLayout: React.FC = () => {
 
             {/* Main content column */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                {/* Floating notification bell — mobile only, top-right corner */}
+                <div
+                    className="fixed z-topbar lg:hidden print:hidden"
+                    style={{ top: 'env(safe-area-inset-top, 0px)', right: '12px', paddingTop: '8px' }}
+                >
+                    <NotificationBell />
+                </div>
+
                 {/* Page content — offset for fixed BottomNav on mobile */}
                 <main
                     className="flex-1 overflow-y-auto p-4 md:p-6

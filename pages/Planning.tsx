@@ -163,76 +163,177 @@ const Planning: React.FC = () => {
         setCurrentWeekStart(newDate);
     };
 
-    const handleDownloadPDF = async () => {
+    const handleDownloadPDF = () => {
         try {
             setIsGeneratingPdf(true);
 
-            // Helper: get slot background color based on type
-            const getSlotBg = (slot: typeof schedule[0] | undefined): string => {
+            // ── jsPDF native drawing — no html2canvas, no DOM cloning ──────────
+            // A4 landscape in points: 841.89 × 595.28 pt
+            const pdf = new jsPDF('l', 'pt', 'a4');
+            const PW = 841.89;
+            const PH = 595.28;
+            const M  = 20; // page margin
+
+            // ── colour helpers ────────────────────────────────────────────────
+            const hexRgb = (hex: string) => ({
+                r: parseInt(hex.slice(1, 3), 16),
+                g: parseInt(hex.slice(3, 5), 16),
+                b: parseInt(hex.slice(5, 7), 16),
+            });
+            const fill  = (hex: string) => { const { r, g, b } = hexRgb(hex); pdf.setFillColor(r, g, b); };
+            const stroke= (hex: string) => { const { r, g, b } = hexRgb(hex); pdf.setDrawColor(r, g, b); };
+            const tc    = (hex: string) => { const { r, g, b } = hexRgb(hex); pdf.setTextColor(r, g, b); };
+
+            const slotBg = (slot?: typeof schedule[0]): string => {
                 if (!slot || slot.isClosed) return '#F1F5F9';
                 if (slot.type === SlotType.CONSULTATION) return '#EEF4FF';
-                if (slot.type === SlotType.RCP) return '#F5F0FF';
+                if (slot.type === SlotType.RCP)          return '#F5F0FF';
                 if (slot.type === SlotType.ACTIVITY) {
-                    const name = (slot.subType || '').toLowerCase();
-                    if (name.includes('astreinte')) return '#FFF0EE';
-                    if (name.includes('workflow')) return '#ECFDF5';
-                    if (name.includes('unity')) return '#F3F0FF';
+                    const n = (slot.subType || '').toLowerCase();
+                    if (n.includes('astreinte')) return '#FFF0EE';
+                    if (n.includes('workflow'))  return '#ECFDF5';
+                    if (n.includes('unity'))     return '#F3F0FF';
                     return '#FFFBEB';
                 }
                 return '#F8FAFC';
             };
-
-            // Helper: get slot left-border color
-            const getSlotBorder = (slot: typeof schedule[0] | undefined): string => {
+            const slotAccent = (slot?: typeof schedule[0]): string => {
                 if (!slot || slot.isClosed) return '#CBD5E1';
                 if (slot.type === SlotType.CONSULTATION) return '#3B6FD4';
-                if (slot.type === SlotType.RCP) return '#7C3AED';
+                if (slot.type === SlotType.RCP)          return '#7C3AED';
                 if (slot.type === SlotType.ACTIVITY) {
-                    const name = (slot.subType || '').toLowerCase();
-                    if (name.includes('astreinte')) return '#DC4E3A';
-                    if (name.includes('workflow')) return '#0F766E';
-                    if (name.includes('unity')) return '#6D28D9';
+                    const n = (slot.subType || '').toLowerCase();
+                    if (n.includes('astreinte')) return '#DC4E3A';
+                    if (n.includes('workflow'))  return '#0F766E';
+                    if (n.includes('unity'))     return '#6D28D9';
                     return '#F59E0B';
                 }
                 return '#CBD5E1';
             };
 
-            // Column headers: one per day with date
-            const dayHeadersHtml = days.map(day => {
-                const dateStr = getDateForDayOfWeek(currentWeekStart, day);
-                const [yr, mo, dd] = dateStr.split('-');
-                const holiday = isFrenchHoliday(dateStr);
-                const bg = holiday ? '#FEF2F2' : '#1E293B';
-                const color = holiday ? '#DC2626' : '#FFFFFF';
-                return `<th colspan="2" style="padding:10px 6px;text-align:center;background:${bg};color:${color};font-size:12px;font-weight:800;border:1px solid #334155;min-width:180px;">
-                    ${day}<br/><span style="font-size:10px;font-weight:500;opacity:0.75;">${dd}/${mo}/${yr}</span>
-                </th>`;
-            }).join('');
+            // ── layout constants ──────────────────────────────────────────────
+            const TITLE_H   = 40;
+            const DAY_HDR_H = 18;
+            const PER_HDR_H = 11;
+            const LOC_W     = 50;
+            const N_COLS    = days.length * 2; // 5 days × 2 periods = 10
+            const CELL_W    = (PW - 2 * M - LOC_W) / N_COLS;
+            const DATA_H    = PH - 2 * M - TITLE_H - DAY_HDR_H - PER_HDR_H;
+            const ROW_H     = DATA_H / displayRows.length;
+            const TABLE_X   = M + LOC_W;
+            const TABLE_TOP = M + TITLE_H + DAY_HDR_H + PER_HDR_H;
 
-            // Sub-headers: AM / PM per day
-            const subHeadersHtml = days.map(() =>
-                `<th style="padding:5px 4px;text-align:center;background:#334155;color:#94A3B8;font-size:10px;font-weight:700;border:1px solid #475569;">Matin</th>
-                 <th style="padding:5px 4px;text-align:center;background:#334155;color:#94A3B8;font-size:10px;font-weight:700;border:1px solid #475569;">Après-m.</th>`
-            ).join('');
+            // ── 1. Header ─────────────────────────────────────────────────────
+            fill('#4F46E5');
+            pdf.rect(M, M, PW - 2 * M, 3, 'F');
 
-            // Build data rows: one row per location
-            let rowsHtml = '';
-            displayRows.forEach((loc, rowIdx) => {
-                const rowBg = rowIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
-                let cellsHtml = '';
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(15);
+            tc('#0F172A');
+            pdf.text('PLANNING RADIOTHÉRAPIE', M, M + 18);
 
-                days.forEach(day => {
-                    [Period.MORNING, Period.AFTERNOON].forEach(period => {
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(9);
+            tc('#64748B');
+            pdf.text(formatWeekRange(currentWeekStart), M, M + 30);
+
+            pdf.setFontSize(8);
+            tc('#94A3B8');
+            pdf.text(
+                `Généré le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                PW - M, M + 18, { align: 'right' }
+            );
+
+            // ── 2. Day column headers ─────────────────────────────────────────
+            // "Lieu" cell spans both header rows
+            fill('#0F172A'); stroke('#1E293B');
+            pdf.setLineWidth(0.4);
+            pdf.rect(M, M + TITLE_H, LOC_W, DAY_HDR_H + PER_HDR_H, 'FD');
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5);
+            tc('#FFFFFF');
+            pdf.text('Lieu / Créneau', M + LOC_W / 2, M + TITLE_H + (DAY_HDR_H + PER_HDR_H) / 2 + 2.5, { align: 'center' });
+
+            days.forEach((day, di) => {
+                const dateStr  = getDateForDayOfWeek(currentWeekStart, day);
+                const holiday  = isFrenchHoliday(dateStr);
+                const [, mo, dd] = dateStr.split('-');
+                const colX    = TABLE_X + di * CELL_W * 2;
+                const colW    = CELL_W * 2;
+
+                fill(holiday ? '#FEF2F2' : '#1E293B');
+                stroke(holiday ? '#FECACA' : '#334155');
+                pdf.rect(colX, M + TITLE_H, colW, DAY_HDR_H, 'FD');
+
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5);
+                tc(holiday ? '#DC2626' : '#FFFFFF');
+                pdf.text(`${day}  ${dd}/${mo}`, colX + colW / 2, M + TITLE_H + DAY_HDR_H / 2 + 3, { align: 'center' });
+
+                // Period sub-headers
+                [Period.MORNING, Period.AFTERNOON].forEach((period, pi) => {
+                    const sx = colX + pi * CELL_W;
+                    fill('#334155'); stroke('#475569');
+                    pdf.rect(sx, M + TITLE_H + DAY_HDR_H, CELL_W, PER_HDR_H, 'FD');
+                    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5);
+                    tc('#94A3B8');
+                    pdf.text(
+                        period === Period.MORNING ? 'Matin' : 'Après-m.',
+                        sx + CELL_W / 2,
+                        M + TITLE_H + DAY_HDR_H + PER_HDR_H / 2 + 2.3,
+                        { align: 'center' }
+                    );
+                });
+            });
+
+            // ── 3. Data rows ──────────────────────────────────────────────────
+            displayRows.forEach((loc, ri) => {
+                const rowY   = TABLE_TOP + ri * ROW_H;
+                const rowBg  = ri % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+
+                // Location cell
+                fill('#F8FAFC'); stroke('#E2E8F0');
+                pdf.setLineWidth(0.4);
+                pdf.rect(M, rowY, LOC_W, ROW_H, 'FD');
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7);
+                tc('#0F172A');
+                const locLines = pdf.splitTextToSize(loc, LOC_W - 6);
+                const locLineH = 8;
+                const locStartY = rowY + ROW_H / 2 - (locLines.length * locLineH) / 2 + 5;
+                locLines.forEach((line: string, li: number) => {
+                    pdf.text(line, M + LOC_W / 2, locStartY + li * locLineH, { align: 'center' });
+                });
+
+                // Row separator
+                stroke('#E2E8F0');
+                pdf.setLineWidth(0.5);
+                pdf.line(M, rowY + ROW_H, PW - M, rowY + ROW_H);
+
+                // Data cells
+                days.forEach((day, di) => {
+                    [Period.MORNING, Period.AFTERNOON].forEach((period, pi) => {
+                        const cellX   = TABLE_X + (di * 2 + pi) * CELL_W;
                         const dateStr = getDateForDayOfWeek(currentWeekStart, day);
                         const holiday = isFrenchHoliday(dateStr);
 
+                        // Holiday cell
                         if (holiday) {
-                            cellsHtml += `<td style="padding:6px;background:#FEF2F2;border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#DC2626;font-weight:600;">${holiday.name}</td>`;
+                            fill('#FEF2F2'); stroke('#FECACA');
+                            pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
+                            if (pi === 0) {
+                                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6);
+                                tc('#DC2626');
+                                const hn = holiday.name.length > 12 ? holiday.name.slice(0, 11) + '…' : holiday.name;
+                                pdf.text(hn, cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
+                            }
                             return;
                         }
 
+                        // Monday-morning Box closed
                         if (day === DayOfWeek.MONDAY && period === Period.MORNING && loc.startsWith('Box')) {
-                            cellsHtml += `<td style="padding:6px;background:#F1F5F9;border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#94A3B8;font-style:italic;">Fermé</td>`;
+                            fill('#F1F5F9'); stroke('#E2E8F0');
+                            pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
+                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5);
+                            tc('#94A3B8');
+                            pdf.text('Fermé', cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
                             return;
                         }
 
@@ -243,132 +344,124 @@ const Planning: React.FC = () => {
                         );
 
                         if (!slot) {
-                            cellsHtml += `<td style="padding:6px;background:${rowBg};border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#CBD5E1;">—</td>`;
+                            fill(rowBg); stroke('#E2E8F0');
+                            pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
+                            tc('#CBD5E1'); pdf.setFontSize(9);
+                            pdf.text('—', cellX + CELL_W / 2, rowY + ROW_H / 2 + 3, { align: 'center' });
                             return;
                         }
 
                         if (slot.isClosed) {
-                            cellsHtml += `<td style="padding:6px;background:#F1F5F9;border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#94A3B8;font-weight:600;">Fermé</td>`;
+                            fill('#F1F5F9'); stroke('#E2E8F0');
+                            pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
+                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5);
+                            tc('#94A3B8');
+                            pdf.text('Fermé', cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
                             return;
                         }
 
-                        const doc = doctors.find(d => d.id === slot.assignedDoctorId);
+                        const doc         = doctors.find(d => d.id === slot.assignedDoctorId);
                         const hasConflict = conflicts.some(c => c.slotId === slot.id);
-                        const bg = hasConflict ? '#FEF2F2' : getSlotBg(slot);
-                        const borderColor = hasConflict ? '#DC2626' : getSlotBorder(slot);
-                        const docColor = doc ? (getDoctorHexColor(doc.color) || '#64748B') : '#64748B';
+                        const bg          = hasConflict ? '#FFF0EE' : slotBg(slot);
+                        const accent      = hasConflict ? '#DC2626' : slotAccent(slot);
 
-                        let content = '';
-                        if (doc) {
-                            content = `<div style="display:flex;align-items:center;gap:5px;">
-                                <div style="width:18px;height:18px;border-radius:50%;background:${docColor};color:white;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${doc.name.substring(0, 2)}</div>
-                                <span style="font-weight:700;font-size:11px;color:#0F172A;line-height:1.3;">${doc.name}</span>
-                            </div>
-                            ${slot.type === SlotType.ACTIVITY && slot.subType ? `<div style="font-size:9px;color:#64748B;margin-top:2px;padding-left:23px;">${slot.subType}</div>` : ''}
-                            ${hasConflict ? '<div style="font-size:9px;color:#DC2626;font-weight:700;margin-top:2px;">⚠ Conflit</div>' : ''}`;
-                        } else {
-                            content = `<span style="font-size:10px;color:#94A3B8;font-style:italic;">Non assigné</span>`;
+                        // Cell background
+                        fill(bg); stroke('#E2E8F0');
+                        pdf.setLineWidth(0.3);
+                        pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
+
+                        // Left accent bar
+                        fill(accent);
+                        pdf.rect(cellX, rowY, 2.5, ROW_H, 'F');
+
+                        if (!doc) {
+                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5);
+                            tc('#94A3B8');
+                            pdf.text('Non assigné', cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
+                            return;
                         }
 
-                        cellsHtml += `<td style="padding:6px 8px;background:${bg};border:1px solid #E2E8F0;border-left:3px solid ${borderColor};vertical-align:middle;">${content}</td>`;
+                        // Doctor avatar circle
+                        const docHex = getDoctorHexColor(doc.color) || '#64748B';
+                        const { r: dr, g: dg, b: db } = hexRgb(docHex);
+                        const CR  = 5.5;
+                        const CX  = cellX + 2.5 + 4 + CR;
+                        const CY  = rowY + ROW_H / 2;
+
+                        pdf.setFillColor(dr, dg, db);
+                        pdf.ellipse(CX, CY, CR, CR, 'F');
+
+                        // Initials inside circle
+                        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(4.5);
+                        tc('#FFFFFF');
+                        pdf.text(doc.name.substring(0, 2).toUpperCase(), CX, CY + 1.6, { align: 'center' });
+
+                        // Doctor name
+                        const nameX  = CX + CR + 3;
+                        const maxW   = cellX + CELL_W - nameX - 2;
+                        const hasAct = slot.type === SlotType.ACTIVITY && slot.subType;
+
+                        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5);
+                        tc(hasConflict ? '#DC2626' : '#0F172A');
+
+                        let dName = doc.name;
+                        while (pdf.getTextWidth(dName) > maxW && dName.length > 3) dName = dName.slice(0, -1);
+                        if (dName !== doc.name) dName += '…';
+
+                        const nameY = hasAct ? CY - 1.5 : CY + 2.5;
+                        pdf.text(dName, nameX, nameY);
+
+                        // Activity sub-type
+                        if (hasAct) {
+                            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6);
+                            tc('#64748B');
+                            let sub = slot.subType || '';
+                            while (pdf.getTextWidth(sub) > maxW && sub.length > 3) sub = sub.slice(0, -1);
+                            pdf.text(sub, nameX, CY + 5.5);
+                        }
+
+                        // Conflict label
+                        if (hasConflict) {
+                            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(5.5);
+                            tc('#DC2626');
+                            pdf.text('CONFLIT', cellX + CELL_W - 2, rowY + ROW_H - 4, { align: 'right' });
+                        }
                     });
                 });
-
-                rowsHtml += `<tr>
-                    <td style="padding:8px;font-size:11px;font-weight:700;text-align:center;background:#F8FAFC;border:1px solid #E2E8F0;border-right:2px solid #CBD5E1;vertical-align:middle;min-width:80px;">${loc}</td>
-                    ${cellsHtml}
-                </tr>`;
             });
 
-            // Legend
+            // ── 4. Legend ─────────────────────────────────────────────────────
+            const LY = TABLE_TOP + displayRows.length * ROW_H + 8;
             const legendItems = [
-                { bg: '#EEF4FF', border: '#3B6FD4', label: 'Consultation' },
-                { bg: '#F5F0FF', border: '#7C3AED', label: 'RCP' },
-                { bg: '#FFF0EE', border: '#DC4E3A', label: 'Astreinte' },
-                { bg: '#ECFDF5', border: '#0F766E', label: 'Workflow' },
-                { bg: '#FFFBEB', border: '#F59E0B', label: 'Activité' },
-                { bg: '#FEF2F2', border: '#DC2626', label: 'Conflit' },
-            ].map(({ bg, border, label }) =>
-                `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#0F172A;margin-right:14px;">
-                    <span style="display:inline-block;width:13px;height:13px;background:${bg};border-left:3px solid ${border};border-radius:2px;flex-shrink:0;"></span>${label}
-                </span>`
-            ).join('');
-
-            const todayStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-
-            const fullHtml = `<div style="font-family:Arial,Helvetica,sans-serif;background:#ffffff;padding:32px;width:1500px;box-sizing:border-box;">
-                <!-- Header -->
-                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #4F46E5;">
-                    <div>
-                        <div style="font-size:10px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;">SERVICE DE RADIOTHÉRAPIE</div>
-                        <div style="font-size:26px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;">Planning Hebdomadaire</div>
-                        <div style="font-size:14px;color:#64748B;margin-top:3px;">${formatWeekRange(currentWeekStart)}</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-size:10px;color:#94A3B8;">Généré le ${todayStr}</div>
-                        <div style="font-size:10px;color:#CBD5E1;margin-top:2px;">RadioPlan AI</div>
-                    </div>
-                </div>
-                <!-- Table -->
-                <table style="width:100%;border-collapse:collapse;border:1px solid #E2E8F0;">
-                    <thead>
-                        <tr>
-                            <th rowspan="2" style="padding:10px 8px;text-align:center;background:#0F172A;color:white;font-size:11px;font-weight:800;border:1px solid #334155;min-width:80px;vertical-align:middle;">Poste</th>
-                            ${dayHeadersHtml}
-                        </tr>
-                        <tr>${subHeadersHtml}</tr>
-                    </thead>
-                    <tbody>${rowsHtml}</tbody>
-                </table>
-                <!-- Legend -->
-                <div style="margin-top:14px;padding:10px 14px;background:#F8FAFC;border-radius:6px;border:1px solid #E2E8F0;">
-                    <span style="font-size:10px;font-weight:700;color:#64748B;margin-right:10px;">LÉGENDE :</span>
-                    ${legendItems}
-                </div>
-                <!-- Footer -->
-                <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:9px;color:#94A3B8;border-top:1px solid #E2E8F0;padding-top:8px;">
-                    <span>Document généré automatiquement — RadioPlan AI</span>
-                    <span>${formatWeekRange(currentWeekStart)}</span>
-                </div>
-            </div>`;
-
-            const printContainer = document.createElement('div');
-            printContainer.style.cssText = 'position:absolute;left:-9999px;top:0;';
-            printContainer.innerHTML = fullHtml;
-            document.body.appendChild(printContainer);
-
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            const canvas = await html2canvas(printContainer.firstElementChild as HTMLElement, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff',
+                { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
+                { accent: '#7C3AED', bg: '#F5F0FF', label: 'RCP' },
+                { accent: '#DC4E3A', bg: '#FFF0EE', label: 'Astreinte' },
+                { accent: '#0F766E', bg: '#ECFDF5', label: 'Workflow' },
+                { accent: '#6D28D9', bg: '#F3F0FF', label: 'Unity' },
+                { accent: '#F59E0B', bg: '#FFFBEB', label: 'Activité' },
+                { accent: '#DC2626', bg: '#FFF0EE', label: 'Conflit' },
+            ];
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#64748B');
+            pdf.text('LÉGENDE :', M, LY + 5.5);
+            let lx = M + 44;
+            legendItems.forEach(({ accent, bg, label }) => {
+                fill(bg); stroke(accent); pdf.setLineWidth(0.5);
+                pdf.rect(lx, LY, 10, 8, 'FD');
+                fill(accent);
+                pdf.rect(lx, LY, 2.5, 8, 'F');
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); tc('#0F172A');
+                pdf.text(label, lx + 12, LY + 5.5);
+                lx += pdf.getTextWidth(label) + 20;
             });
 
-            document.body.removeChild(printContainer);
+            // Footer line
+            stroke('#E2E8F0'); pdf.setLineWidth(0.5);
+            pdf.line(M, LY + 14, PW - M, LY + 14);
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); tc('#CBD5E1');
+            pdf.text('RadioPlan AI — document généré automatiquement', M, LY + 20);
+            pdf.text(formatWeekRange(currentWeekStart), PW - M, LY + 20, { align: 'right' });
 
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF('l', 'mm', 'a4');
-            const margin = 8;
-            const pageWidth = 297 - 2 * margin;
-            const pageHeight = 210 - 2 * margin;
-            const ratio = pageWidth / canvas.width;
-            const scaledH = canvas.height * ratio;
-
-            if (scaledH <= pageHeight) {
-                pdf.addImage(imgData, 'PNG', margin, margin, pageWidth, scaledH);
-            } else {
-                let heightLeft = scaledH;
-                let page = 0;
-                while (heightLeft > 0) {
-                    if (page > 0) pdf.addPage();
-                    pdf.addImage(imgData, 'PNG', margin, margin - page * pageHeight, pageWidth, scaledH);
-                    heightLeft -= pageHeight;
-                    page++;
-                }
-            }
-
+            // ── 5. Save ───────────────────────────────────────────────────────
             pdf.save(`Planning_${currentWeekStart.toISOString().split('T')[0]}.pdf`);
 
         } catch (err) {
@@ -378,6 +471,7 @@ const Planning: React.FC = () => {
             setIsGeneratingPdf(false);
         }
     };
+
 
     const formatWeekRange = (start: Date) => {
         const end = new Date(start);
