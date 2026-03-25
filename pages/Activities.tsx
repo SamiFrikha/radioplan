@@ -1571,8 +1571,8 @@ const Activities: React.FC = () => {
 
             {/* MAIN LAYOUT: 2-col desktop, single col mobile */}
             <div className="grid lg:grid-cols-[320px_1fr] gap-4 flex-1 min-h-0">
-                {/* LEFT: Activity list — hidden on mobile when detail is open */}
-                <Card className={`flex-col overflow-hidden ${mobileDetailOpen ? 'hidden lg:flex' : 'flex'}`}>
+                {/* LEFT: Activity list */}
+                <Card className="flex flex-col overflow-hidden">
                     <CardHeader>
                         <CardTitle>Liste des activités</CardTitle>
                         {activityDefinitions.length === 0 && isAdmin && (
@@ -1613,7 +1613,6 @@ const Activities: React.FC = () => {
                                     key={act.id}
                                     onClick={() => {
                                         setActiveTabId(act.id);
-                                        setMobileDetailOpen(true);
                                     }}
                                     className={`bg-surface rounded-card shadow-card border border-border/40 p-4 flex items-start gap-3 press-scale cursor-pointer hover:shadow-card-hover transition-shadow overflow-hidden relative mb-2 ${activeTabId === act.id ? 'ring-2 ring-primary/30' : ''}`}
                                 >
@@ -1642,18 +1641,8 @@ const Activities: React.FC = () => {
                     </CardBody>
                 </Card>
 
-                {/* RIGHT: Detail panel — desktop always, mobile when activity selected */}
-                <div className={`flex-col overflow-y-auto gap-4 ${mobileDetailOpen ? 'flex' : 'hidden lg:flex'}`}>
-                    {/* Mobile back button */}
-                    {mobileDetailOpen && (
-                        <button
-                            onClick={() => setMobileDetailOpen(false)}
-                            className="lg:hidden flex items-center gap-1.5 text-sm font-semibold text-primary py-1"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                            Retour aux activités
-                        </button>
-                    )}
+                {/* RIGHT: Detail panel — desktop only */}
+                <div className="hidden lg:flex lg:flex-col lg:overflow-y-auto lg:gap-4">
                     {currentActivity ? (
                         <>
                             {/* Toolbar: view toggle, week nav, actions */}
@@ -2154,8 +2143,8 @@ const Activities: React.FC = () => {
                 </div>
             </div>
 
-            {/* MOBILE: detail is now shown inline above (mobileDetailOpen state) — Drawer removed */}
-            {false && <Drawer.Root open={false} onOpenChange={setMobileDetailOpen} dismissible>
+            {/* MOBILE: Vaul bottom sheet for detail */}
+            <Drawer.Root open={mobileDetailOpen} onOpenChange={setMobileDetailOpen} dismissible>
                 <Drawer.Portal>
                     <Drawer.Overlay className="fixed inset-0 bg-black/40 z-modal" />
                     <Drawer.Content
@@ -2262,7 +2251,7 @@ const Activities: React.FC = () => {
                         </div>
                     </Drawer.Content>
                 </Drawer.Portal>
-            </Drawer.Root>}
+            </Drawer.Root>
 
             {/* PDF DATE RANGE MODAL */}
             {showPdfModal && (

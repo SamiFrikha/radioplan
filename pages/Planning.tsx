@@ -174,181 +174,118 @@ const Planning: React.FC = () => {
             printContainer.style.position = 'absolute';
             printContainer.style.left = '-9999px';
             printContainer.style.top = '0';
-            printContainer.style.width = '2400px';
+            printContainer.style.width = '2200px';
             printContainer.style.backgroundColor = '#ffffff';
-            printContainer.style.padding = '48px';
-            printContainer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+            printContainer.style.padding = '40px';
             printContainer.style.boxSizing = 'border-box';
 
-            // ── Clean header ──────────────────────────────────────────────
             const header = document.createElement('div');
             header.innerHTML = `
-              <div style="margin-bottom:24px; display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px solid #4F46E5; padding-bottom:16px;">
+             <div style="margin-bottom: 20px; border-bottom: 3px solid #1e293b; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end;">
                 <div>
-                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-                    <div style="width:8px;height:40px;border-radius:4px;background:linear-gradient(135deg,#4F46E5,#7C3AED);flex-shrink:0;"></div>
-                    <h1 style="font-size:36px;font-weight:800;color:#0f172a;margin:0;letter-spacing:-0.5px;">Planning Radiothérapie</h1>
-                  </div>
-                  <p style="font-size:17px;color:#64748b;margin:0 0 0 18px;">${formatWeekRange(currentWeekStart)}</p>
+                    <h1 style="font-size: 32px; font-weight: bold; color: #1e293b; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Planning Radiothérapie</h1>
+                    <p style="font-size: 16px; color: #64748b; margin: 5px 0 0 0;">${formatWeekRange(currentWeekStart)}</p>
                 </div>
-                <div style="text-align:right;">
-                  <div style="font-size:13px;color:#94a3b8;margin-bottom:4px;">Généré le ${new Date().toLocaleDateString('fr-FR')}</div>
-                  <div style="font-size:11px;color:#cbd5e1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;">RadioPlan AI</div>
+                <div style="text-align: right;">
+                    <span style="font-size: 12px; color: #94a3b8;">Généré le ${new Date().toLocaleDateString('fr-FR')}</span>
                 </div>
-              </div>
-            `;
+            </div>
+          `;
             printContainer.appendChild(header);
 
-            // ── Clone + normalise ────────────────────────────────────────
             const clone = originalTable.cloneNode(true) as HTMLElement;
-
-            // Remove sticky positioning
-            clone.querySelectorAll('.sticky').forEach(el => {
+            const stickyElements = clone.querySelectorAll('.sticky');
+            stickyElements.forEach(el => {
                 (el as HTMLElement).style.position = 'static';
                 (el as HTMLElement).style.left = 'auto';
                 (el as HTMLElement).style.top = 'auto';
                 (el as HTMLElement).style.boxShadow = 'none';
-                (el as HTMLElement).style.zIndex = 'auto';
             });
 
-            // Remove overflow / truncation
-            clone.querySelectorAll('.truncate, .overflow-hidden').forEach(el => {
-                (el as HTMLElement).style.overflow = 'visible';
+            const truncatedElements = clone.querySelectorAll('.truncate');
+            truncatedElements.forEach(el => {
+                el.classList.remove('truncate');
                 (el as HTMLElement).style.whiteSpace = 'normal';
-                (el as HTMLElement).style.textOverflow = 'unset';
+                (el as HTMLElement).style.overflow = 'visible';
+                (el as HTMLElement).style.wordBreak = 'break-word';
             });
 
-            // Fix gradient-primary header cells → solid indigo
-            clone.querySelectorAll('th').forEach(el => {
-                const e = el as HTMLElement;
-                const bg = e.style.background || getComputedStyle(e).background;
-                if (bg.includes('gradient') || e.classList.contains('bg-gradient-primary') || e.style.backgroundImage?.includes('gradient')) {
-                    e.style.background = '#4F46E5';
-                    e.style.color = '#ffffff';
-                }
-                // Default header style
-                if (!e.style.backgroundColor && !bg.includes('#')) {
-                    e.style.backgroundColor = '#f8fafc';
-                    e.style.color = '#1e293b';
-                }
-                e.style.fontSize = '14px';
-                e.style.fontWeight = '700';
-                e.style.padding = '10px 12px';
-                e.style.border = '1px solid #e2e8f0';
-                e.style.textAlign = 'center';
-            });
-
-            // Style all td cells
-            clone.querySelectorAll('td').forEach(el => {
-                const e = el as HTMLElement;
-                e.style.padding = '8px';
-                e.style.height = 'auto';
-                e.style.border = '1px solid #e2e8f0';
-                e.style.verticalAlign = 'top';
-                e.style.overflow = 'visible';
-            });
-
-            // Fix sticky first-column cells (room/doctor names)
-            clone.querySelectorAll('td[rowspan]').forEach(el => {
-                const e = el as HTMLElement;
-                e.style.backgroundColor = '#f8fafc';
-                e.style.fontWeight = '700';
-                e.style.fontSize = '13px';
-                e.style.color = '#334155';
-                e.style.textAlign = 'center';
-            });
-
-            // Fix period labels (Matin / A.Midi) — absolute → static
-            clone.querySelectorAll('.absolute').forEach(el => {
-                const e = el as HTMLElement;
-                e.style.position = 'relative';
-                e.style.display = 'block';
-                e.style.fontSize = '10px';
-                e.style.fontWeight = '700';
-                e.style.padding = '2px 6px';
-                e.style.marginBottom = '4px';
-            });
-
-            // Upscale avatars
-            clone.querySelectorAll('[class*="w-4"][class*="h-4"], [class*="w-5"][class*="h-5"], [class*="w-8"][class*="h-8"]').forEach(el => {
-                const e = el as HTMLElement;
-                if (e.style.backgroundColor) { // is a colored avatar div
-                    e.style.width = '26px';
-                    e.style.height = '26px';
-                    e.style.minWidth = '26px';
-                    e.style.fontSize = '11px';
-                    e.style.borderRadius = '50%';
-                    e.style.display = 'inline-flex';
-                    e.style.alignItems = 'center';
-                    e.style.justifyContent = 'center';
-                    e.style.fontWeight = '700';
-                    e.style.color = '#fff';
-                    e.style.marginRight = '8px';
+            const nameElements = clone.querySelectorAll('.font-bold');
+            nameElements.forEach(el => {
+                const currentFontSize = window.getComputedStyle(el).fontSize;
+                if (parseFloat(currentFontSize) < 18) {
+                    (el as HTMLElement).style.fontSize = '16px';
+                    (el as HTMLElement).style.lineHeight = '1.3';
                 }
             });
 
-            // Scale font sizes for readability
-            clone.querySelectorAll('.font-bold, .font-semibold').forEach(el => {
-                const e = el as HTMLElement;
-                const fs = parseFloat(getComputedStyle(e).fontSize);
-                if (fs < 14) e.style.fontSize = '14px';
+            const avatars = clone.querySelectorAll('.w-5.h-5, .w-8.h-8');
+            avatars.forEach(el => {
+                (el as HTMLElement).style.width = '24px';
+                (el as HTMLElement).style.height = '24px';
+                (el as HTMLElement).style.minWidth = '24px';
+                (el as HTMLElement).style.fontSize = '12px';
+                (el as HTMLElement).style.marginRight = '8px';
+            });
+
+            const cells = clone.querySelectorAll('td, th');
+            cells.forEach(el => {
+                (el as HTMLElement).style.padding = '10px';
+                (el as HTMLElement).style.height = 'auto';
+            });
+
+            const headers = clone.querySelectorAll('th');
+            headers.forEach(el => {
+                (el as HTMLElement).style.fontSize = '14px';
             });
 
             clone.style.width = '100%';
             clone.style.borderCollapse = 'collapse';
             clone.style.backgroundColor = 'white';
 
-            // ── Footer ───────────────────────────────────────────────────
-            const footer = document.createElement('div');
-            footer.innerHTML = `
-              <div style="margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:11px;color:#94a3b8;">Document généré automatiquement — RadioPlan AI</span>
-                <div style="display:flex;gap:16px;font-size:11px;color:#94a3b8;">
-                  <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#3B6FD4;display:inline-block;"></span> Consultation</span>
-                  <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#7C3AED;display:inline-block;"></span> RCP</span>
-                  <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#0F766E;display:inline-block;"></span> Workflow</span>
-                  <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#DC4E3A;display:inline-block;"></span> Astreinte</span>
-                </div>
-              </div>
-            `;
-
             printContainer.appendChild(clone);
-            printContainer.appendChild(footer);
             document.body.appendChild(printContainer);
 
-            await new Promise(resolve => setTimeout(resolve, 600));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             const canvas = await html2canvas(printContainer, {
                 scale: 2,
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#ffffff',
-                width: 2400,
-                height: printContainer.offsetHeight,
+                width: 2200,
+                height: printContainer.offsetHeight
             });
 
             document.body.removeChild(printContainer);
 
-            const imgData = canvas.toDataURL('image/png');
+            const imgData = canvas.toDataURL('image/jpeg', 0.9);
             const pdf = new jsPDF('l', 'mm', 'a4');
 
             const pageWidth = 297;
             const pageHeight = 210;
-            const margin = 8;
+            const margin = 10;
             const contentWidth = pageWidth - (2 * margin);
             const contentHeight = pageHeight - (2 * margin);
 
-            const ratio = contentWidth / canvas.width;
-            const scaledHeight = canvas.height * ratio;
+            const imgWidth = canvas.width;
+            const imgHeight = canvas.height;
+
+            const ratio = contentWidth / imgWidth;
+            const scaledHeight = imgHeight * ratio;
 
             if (scaledHeight <= contentHeight) {
-                pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, scaledHeight);
+                pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, scaledHeight);
             } else {
+                let heightLeft = scaledHeight;
                 let page = 0;
-                while (page * contentHeight < scaledHeight) {
+
+                while (heightLeft > 0) {
                     if (page > 0) pdf.addPage();
-                    const y = margin - page * contentHeight;
-                    pdf.addImage(imgData, 'PNG', margin, y, contentWidth, scaledHeight);
+                    const y = margin - (page * contentHeight);
+                    pdf.addImage(imgData, 'JPEG', margin, y, contentWidth, scaledHeight);
+
+                    heightLeft -= contentHeight;
                     page++;
                 }
             }
@@ -725,7 +662,7 @@ const Planning: React.FC = () => {
                         <Badge variant="green">Semaine validée</Badge>
                     )}
 
-                    {/* PDF download — always visible */}
+                    {/* PDF download */}
                     <Button
                         variant="primary"
                         size="sm"
@@ -734,7 +671,7 @@ const Planning: React.FC = () => {
                         className="flex items-center gap-1.5"
                     >
                         {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
-                        <span>{isGeneratingPdf ? 'Génération...' : 'PDF'}</span>
+                        <span className="hidden md:inline">{isGeneratingPdf ? 'Génération...' : 'PDF'}</span>
                     </Button>
                 </div>
             </div>
@@ -789,7 +726,7 @@ const Planning: React.FC = () => {
                                                 <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
                                             </td>
                                             {days.map(day => (
-                                                <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
+                                                <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0`}>
                                                     <div className="absolute top-0 left-0 right-0 bg-warning/10 text-[9px] px-1 text-warning-text uppercase font-bold tracking-wider z-0 border-b border-warning/20">Matin</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.MORNING, loc)}
@@ -799,7 +736,7 @@ const Planning: React.FC = () => {
                                         </tr>
                                         <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
+                                                <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0`}>
                                                     <div className="absolute top-0 left-0 right-0 bg-primary/10 text-[9px] px-1 text-primary-text uppercase font-bold tracking-wider z-0 border-b border-primary/20">A.Midi</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.AFTERNOON, loc)}
@@ -824,7 +761,7 @@ const Planning: React.FC = () => {
                                                 <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">{doc.name}</div>
                                             </td>
                                             {days.map(day => (
-                                                <td key={`${day}-matin`} className="border-r border-b border-border relative h-11 align-top p-0 overflow-hidden">
+                                                <td key={`${day}-matin`} className="border-r border-b border-border relative h-11 align-top p-0">
                                                     <div className="h-full">
                                                         {renderDoctorCell(doc, day, Period.MORNING)}
                                                     </div>
@@ -833,7 +770,7 @@ const Planning: React.FC = () => {
                                         </tr>
                                         <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className="border-r border-b-2 border-border relative h-11 align-top p-0 overflow-hidden">
+                                                <td key={`${day}-apres-midi`} className="border-r border-b-2 border-border relative h-11 align-top p-0">
                                                     <div className="h-full bg-muted/30">
                                                         {renderDoctorCell(doc, day, Period.AFTERNOON)}
                                                     </div>
