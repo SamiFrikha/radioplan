@@ -57,13 +57,9 @@ const AppLayout: React.FC = () => {
 
             {/* Main content column */}
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                {/* Mobile top bar */}
-                <TopBar />
-
-                {/* Page content — offset for fixed TopBar on mobile, fixed BottomNav on mobile */}
+                {/* Page content — offset for fixed BottomNav on mobile */}
                 <main
                     className="flex-1 overflow-y-auto p-4 md:p-6
-                               pt-[calc(56px+env(safe-area-inset-top)+1rem)] lg:pt-6
                                pb-[calc(64px+env(safe-area-inset-bottom)+1rem)] lg:pb-6"
                 >
                     <Outlet />

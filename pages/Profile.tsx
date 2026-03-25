@@ -6,7 +6,7 @@ import {
     Calendar, Save, Trash2, UserCheck,
     Briefcase, Edit, Bell, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
-    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown
+    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 import { markReplacementResolved } from '../services/replacementService';
@@ -286,7 +286,7 @@ const Profile: React.FC = () => {
         setManualOverrides,
     } = useContext(AppContext);
 
-    const { profile, loading: authLoading, isAdmin } = useAuth();
+    const { profile, loading: authLoading, isAdmin, signOut } = useAuth();
     const { notifications, unreadCount, markRead, markAllRead, clearAll, loading: notifLoading } = useNotifications();
     const navigate = useNavigate();
 
@@ -1007,8 +1007,17 @@ const Profile: React.FC = () => {
                                                     {currentDoctor.specialty?.join(' • ') || 'Généraliste'}
                                                 </p>
                                                 <p className="text-white/60 text-xs mt-0.5 truncate">{profile.email}</p>
-                                                <div className="mt-2 inline-flex items-center bg-success/20 text-green-100 border border-success/30 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">
-                                                    <UserCheck className="w-3 h-3 mr-1" /> Connecté
+                                                <div className="mt-2 flex items-center gap-2">
+                                                    <div className="inline-flex items-center bg-success/20 text-green-100 border border-success/30 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">
+                                                        <UserCheck className="w-3 h-3 mr-1" /> Connecté
+                                                    </div>
+                                                    <button
+                                                        onClick={() => signOut()}
+                                                        aria-label="Se déconnecter"
+                                                        className="inline-flex items-center gap-1 bg-white/10 hover:bg-white/25 text-white/80 hover:text-white px-2 py-0.5 rounded text-[10px] font-semibold transition-colors"
+                                                    >
+                                                        <LogOut className="w-3 h-3" /> Déconnexion
+                                                    </button>
                                                 </div>
                                             </>
                                         )}
@@ -1079,7 +1088,7 @@ const Profile: React.FC = () => {
                         onClick={() => setActiveTab('rcp')}
                         role="tab"
                         aria-selected={activeTab === 'rcp'}
-                        className={activeTab === 'rcp' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
+                        className={activeTab === 'rcp' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
                         <CheckCircle2 className="w-4 h-4" />
                         RCP
@@ -1088,7 +1097,7 @@ const Profile: React.FC = () => {
                         onClick={() => setActiveTab('notifications')}
                         role="tab"
                         aria-selected={activeTab === 'notifications'}
-                        className={activeTab === 'notifications' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
+                        className={activeTab === 'notifications' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
                         <Bell className="w-4 h-4" />
                         Notifications
@@ -1102,7 +1111,7 @@ const Profile: React.FC = () => {
                         onClick={() => setActiveTab('absences')}
                         role="tab"
                         aria-selected={activeTab === 'absences'}
-                        className={activeTab === 'absences' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
+                        className={activeTab === 'absences' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
                         <Calendar className="w-4 h-4" />
                         Absences
@@ -1111,7 +1120,7 @@ const Profile: React.FC = () => {
                         onClick={() => setActiveTab('preferences')}
                         role="tab"
                         aria-selected={activeTab === 'preferences'}
-                        className={activeTab === 'preferences' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
+                        className={activeTab === 'preferences' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
                         <Briefcase className="w-4 h-4" />
                         Préférences
@@ -1120,7 +1129,7 @@ const Profile: React.FC = () => {
                         onClick={() => setActiveTab('conflits')}
                         role="tab"
                         aria-selected={activeTab === 'conflits'}
-                        className={activeTab === 'conflits' ? 'px-4 py-3 text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-2' : 'px-4 py-3 text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-2'}
+                        className={activeTab === 'conflits' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
                     >
                         <AlertTriangle className="w-4 h-4" />
                         Conflits

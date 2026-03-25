@@ -164,138 +164,216 @@ const Planning: React.FC = () => {
     };
 
     const handleDownloadPDF = async () => {
-        if (!tableContainerRef.current) return;
         try {
             setIsGeneratingPdf(true);
-            const originalTable = tableContainerRef.current.querySelector('table');
-            if (!originalTable) return;
+
+            // Helper: get slot background color based on type
+            const getSlotBg = (slot: typeof schedule[0] | undefined): string => {
+                if (!slot || slot.isClosed) return '#F1F5F9';
+                if (slot.type === SlotType.CONSULTATION) return '#EEF4FF';
+                if (slot.type === SlotType.RCP) return '#F5F0FF';
+                if (slot.type === SlotType.ACTIVITY) {
+                    const name = (slot.subType || '').toLowerCase();
+                    if (name.includes('astreinte')) return '#FFF0EE';
+                    if (name.includes('workflow')) return '#ECFDF5';
+                    if (name.includes('unity')) return '#F3F0FF';
+                    return '#FFFBEB';
+                }
+                return '#F8FAFC';
+            };
+
+            // Helper: get slot left-border color
+            const getSlotBorder = (slot: typeof schedule[0] | undefined): string => {
+                if (!slot || slot.isClosed) return '#CBD5E1';
+                if (slot.type === SlotType.CONSULTATION) return '#3B6FD4';
+                if (slot.type === SlotType.RCP) return '#7C3AED';
+                if (slot.type === SlotType.ACTIVITY) {
+                    const name = (slot.subType || '').toLowerCase();
+                    if (name.includes('astreinte')) return '#DC4E3A';
+                    if (name.includes('workflow')) return '#0F766E';
+                    if (name.includes('unity')) return '#6D28D9';
+                    return '#F59E0B';
+                }
+                return '#CBD5E1';
+            };
+
+            // Column headers: one per day with date
+            const dayHeadersHtml = days.map(day => {
+                const dateStr = getDateForDayOfWeek(currentWeekStart, day);
+                const [yr, mo, dd] = dateStr.split('-');
+                const holiday = isFrenchHoliday(dateStr);
+                const bg = holiday ? '#FEF2F2' : '#1E293B';
+                const color = holiday ? '#DC2626' : '#FFFFFF';
+                return `<th colspan="2" style="padding:10px 6px;text-align:center;background:${bg};color:${color};font-size:12px;font-weight:800;border:1px solid #334155;min-width:180px;">
+                    ${day}<br/><span style="font-size:10px;font-weight:500;opacity:0.75;">${dd}/${mo}/${yr}</span>
+                </th>`;
+            }).join('');
+
+            // Sub-headers: AM / PM per day
+            const subHeadersHtml = days.map(() =>
+                `<th style="padding:5px 4px;text-align:center;background:#334155;color:#94A3B8;font-size:10px;font-weight:700;border:1px solid #475569;">Matin</th>
+                 <th style="padding:5px 4px;text-align:center;background:#334155;color:#94A3B8;font-size:10px;font-weight:700;border:1px solid #475569;">Après-m.</th>`
+            ).join('');
+
+            // Build data rows: one row per location
+            let rowsHtml = '';
+            displayRows.forEach((loc, rowIdx) => {
+                const rowBg = rowIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
+                let cellsHtml = '';
+
+                days.forEach(day => {
+                    [Period.MORNING, Period.AFTERNOON].forEach(period => {
+                        const dateStr = getDateForDayOfWeek(currentWeekStart, day);
+                        const holiday = isFrenchHoliday(dateStr);
+
+                        if (holiday) {
+                            cellsHtml += `<td style="padding:6px;background:#FEF2F2;border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#DC2626;font-weight:600;">${holiday.name}</td>`;
+                            return;
+                        }
+
+                        if (day === DayOfWeek.MONDAY && period === Period.MORNING && loc.startsWith('Box')) {
+                            cellsHtml += `<td style="padding:6px;background:#F1F5F9;border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#94A3B8;font-style:italic;">Fermé</td>`;
+                            return;
+                        }
+
+                        const slot = schedule.find(s =>
+                            s.date === dateStr &&
+                            s.period === period &&
+                            (s.location === loc || s.subType === loc)
+                        );
+
+                        if (!slot) {
+                            cellsHtml += `<td style="padding:6px;background:${rowBg};border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#CBD5E1;">—</td>`;
+                            return;
+                        }
+
+                        if (slot.isClosed) {
+                            cellsHtml += `<td style="padding:6px;background:#F1F5F9;border:1px solid #E2E8F0;text-align:center;font-size:10px;color:#94A3B8;font-weight:600;">Fermé</td>`;
+                            return;
+                        }
+
+                        const doc = doctors.find(d => d.id === slot.assignedDoctorId);
+                        const hasConflict = conflicts.some(c => c.slotId === slot.id);
+                        const bg = hasConflict ? '#FEF2F2' : getSlotBg(slot);
+                        const borderColor = hasConflict ? '#DC2626' : getSlotBorder(slot);
+                        const docColor = doc ? (getDoctorHexColor(doc.color) || '#64748B') : '#64748B';
+
+                        let content = '';
+                        if (doc) {
+                            content = `<div style="display:flex;align-items:center;gap:5px;">
+                                <div style="width:18px;height:18px;border-radius:50%;background:${docColor};color:white;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${doc.name.substring(0, 2)}</div>
+                                <span style="font-weight:700;font-size:11px;color:#0F172A;line-height:1.3;">${doc.name}</span>
+                            </div>
+                            ${slot.type === SlotType.ACTIVITY && slot.subType ? `<div style="font-size:9px;color:#64748B;margin-top:2px;padding-left:23px;">${slot.subType}</div>` : ''}
+                            ${hasConflict ? '<div style="font-size:9px;color:#DC2626;font-weight:700;margin-top:2px;">⚠ Conflit</div>' : ''}`;
+                        } else {
+                            content = `<span style="font-size:10px;color:#94A3B8;font-style:italic;">Non assigné</span>`;
+                        }
+
+                        cellsHtml += `<td style="padding:6px 8px;background:${bg};border:1px solid #E2E8F0;border-left:3px solid ${borderColor};vertical-align:middle;">${content}</td>`;
+                    });
+                });
+
+                rowsHtml += `<tr>
+                    <td style="padding:8px;font-size:11px;font-weight:700;text-align:center;background:#F8FAFC;border:1px solid #E2E8F0;border-right:2px solid #CBD5E1;vertical-align:middle;min-width:80px;">${loc}</td>
+                    ${cellsHtml}
+                </tr>`;
+            });
+
+            // Legend
+            const legendItems = [
+                { bg: '#EEF4FF', border: '#3B6FD4', label: 'Consultation' },
+                { bg: '#F5F0FF', border: '#7C3AED', label: 'RCP' },
+                { bg: '#FFF0EE', border: '#DC4E3A', label: 'Astreinte' },
+                { bg: '#ECFDF5', border: '#0F766E', label: 'Workflow' },
+                { bg: '#FFFBEB', border: '#F59E0B', label: 'Activité' },
+                { bg: '#FEF2F2', border: '#DC2626', label: 'Conflit' },
+            ].map(({ bg, border, label }) =>
+                `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:#0F172A;margin-right:14px;">
+                    <span style="display:inline-block;width:13px;height:13px;background:${bg};border-left:3px solid ${border};border-radius:2px;flex-shrink:0;"></span>${label}
+                </span>`
+            ).join('');
+
+            const todayStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+            const fullHtml = `<div style="font-family:Arial,Helvetica,sans-serif;background:#ffffff;padding:32px;width:1500px;box-sizing:border-box;">
+                <!-- Header -->
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #4F46E5;">
+                    <div>
+                        <div style="font-size:10px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;">SERVICE DE RADIOTHÉRAPIE</div>
+                        <div style="font-size:26px;font-weight:800;color:#0F172A;letter-spacing:-0.5px;">Planning Hebdomadaire</div>
+                        <div style="font-size:14px;color:#64748B;margin-top:3px;">${formatWeekRange(currentWeekStart)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:10px;color:#94A3B8;">Généré le ${todayStr}</div>
+                        <div style="font-size:10px;color:#CBD5E1;margin-top:2px;">RadioPlan AI</div>
+                    </div>
+                </div>
+                <!-- Table -->
+                <table style="width:100%;border-collapse:collapse;border:1px solid #E2E8F0;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="padding:10px 8px;text-align:center;background:#0F172A;color:white;font-size:11px;font-weight:800;border:1px solid #334155;min-width:80px;vertical-align:middle;">Poste</th>
+                            ${dayHeadersHtml}
+                        </tr>
+                        <tr>${subHeadersHtml}</tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+                <!-- Legend -->
+                <div style="margin-top:14px;padding:10px 14px;background:#F8FAFC;border-radius:6px;border:1px solid #E2E8F0;">
+                    <span style="font-size:10px;font-weight:700;color:#64748B;margin-right:10px;">LÉGENDE :</span>
+                    ${legendItems}
+                </div>
+                <!-- Footer -->
+                <div style="margin-top:12px;display:flex;justify-content:space-between;font-size:9px;color:#94A3B8;border-top:1px solid #E2E8F0;padding-top:8px;">
+                    <span>Document généré automatiquement — RadioPlan AI</span>
+                    <span>${formatWeekRange(currentWeekStart)}</span>
+                </div>
+            </div>`;
 
             const printContainer = document.createElement('div');
-            printContainer.style.position = 'absolute';
-            printContainer.style.left = '-9999px';
-            printContainer.style.top = '0';
-            printContainer.style.width = '2200px';
-            printContainer.style.backgroundColor = '#ffffff';
-            printContainer.style.padding = '40px';
-            printContainer.style.boxSizing = 'border-box';
-
-            const header = document.createElement('div');
-            header.innerHTML = `
-             <div style="margin-bottom: 20px; border-bottom: 3px solid #1e293b; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end;">
-                <div>
-                    <h1 style="font-size: 32px; font-weight: bold; color: #1e293b; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Planning Radiothérapie</h1>
-                    <p style="font-size: 16px; color: #64748b; margin: 5px 0 0 0;">${formatWeekRange(currentWeekStart)}</p>
-                </div>
-                <div style="text-align: right;">
-                    <span style="font-size: 12px; color: #94a3b8;">Généré le ${new Date().toLocaleDateString('fr-FR')}</span>
-                </div>
-            </div>
-          `;
-            printContainer.appendChild(header);
-
-            const clone = originalTable.cloneNode(true) as HTMLElement;
-            const stickyElements = clone.querySelectorAll('.sticky');
-            stickyElements.forEach(el => {
-                (el as HTMLElement).style.position = 'static';
-                (el as HTMLElement).style.left = 'auto';
-                (el as HTMLElement).style.top = 'auto';
-                (el as HTMLElement).style.boxShadow = 'none';
-            });
-
-            const truncatedElements = clone.querySelectorAll('.truncate');
-            truncatedElements.forEach(el => {
-                el.classList.remove('truncate');
-                (el as HTMLElement).style.whiteSpace = 'normal';
-                (el as HTMLElement).style.overflow = 'visible';
-                (el as HTMLElement).style.wordBreak = 'break-word';
-            });
-
-            const nameElements = clone.querySelectorAll('.font-bold');
-            nameElements.forEach(el => {
-                const currentFontSize = window.getComputedStyle(el).fontSize;
-                if (parseFloat(currentFontSize) < 18) {
-                    (el as HTMLElement).style.fontSize = '16px';
-                    (el as HTMLElement).style.lineHeight = '1.3';
-                }
-            });
-
-            const avatars = clone.querySelectorAll('.w-5.h-5, .w-8.h-8');
-            avatars.forEach(el => {
-                (el as HTMLElement).style.width = '24px';
-                (el as HTMLElement).style.height = '24px';
-                (el as HTMLElement).style.minWidth = '24px';
-                (el as HTMLElement).style.fontSize = '12px';
-                (el as HTMLElement).style.marginRight = '8px';
-            });
-
-            const cells = clone.querySelectorAll('td, th');
-            cells.forEach(el => {
-                (el as HTMLElement).style.padding = '10px';
-                (el as HTMLElement).style.height = 'auto';
-            });
-
-            const headers = clone.querySelectorAll('th');
-            headers.forEach(el => {
-                (el as HTMLElement).style.fontSize = '14px';
-            });
-
-            clone.style.width = '100%';
-            clone.style.borderCollapse = 'collapse';
-            clone.style.backgroundColor = 'white';
-
-            printContainer.appendChild(clone);
+            printContainer.style.cssText = 'position:absolute;left:-9999px;top:0;';
+            printContainer.innerHTML = fullHtml;
             document.body.appendChild(printContainer);
 
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 300));
 
-            const canvas = await html2canvas(printContainer, {
+            const canvas = await html2canvas(printContainer.firstElementChild as HTMLElement, {
                 scale: 2,
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#ffffff',
-                width: 2200,
-                height: printContainer.offsetHeight
             });
 
             document.body.removeChild(printContainer);
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('l', 'mm', 'a4');
+            const margin = 8;
+            const pageWidth = 297 - 2 * margin;
+            const pageHeight = 210 - 2 * margin;
+            const ratio = pageWidth / canvas.width;
+            const scaledH = canvas.height * ratio;
 
-            const pageWidth = 297;
-            const pageHeight = 210;
-            const margin = 10;
-            const contentWidth = pageWidth - (2 * margin);
-            const contentHeight = pageHeight - (2 * margin);
-
-            const imgWidth = canvas.width;
-            const imgHeight = canvas.height;
-
-            const ratio = contentWidth / imgWidth;
-            const scaledHeight = imgHeight * ratio;
-
-            if (scaledHeight <= contentHeight) {
-                pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, scaledHeight);
+            if (scaledH <= pageHeight) {
+                pdf.addImage(imgData, 'PNG', margin, margin, pageWidth, scaledH);
             } else {
-                let heightLeft = scaledHeight;
+                let heightLeft = scaledH;
                 let page = 0;
-
                 while (heightLeft > 0) {
                     if (page > 0) pdf.addPage();
-                    const y = margin - (page * contentHeight);
-                    pdf.addImage(imgData, 'JPEG', margin, y, contentWidth, scaledHeight);
-
-                    heightLeft -= contentHeight;
+                    pdf.addImage(imgData, 'PNG', margin, margin - page * pageHeight, pageWidth, scaledH);
+                    heightLeft -= pageHeight;
                     page++;
                 }
             }
 
-            const filename = `Planning_${currentWeekStart.toISOString().split('T')[0]}.pdf`;
-            pdf.save(filename);
+            pdf.save(`Planning_${currentWeekStart.toISOString().split('T')[0]}.pdf`);
 
         } catch (err) {
-            console.error("PDF Generation failed", err);
-            alert("Erreur lors de la génération du PDF.");
+            console.error('PDF Generation failed', err);
+            alert('Erreur lors de la génération du PDF.');
         } finally {
             setIsGeneratingPdf(false);
         }
