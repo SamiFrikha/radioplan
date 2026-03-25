@@ -1,27 +1,43 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
-  title: string;
-  value: string | number;
   icon: LucideIcon;
-  color: string;
-  description?: string;
+  value: string | number;
+  label: string;
+  color?: 'blue' | 'violet' | 'green' | 'amber' | 'red';
+  trend?: { value: number; label: string };
 }
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, description }) => {
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 md:p-6 flex items-start space-x-3 md:space-x-4">
-      <div className={`p-2 md:p-3 rounded-lg ${color} bg-opacity-10`}>
-        <Icon className={`w-4 h-4 md:w-6 md:h-6 ${color.replace('bg-', 'text-')}`} />
-      </div>
-      <div className="min-w-0">
-        <h3 className="text-slate-500 text-[10px] md:text-sm font-medium uppercase tracking-wide truncate">{title}</h3>
-        <div className="mt-0.5 md:mt-1 text-lg md:text-2xl font-bold text-slate-900">{value}</div>
-        {description && <p className="mt-0.5 md:mt-1 text-[10px] md:text-sm text-slate-400 hidden sm:block">{description}</p>}
-      </div>
-    </div>
-  );
-};
+const colorMap = {
+  blue:   { bg: 'bg-primary/10',   ring: 'ring-1 ring-primary/25',   icon: 'text-primary',   shadow: 'shadow-card' },
+  violet: { bg: 'bg-secondary/10', ring: 'ring-1 ring-secondary/25', icon: 'text-secondary',  shadow: 'shadow-card' },
+  green:  { bg: 'bg-success/10',   ring: 'ring-1 ring-success/25',   icon: 'text-success',    shadow: 'shadow-card' },
+  amber:  { bg: 'bg-warning/10',   ring: 'ring-1 ring-warning/25',   icon: 'text-warning',    shadow: 'shadow-card' },
+  red:    { bg: 'bg-danger/10',    ring: 'ring-1 ring-danger/25',    icon: 'text-danger',     shadow: 'shadow-card' },
+} as const;
 
-export default StatCard;
+export default function StatCard({ icon: Icon, value, label, color = 'blue', trend }: StatCardProps) {
+  const c = colorMap[color];
+  return (
+    <article
+      className={`bg-surface rounded-card ${c.shadow} border border-border/40 p-5 flex items-start gap-4 press-scale`}
+      aria-label={`${label}: ${value}`}
+    >
+      <div className={`w-11 h-11 rounded-card flex-shrink-0 flex items-center justify-center ${c.bg} ${c.ring}`}>
+        <Icon className={`w-5 h-5 ${c.icon}`} aria-hidden="true" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[28px] font-extrabold text-text-base leading-tight tracking-tight tabular-nums">
+          {value}
+        </p>
+        <p className="text-xs font-medium text-text-muted mt-0.5 leading-snug">{label}</p>
+        {trend && (
+          <p className={`text-xs font-semibold mt-1.5 ${trend.value >= 0 ? 'text-success' : 'text-danger'}`}>
+            {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value)}% {trend.label}
+          </p>
+        )}
+      </div>
+    </article>
+  );
+}

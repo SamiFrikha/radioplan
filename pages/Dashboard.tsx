@@ -1,6 +1,7 @@
 
 import React, { useContext, useState, useMemo } from 'react';
 import { AppContext } from '../App';
+import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/StatCard';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import RcpExceptionModal from '../components/RcpExceptionModal';
@@ -8,6 +9,7 @@ import { Users, AlertTriangle, Calendar, Activity, Clock, ChevronLeft, ChevronRi
 import { DayOfWeek, Period, SlotType, Doctor, ScheduleSlot, Conflict, RcpException } from '../types';
 import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConflicts, isFrenchHoliday, getFrenchHolidays } from '../services/scheduleService';
 import { getDoctorHexColor } from '../components/DoctorBadge';
+import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
 
 const Dashboard: React.FC = () => {
     const {
@@ -28,6 +30,8 @@ const Dashboard: React.FC = () => {
         addRcpException,
         validatedWeeks
     } = useContext(AppContext);
+
+    const { profile } = useAuth();
 
     // Compute week start from offset (stored in context to survive re-renders)
     const currentWeekStart = useMemo(() => {
@@ -394,57 +398,60 @@ const Dashboard: React.FC = () => {
 
         const renderSlotList = (slots: typeof daySlots) => (
             <div className="space-y-2">
-                {slots.length === 0 ? <p className="text-sm text-slate-400 italic">Aucune activité prévue.</p> :
+                {slots.length === 0 ? <p className="text-sm text-text-muted italic">Aucune activité prévue.</p> :
                     slots.map(s => {
                         const doc = doctors.find(d => d.id === s.assignedDoctorId);
                         const isRcpUnconfirmed = s.type === SlotType.RCP && s.isUnconfirmed;
 
-                        // Determine border color based on activity type
-                        let borderColor = '#e2e8f0';
+                        // Determine border color — Option C clinical palette
+                        let borderColor = 'var(--color-border)';
                         if (s.type === SlotType.RCP) {
-                            borderColor = '#a855f7'; // purple
+                            borderColor = s.isUnconfirmed ? '#D97706' : '#059669';
                         } else if (s.type === SlotType.CONSULTATION) {
-                            borderColor = '#3b82f6'; // blue
+                            borderColor = '#3B6FD4';
                         } else if (s.type === SlotType.ACTIVITY) {
                             const subTypeLower = (s.subType || s.location || '').toLowerCase();
                             if (subTypeLower.includes('astreinte')) {
-                                borderColor = '#ef4444'; // red
+                                borderColor = '#DC4E3A';
                             } else if (subTypeLower.includes('unity')) {
-                                borderColor = '#f97316'; // orange
+                                borderColor = '#6D28D9';
                             } else if (subTypeLower.includes('workflow') || subTypeLower.includes('supervision')) {
-                                borderColor = '#10b981'; // emerald
+                                borderColor = '#0F766E';
+                            } else {
+                                // fallback: use activityDef color
+                                const actDef = activityDefinitions?.find((a: any) => a.id === s.activityId);
+                                if (actDef?.color) borderColor = getDoctorHexColor(actDef.color);
                             }
                         }
 
                         return (
-                            <div key={s.id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border" style={{ borderLeftWidth: '4px', borderLeftColor: borderColor }}>
+                            <div key={s.id} className="flex items-center justify-between p-2 bg-muted rounded-card border border-border/60" style={{ borderLeftWidth: '3px', borderLeftColor: borderColor }}>
                                 <div className="flex items-center flex-1 min-w-0">
                                     {isRcpUnconfirmed ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-yellow-700 bg-yellow-100 px-1 rounded font-bold mb-1 w-fit">⚠️ À confirmer</span>
-                                            <div className="text-[9px] text-slate-400 uppercase font-bold mb-0.5">Référents :</div>
-                                            <div className="text-xs text-slate-500 italic">
+                                        <div className="flex flex-col gap-0.5">
+                                            <Badge variant="amber">A confirmer</Badge>
+                                            <div className="text-[9px] text-text-muted uppercase font-bold mt-1">Référents :</div>
+                                            <div className="text-xs text-text-muted italic">
                                                 {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].map(id => doctors.find(d => d.id === id)?.name).filter(Boolean).join(', ')}
                                             </div>
                                         </div>
                                     ) : s.type === SlotType.RCP ? (
-                                        // RCP confirmée - afficher les participants confirmés
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-green-700 bg-green-100 px-1 rounded font-bold mb-1 w-fit">✓ Confirmée</span>
-                                            <div className="text-[9px] text-green-600 uppercase font-bold mb-0.5">Présent(s) :</div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <Badge variant="green">Confirmee</Badge>
+                                            <div className="text-[9px] text-success uppercase font-bold mt-1">Present(s) :</div>
                                             <div className="flex flex-wrap gap-1">
                                                 {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].filter(Boolean).map(id => {
                                                     const d = doctors.find(doc => doc.id === id);
                                                     if (!d) return null;
                                                     return (
-                                                        <div key={id} className="flex items-center bg-white px-1.5 py-0.5 rounded border border-green-300">
+                                                        <div key={id} className="flex items-center bg-surface px-1.5 py-0.5 rounded-btn-sm border border-border">
                                                             <div
                                                                 className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold mr-1 text-white"
                                                                 style={{ backgroundColor: getDoctorHexColor(d.color) }}
                                                             >
                                                                 {d.name.substring(0, 2)}
                                                             </div>
-                                                            <span className="text-xs font-bold text-green-800">{d.name}</span>
+                                                            <span className="text-xs font-bold text-text-base">{d.name}</span>
                                                         </div>
                                                     );
                                                 })}
@@ -454,20 +461,20 @@ const Dashboard: React.FC = () => {
                                         <>
                                             <div
                                                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mr-3 text-white flex-shrink-0"
-                                                style={{ backgroundColor: doc ? getDoctorHexColor(doc.color) : '#94a3b8' }}
+                                                style={{ backgroundColor: doc ? getDoctorHexColor(doc.color) : 'var(--color-muted-fg)' }}
                                             >
                                                 {doc ? doc.name.substring(0, 2) : '?'}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="text-sm font-bold text-slate-700 flex items-center truncate">
+                                                <div className="text-sm font-bold text-text-base flex items-center truncate">
                                                     {doc ? doc.name : 'Non assigné'}
                                                 </div>
-                                                <div className="text-xs text-slate-500">{s.type} {s.subType && `• ${s.subType}`}</div>
+                                                <div className="text-xs text-text-muted">{s.type} {s.subType && `• ${s.subType}`}</div>
                                             </div>
                                         </>
                                     )}
                                 </div>
-                                <div className="text-xs font-bold bg-white px-2 py-1 rounded border border-slate-200 text-slate-600 flex-shrink-0 ml-2">
+                                <div className="text-xs font-bold bg-surface px-2 py-1 rounded-btn-sm border border-border text-text-muted flex-shrink-0 ml-2">
                                     {s.location}
                                 </div>
                             </div>
@@ -478,23 +485,29 @@ const Dashboard: React.FC = () => {
         );
 
         return (
-            <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-6 h-full overflow-auto">
-                <div className="bg-white rounded-xl border border-slate-200 flex flex-col">
-                    <div className="p-2 md:p-3 bg-yellow-50 border-b border-yellow-100 text-yellow-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Matin
-                    </div>
-                    <div className="p-2 md:p-4 overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
+            <div className="flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4 h-full overflow-auto">
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center">
+                            <Clock className="w-3.5 h-3.5 mr-2 text-warning" aria-hidden="true" /> Matin
+                        </CardTitle>
+                        <Badge variant="amber">{morningSlots.length}</Badge>
+                    </CardHeader>
+                    <CardBody className="overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
                         {renderSlotList(morningSlots)}
-                    </div>
-                </div>
-                <div className="bg-white rounded-xl border border-slate-200 flex flex-col">
-                    <div className="p-2 md:p-3 bg-indigo-50 border-b border-indigo-100 text-indigo-800 font-bold uppercase text-[10px] md:text-xs tracking-wider flex items-center">
-                        <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" /> Après-midi
-                    </div>
-                    <div className="p-2 md:p-4 overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
+                    </CardBody>
+                </Card>
+                <Card className="flex flex-col">
+                    <CardHeader>
+                        <CardTitle className="flex items-center">
+                            <Clock className="w-3.5 h-3.5 mr-2 text-primary" aria-hidden="true" /> Après-midi
+                        </CardTitle>
+                        <Badge variant="blue">{afternoonSlots.length}</Badge>
+                    </CardHeader>
+                    <CardBody className="overflow-y-auto max-h-[250px] md:max-h-none md:flex-1">
                         {renderSlotList(afternoonSlots)}
-                    </div>
-                </div>
+                    </CardBody>
+                </Card>
             </div>
         )
     };
@@ -526,30 +539,30 @@ const Dashboard: React.FC = () => {
                         const rcps = daySlots.filter(s => s.type === SlotType.RCP);
 
                         return (
-                            <div key={day} className={`flex flex-col border rounded-lg overflow-hidden ${isToday ? 'ring-2 ring-blue-400 border-blue-400' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className={`text-[9px] md:text-xs font-bold text-center py-1 md:py-2 uppercase ${isToday ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'}`}>
+                            <div key={day} className={`flex flex-col border rounded-card overflow-hidden ${isToday ? 'ring-2 ring-primary border-primary' : 'bg-muted border-border'}`}>
+                                <div className={`text-[9px] md:text-xs font-bold text-center py-1 md:py-2 uppercase tracking-wider ${isToday ? 'bg-primary text-white' : 'bg-border/60 text-text-base'}`}>
                                     {day.substring(0, 3)} <span className="block text-[8px] md:text-[9px] font-normal opacity-80">{date.split('-').slice(1).reverse().join('/')}</span>
                                 </div>
-                                <div className="p-1 md:p-2 space-y-1 md:space-y-2 flex-1 bg-white">
+                                <div className="p-1 md:p-2 space-y-1 md:space-y-2 flex-1 bg-surface">
                                     {/* Key Roles Summary - Only show activities that have assignments */}
                                     {(docAstreinte || docUnity) && (
-                                        <div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">Clés</div>
+                                        <div className="text-[8px] md:text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5 md:mb-1">Clés</div>
                                     )}
 
                                     {astreinte?.assignedDoctorId && docAstreinte && (
-                                        <div className="flex items-center justify-between bg-red-50 p-1 md:p-1.5 rounded border border-red-200 border-l-4 border-l-red-500">
-                                            <span className="text-[8px] md:text-[9px] text-red-700 font-bold">Astr.</span>
-                                            <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
+                                        <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(220,78,58,0.10)', borderColor: 'rgba(220,78,58,0.25)', borderLeftColor: '#DC4E3A' }}>
+                                            <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#DC4E3A' }}>Astr.</span>
+                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
                                         </div>
                                     )}
                                     {unity?.assignedDoctorId && docUnity && (
-                                        <div className="flex items-center justify-between bg-orange-50 p-1 md:p-1.5 rounded border border-orange-200 border-l-4 border-l-orange-500">
-                                            <span className="text-[8px] md:text-[9px] text-orange-700 font-bold">UNITY</span>
-                                            <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
+                                        <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(109,40,217,0.10)', borderColor: 'rgba(109,40,217,0.25)', borderLeftColor: '#6D28D9' }}>
+                                            <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#6D28D9' }}>UNITY</span>
+                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
                                         </div>
                                     )}
 
-                                    {(docAstreinte || docUnity) && <div className="h-px bg-slate-100 my-1 md:my-2"></div>}
+                                    {(docAstreinte || docUnity) && <div className="h-px bg-border my-1 md:my-2"></div>}
 
                                     {/* Workflow if applicable */}
                                     {(() => {
@@ -561,18 +574,18 @@ const Dashboard: React.FC = () => {
                                         const docWorkflow = doctors.find(d => d.id === workflow?.assignedDoctorId);
                                         return workflow?.assignedDoctorId && docWorkflow ? (
                                             <>
-                                                <div className="flex items-center justify-between bg-emerald-50 p-1 md:p-1.5 rounded border border-emerald-200 border-l-4 border-l-emerald-500">
-                                                    <span className="text-[8px] md:text-[9px] text-emerald-700 font-bold">Wrkflw</span>
-                                                    <span className="text-[8px] md:text-[9px] text-slate-800 truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
+                                                <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(15,118,110,0.10)', borderColor: 'rgba(15,118,110,0.25)', borderLeftColor: '#0F766E' }}>
+                                                    <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#0F766E' }}>Wrkflw</span>
+                                                    <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
                                                 </div>
-                                                <div className="h-px bg-slate-100 my-1 md:my-2"></div>
+                                                <div className="h-px bg-border my-1 md:my-2"></div>
                                             </>
                                         ) : null;
                                     })()}
 
                                     {/* RCPs Summary */}
-                                    <div className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">RCPs</div>
-                                    {rcps.length === 0 ? <span className="text-[9px] text-slate-300 italic">Aucune</span> : (
+                                    <div className="text-[8px] md:text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5 md:mb-1">RCPs</div>
+                                    {rcps.length === 0 ? <span className="text-[9px] text-text-muted italic">Aucune</span> : (
                                         <div className="space-y-1">
                                             {rcps.map(rcp => {
                                                 if (rcp.isUnconfirmed) {
@@ -582,15 +595,15 @@ const Dashboard: React.FC = () => {
                                                         .filter(Boolean);
 
                                                     return (
-                                                        <div key={rcp.id} className="flex flex-col bg-yellow-50 p-1 rounded border border-yellow-100 border-l-4 border-l-yellow-500">
+                                                        <div key={rcp.id} className="flex flex-col bg-warning/10 p-1 rounded-btn-sm border border-warning/20 border-l-2 border-l-warning">
                                                             <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-[8px] text-purple-700 font-bold truncate max-w-[50px]">{rcp.location}</span>
-                                                                <span className="text-[8px] text-yellow-700 font-bold">⚠️ À confirmer</span>
+                                                                <span className="text-[8px] text-secondary font-bold truncate max-w-[50px]">{rcp.location}</span>
+                                                                <Badge variant="amber" className="text-[7px] px-1 py-0">A confirmer</Badge>
                                                             </div>
-                                                            <div className="text-[6px] text-slate-400 uppercase font-bold mb-0.5">Référents :</div>
+                                                            <div className="text-[6px] text-text-muted uppercase font-bold mb-0.5">Référents :</div>
                                                             <div className="flex flex-wrap gap-0.5">
                                                                 {referentNames.map(name => (
-                                                                    <span key={name} className="text-[7px] bg-white border border-slate-200 px-1 rounded text-slate-500 italic">
+                                                                    <span key={name} className="text-[7px] bg-surface border border-border px-1 rounded-btn-sm text-text-muted italic">
                                                                         {name}
                                                                     </span>
                                                                 ))}
@@ -606,17 +619,15 @@ const Dashboard: React.FC = () => {
                                                     .filter(Boolean);
 
                                                 return (
-                                                    <div key={rcp.id} className="flex flex-col bg-green-50 p-1 rounded border border-green-200 border-l-4 border-l-green-500">
+                                                    <div key={rcp.id} className="flex flex-col bg-success/10 p-1 rounded-btn-sm border border-success/20 border-l-2 border-l-success">
                                                         <div className="flex justify-between items-center mb-1">
-                                                            <span className="text-[8px] text-purple-700 font-bold truncate max-w-[50px]">{rcp.location}</span>
-                                                            <span className="text-[8px] text-green-600 font-bold flex items-center">
-                                                                <span className="mr-0.5">✓</span> Confirmée
-                                                            </span>
+                                                            <span className="text-[8px] text-secondary font-bold truncate max-w-[50px]">{rcp.location}</span>
+                                                            <Badge variant="green" className="text-[7px] px-1 py-0">Confirmee</Badge>
                                                         </div>
-                                                        <div className="text-[6px] text-green-600 uppercase font-bold mb-0.5">Présent(s) :</div>
+                                                        <div className="text-[6px] text-success uppercase font-bold mb-0.5">Present(s) :</div>
                                                         <div className="flex flex-wrap gap-0.5">
                                                             {confirmedDocs.map((doc) => (
-                                                                <span key={doc?.id} className="text-[7px] bg-white border border-green-300 px-1 rounded text-green-800 font-bold">
+                                                                <span key={doc?.id} className="text-[7px] bg-surface border border-border px-1 rounded-btn-sm text-text-base font-bold">
                                                                     {doc?.name}
                                                                 </span>
                                                             ))}
@@ -627,14 +638,14 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     )}
 
-                                    <div className="h-px bg-slate-100 my-2"></div>
+                                    <div className="h-px bg-border my-2"></div>
 
-                                    {/* Consult Activity Count - Blue for consultations (Box 1-3) */}
+                                    {/* Consult Activity Count */}
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] text-slate-500">Consultations</span>
-                                        <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 rounded border border-blue-200">
+                                        <span className="text-[10px] text-text-muted">Consultations</span>
+                                        <Badge variant="blue" className="text-[9px] px-1.5 py-0">
                                             {daySlots.filter(s => s.type === SlotType.CONSULTATION).length}
-                                        </span>
+                                        </Badge>
                                     </div>
 
                                 </div>
@@ -695,51 +706,48 @@ const Dashboard: React.FC = () => {
 
 
     return (
-        <div className="space-y-4 md:space-y-6 h-full flex flex-col">
-            {/* Header Controls */}
-            <div className="flex flex-col gap-3 bg-white p-3 md:p-4 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                            <button
-                                onClick={() => setViewMode('DAY')}
-                                className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'DAY' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <LayoutList className="w-4 h-4 md:mr-2" />
-                                <span className="hidden md:inline">Vue Jour</span>
-                            </button>
-                            <button
-                                onClick={() => setViewMode('WEEK')}
-                                className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-md transition-all ${viewMode === 'WEEK' ? 'bg-white shadow text-blue-700' : 'text-slate-500 hover:bg-slate-200'}`}
-                            >
-                                <LayoutGrid className="w-4 h-4 md:mr-2" />
-                                <span className="hidden md:inline">Vue Semaine</span>
-                            </button>
-                        </div>
-                        <div>
-                            <h1 className="text-sm md:text-xl font-bold text-slate-800 capitalize">
-                                {viewMode === 'DAY'
-                                    ? selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-                                    : `Semaine du ${currentWeekStart.toLocaleDateString('fr-FR')}`
-                                }
-                            </h1>
-                        </div>
+        <div className="space-y-5 lg:space-y-6">
+            {/* Page header */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-extrabold text-text-base tracking-tight leading-tight">
+                        Tableau de bord
+                    </h1>
+                    <p className="text-sm text-text-muted mt-0.5">Vue d'ensemble de la planification</p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex bg-muted p-1 rounded-btn-sm">
+                        <button
+                            onClick={() => setViewMode('DAY')}
+                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-btn-sm transition-all ${viewMode === 'DAY' ? 'bg-surface shadow-card text-primary' : 'text-text-muted hover:bg-border/60'}`}
+                        >
+                            <LayoutList className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Vue Jour</span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('WEEK')}
+                            className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-btn-sm transition-all ${viewMode === 'WEEK' ? 'bg-surface shadow-card text-primary' : 'text-text-muted hover:bg-border/60'}`}
+                        >
+                            <LayoutGrid className="w-4 h-4 md:mr-2" />
+                            <span className="hidden md:inline">Vue Semaine</span>
+                        </button>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                        <button onClick={() => handleTimeChange('prev')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => handleTimeChange('prev')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border transition-colors">
                             <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                         <div className="relative">
                             <input
                                 type="date"
-                                className="pl-7 md:pl-8 pr-2 py-1 md:py-1.5 border border-slate-300 rounded-md text-xs md:text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-32 md:w-auto"
+                                className="pl-7 md:pl-8 pr-2 py-1 md:py-1.5 border border-border rounded-btn-sm text-xs md:text-sm text-text-base bg-surface focus:outline-none focus:ring-2 focus:ring-primary w-32 md:w-auto"
                                 value={selectedDate.toISOString().split('T')[0]}
                                 onChange={handleDateChange}
                             />
-                            <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400 absolute left-2 md:left-2.5 top-2 md:top-2.5 pointer-events-none" />
+                            <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-text-muted absolute left-2 md:left-2.5 top-2 md:top-2.5 pointer-events-none" />
                         </div>
-                        <button onClick={() => handleTimeChange('next')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600 border border-slate-200">
+                        <button onClick={() => handleTimeChange('next')} className="p-1.5 md:p-2 hover:bg-muted rounded-full text-text-muted border border-border transition-colors">
                             <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                     </div>
@@ -747,55 +755,51 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Dynamic Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                 <StatCard
-                    title={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
+                    label={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
                     value={stats.presentDoctorsCount}
                     icon={Users}
-                    color="bg-blue-500"
-                    description={`Disponibles sur ${doctors.length} effectifs`}
+                    color="blue"
                 />
                 <StatCard
-                    title={viewMode === 'DAY' ? "Conflits (Jour)" : "Conflits (Semaine)"}
+                    label={viewMode === 'DAY' ? "Conflits (Jour)" : "Conflits (Semaine)"}
                     value={stats.conflictCount}
                     icon={AlertTriangle}
-                    color={stats.conflictCount > 0 ? "bg-red-500" : "bg-green-500"}
-                    description={stats.conflictCount > 0 ? "Action requise" : "Tout est calme"}
+                    color={stats.conflictCount > 0 ? "red" : "green"}
                 />
                 <StatCard
-                    title={viewMode === 'DAY' ? "Activités Prévues" : "Total Créneaux"}
+                    label={viewMode === 'DAY' ? "Activités Prévues" : "Total Créneaux"}
                     value={stats.totalActivities}
                     icon={Activity}
-                    color="bg-orange-500"
-                    description={viewMode === 'DAY' ? "Consultations & RCP" : "Charge globale"}
+                    color="violet"
                 />
                 <StatCard
-                    title="Taux de Remplissage"
+                    label="Taux de Remplissage"
                     value={`${stats.occupancy}%`}
                     icon={Clock}
-                    color="bg-purple-500"
-                    description="Créneaux assignés"
+                    color="amber"
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
                 {/* Left: Alerts, Absences & UNASSIGNED */}
-                <div className="lg:col-span-1 flex flex-col gap-3 md:gap-4 overflow-hidden max-h-[250px] md:max-h-[600px] overflow-y-auto">
+                <div className="lg:col-span-1 flex flex-col gap-3 lg:gap-4">
 
                     {/* ALERTES */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
-                        <div className="p-3 md:p-4 border-b border-slate-100 bg-red-50/50">
-                            <h2 className="font-bold text-slate-800 flex items-center justify-between text-sm md:text-base">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
                                 <span className="flex items-center">
-                                    <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+                                    <AlertTriangle className="w-4 h-4 mr-2 text-danger" />
                                     Alertes {viewMode === 'DAY' ? 'du jour' : 'de la semaine'}
                                 </span>
-                                <span className="text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">{stats.filteredConflicts.length}</span>
-                            </h2>
-                        </div>
-                        <div className="p-3 md:p-4 max-h-48 md:max-h-80 overflow-y-auto space-y-2 md:space-y-3">
+                            </CardTitle>
+                            <Badge variant={stats.filteredConflicts.length > 0 ? 'red' : 'gray'}>{stats.filteredConflicts.length}</Badge>
+                        </CardHeader>
+                        <CardBody className="max-h-48 md:max-h-80 overflow-y-auto space-y-2 md:space-y-3">
                             {stats.filteredConflicts.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-20 text-slate-400">
+                                <div className="flex flex-col items-center justify-center h-20 text-text-muted">
                                     <span className="text-sm">Aucun conflit détecté.</span>
                                 </div>
                             ) : (
@@ -812,231 +816,194 @@ const Dashboard: React.FC = () => {
                                         <div
                                             key={conflict.id}
                                             onClick={() => handleAlertClick(conflict)}
-                                            className="p-3 bg-white border border-red-100 rounded-lg shadow-sm hover:border-red-300 hover:shadow-md transition-all cursor-pointer relative group"
+                                            className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0 cursor-pointer group"
                                         >
-                                            <div className="flex justify-between items-start mb-1">
-                                                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase">
-                                                    {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : 'Indisponibilité'}
-                                                </span>
-                                                <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
-                                                    {slot?.date
-                                                        ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
-                                                        : slot?.day?.substring(0, 3)
-                                                    }
-                                                    {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'Après-midi'}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center mt-2">
-                                                <div
-                                                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold mr-2 text-white"
-                                                    style={{ backgroundColor: getDoctorHexColor(doc?.color) }}
-                                                >
-                                                    Dr
-                                                </div>
-                                                <p className="text-sm font-bold text-slate-700">{doc?.name || 'Inconnu'}</p>
-                                            </div>
-                                            <p className="text-xs text-slate-500 mt-1 pl-8">{conflict.description}</p>
-                                            {locationDetail && (
-                                                <div className="mt-2 pl-8">
-                                                    <span className="text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">
-                                                        {locationDetail}
+                                            <span className="w-2 h-2 rounded-full bg-danger mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                    <Badge variant="red">
+                                                        {conflict.type === 'DOUBLE_BOOKING' ? 'Double Réservation' : 'Indisponibilité'}
+                                                    </Badge>
+                                                    <span className="text-[10px] text-text-muted font-mono flex-shrink-0">
+                                                        {slot?.date
+                                                            ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+                                                            : slot?.day?.substring(0, 3)
+                                                        }
+                                                        {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'PM'}
                                                     </span>
                                                 </div>
-                                            )}
-
-                                            <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/5 rounded-lg transition-colors pointer-events-none" />
-                                            <div className="absolute right-2 bottom-2 text-xs text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Résoudre →
+                                                <p className="text-sm font-medium text-text-base leading-snug">{doc?.name || 'Inconnu'}</p>
+                                                <p className="text-xs text-text-muted mt-0.5">{conflict.description}</p>
+                                                {locationDetail && (
+                                                    <span className="inline-block mt-1 text-[10px] font-medium text-text-muted bg-muted px-2 py-0.5 rounded-btn-sm">
+                                                        {locationDetail}
+                                                    </span>
+                                                )}
+                                                <span className="block text-xs text-primary font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    Résoudre →
+                                                </span>
                                             </div>
                                         </div>
                                     );
                                 })
                             )}
-                        </div>
-                    </div>
+                        </CardBody>
+                    </Card>
 
-                    {/* RCPs ON HOLIDAYS ALERT */}
-                    {rcpsOnHolidays.length > 0 && (
-                        <div className="bg-white rounded-xl shadow-sm border border-orange-200 flex flex-col shrink-0">
-                            <div className="p-4 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-amber-50">
-                                <h2 className="font-bold text-slate-800 flex items-center justify-between">
+                    {/* RCPs ON HOLIDAYS ALERT — only shown to the referring (lead) doctor */}
+                    {rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>
                                     <span className="flex items-center">
-                                        <CalendarX2 className="w-5 h-5 mr-2 text-orange-500" />
+                                        <CalendarX2 className="w-4 h-4 mr-2 text-warning" />
                                         RCP sur Jour Férié
                                     </span>
-                                    <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold">
-                                        {rcpsOnHolidays.length}
-                                    </span>
-                                </h2>
-                                <p className="text-[10px] text-orange-600 mt-1">
+                                </CardTitle>
+                                <Badge variant="amber">{rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).length}</Badge>
+                            </CardHeader>
+                            <CardBody>
+                                <p className="text-[10px] text-warning-text mb-3">
                                     Ces RCP tombent sur un jour férié ({selectedDate.toLocaleDateString('fr-FR', { month: 'long' })} & {new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1).toLocaleDateString('fr-FR', { month: 'long' })}). Cliquez pour les déplacer.
                                 </p>
-                            </div>
-                            <div className="p-3 max-h-80 overflow-y-auto space-y-2">
-                                {rcpsOnHolidays.map(({ slot, holiday, weekStart }) => {
-                                    const allDoctorIds = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean);
-                                    const formattedDate = new Date(slot.date).toLocaleDateString('fr-FR', {
-                                        weekday: 'long',
-                                        day: 'numeric',
-                                        month: 'long',
-                                        year: 'numeric'
-                                    });
-                                    const isConfirmed = !slot.isUnconfirmed;
+                                <div className="max-h-80 overflow-y-auto space-y-2">
+                                    {rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).map(({ slot, holiday, weekStart }) => {
+                                        const allDoctorIds = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean);
+                                        const formattedDate = new Date(slot.date).toLocaleDateString('fr-FR', {
+                                            weekday: 'long',
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric'
+                                        });
+                                        const isConfirmed = !slot.isUnconfirmed;
 
-                                    return (
-                                        <div
-                                            key={slot.id}
-                                            onClick={() => setRcpExceptionSlot(slot)}
-                                            className="p-3 bg-gradient-to-r from-orange-50 to-white border border-orange-200 rounded-lg hover:border-orange-400 hover:shadow-md transition-all cursor-pointer relative group"
-                                        >
-                                            {/* Top row: Holiday badge + Status */}
-                                            <div className="flex justify-between items-start mb-2">
-                                                <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-200">
-                                                    ⚠️ {holiday.name}
-                                                </span>
-                                                {/* Status badge */}
-                                                {isConfirmed ? (
-                                                    <span className="text-[9px] font-bold text-green-700 bg-green-100 px-1.5 py-0.5 rounded border border-green-200">
-                                                        ✓ Confirmée
+                                        return (
+                                            <div
+                                                key={slot.id}
+                                                onClick={() => setRcpExceptionSlot(slot)}
+                                                className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0 cursor-pointer group"
+                                            >
+                                                <span className="w-2 h-2 rounded-full bg-warning mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex justify-between items-start gap-2 mb-1">
+                                                        <Badge variant="amber">{holiday.name}</Badge>
+                                                        {isConfirmed ? (
+                                                            <Badge variant="green">Confirmee</Badge>
+                                                        ) : (
+                                                            <Badge variant="amber">A confirmer</Badge>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm font-medium text-text-base leading-snug flex items-center gap-1.5">
+                                                        <MapPin className="w-3.5 h-3.5 text-secondary flex-shrink-0" aria-hidden="true" />
+                                                        {slot.location}
+                                                        <Badge variant="violet" className="text-[9px] px-1.5 py-0">RCP</Badge>
+                                                    </p>
+                                                    <p className="text-xs text-text-muted mt-0.5 capitalize">{formattedDate} a {slot.time || '--:--'}</p>
+                                                    <div className="flex flex-wrap gap-1 mt-1.5">
+                                                        {allDoctorIds.slice(0, 3).map(id => {
+                                                            const d = doctors.find(doc => doc.id === id);
+                                                            if (!d) return null;
+                                                            return (
+                                                                <div key={id} className="flex items-center bg-surface px-1.5 py-0.5 rounded-btn-sm border border-border">
+                                                                    <div
+                                                                        className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold mr-1 text-white"
+                                                                        style={{ backgroundColor: getDoctorHexColor(d.color) }}
+                                                                    >
+                                                                        {d.name.substring(0, 2)}
+                                                                    </div>
+                                                                    <span className="text-[9px] text-text-base">{d.name}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        {allDoctorIds.length > 3 && (
+                                                            <span className="text-[9px] text-text-muted">+{allDoctorIds.length - 3}</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="block text-xs text-warning-text font-bold mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Déplacer →
                                                     </span>
-                                                ) : (
-                                                    <span className="text-[9px] font-bold text-yellow-700 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-200">
-                                                        ⚠ À confirmer
-                                                    </span>
-                                                )}
+                                                </div>
                                             </div>
-
-                                            {/* RCP Name & Date */}
-                                            <div className="flex items-center mb-1">
-                                                <MapPin className="w-4 h-4 text-purple-500 mr-2" />
-                                                <span className="font-bold text-sm text-slate-800">{slot.location}</span>
-                                                <span className="ml-2 text-[9px] text-purple-600 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
-                                                    RCP
-                                                </span>
-                                            </div>
-
-                                            <div className="text-xs text-slate-600 mb-2 pl-6 capitalize">
-                                                📅 {formattedDate} à {slot.time || '--:--'}
-                                            </div>
-
-                                            {/* Doctors */}
-                                            <div className="flex flex-wrap gap-1 pl-6">
-                                                {allDoctorIds.slice(0, 3).map(id => {
-                                                    const d = doctors.find(doc => doc.id === id);
-                                                    if (!d) return null;
-                                                    return (
-                                                        <div
-                                                            key={id}
-                                                            className="flex items-center bg-white px-1.5 py-0.5 rounded border border-slate-200"
-                                                        >
-                                                            <div
-                                                                className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold mr-1 text-white"
-                                                                style={{ backgroundColor: getDoctorHexColor(d.color) }}
-                                                            >
-                                                                {d.name.substring(0, 2)}
-                                                            </div>
-                                                            <span className="text-[9px] text-slate-700">{d.name}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                                {allDoctorIds.length > 3 && (
-                                                    <span className="text-[9px] text-slate-400">+{allDoctorIds.length - 3}</span>
-                                                )}
-                                            </div>
-
-                                            {/* Hover action hint */}
-                                            <div className="absolute right-2 bottom-2 text-xs text-orange-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                Déplacer →
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                                        );
+                                    })}
+                                </div>
+                            </CardBody>
+                        </Card>
                     )}
 
                     {/* NON-POSTED DOCTORS */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
-                        <div className="p-3 border-b border-slate-100 bg-slate-50">
-                            <h2 className="font-bold text-slate-700 flex items-center text-sm">
-                                <UserMinus className="w-4 h-4 mr-2 text-slate-500" />
-                                Médecins Non Postés (Ce jour)
-                            </h2>
-                        </div>
-                        <div className="p-3 space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                <span className="flex items-center">
+                                    <UserMinus className="w-4 h-4 mr-2 text-text-muted" />
+                                    Médecins Non Postés (Ce jour)
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardBody className="space-y-4">
                             <div>
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Matin</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {unassignedDoctors[Period.MORNING].length === 0 ? <span className="text-xs text-slate-400 italic">Tous occupés</span> :
+                                <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Matin</h4>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {unassignedDoctors[Period.MORNING].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.MORNING].map(d => (
-                                            <div key={d.id} className={`text-[10px] px-2 py-1 rounded border bg-white text-slate-600 border-slate-200`}>
-                                                {d.name}
-                                            </div>
+                                            <Badge key={d.id} variant="gray">{d.name}</Badge>
                                         ))
                                     }
                                 </div>
                             </div>
                             <div>
-                                <h4 className="text-[10px] font-bold text-slate-400 uppercase mb-2">Après-Midi</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {unassignedDoctors[Period.AFTERNOON].length === 0 ? <span className="text-xs text-slate-400 italic">Tous occupés</span> :
+                                <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Après-Midi</h4>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {unassignedDoctors[Period.AFTERNOON].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.AFTERNOON].map(d => (
-                                            <div key={d.id} className={`text-[10px] px-2 py-1 rounded border bg-white text-slate-600 border-slate-200`}>
-                                                {d.name}
-                                            </div>
+                                            <Badge key={d.id} variant="gray">{d.name}</Badge>
                                         ))
                                     }
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </CardBody>
+                    </Card>
 
                     {/* ABSENCES */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col shrink-0">
-                        <div className="p-3 border-b border-slate-100 bg-slate-50">
-                            <h2 className="font-bold text-slate-700 flex items-center text-sm">
-                                <UserX className="w-4 h-4 mr-2 text-slate-500" />
-                                Médecins Absents
-                            </h2>
-                        </div>
-                        <div className="p-3 max-h-40 overflow-y-auto space-y-2">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>
+                                <span className="flex items-center">
+                                    <UserX className="w-4 h-4 mr-2 text-text-muted" />
+                                    Médecins Absents
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardBody className="max-h-40 overflow-y-auto">
                             {stats.absentees.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                                <div className="flex flex-col items-center justify-center h-full text-text-muted">
                                     <span className="text-xs">Tout le monde est présent.</span>
                                 </div>
                             ) : (
                                 stats.absentees.map(abs => {
                                     const doc = doctors.find(d => d.id === abs.doctorId);
                                     return (
-                                        <div key={abs.id} className="flex items-center justify-between p-2 bg-slate-50 rounded border border-slate-100">
-                                            <div className="flex items-center">
-                                                <div
-                                                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold mr-2 opacity-50 text-white"
-                                                    style={{ backgroundColor: getDoctorHexColor(doc?.color) }}
-                                                >
-                                                    Dr
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-bold text-slate-600">{doc?.name}</div>
-                                                    <div className="text-[10px] text-slate-400 uppercase font-bold flex items-center">
-                                                        {abs.reason}
-                                                        {abs.period && abs.period !== 'ALL_DAY' && (
-                                                            <span className="ml-1 text-[9px] bg-slate-100 text-slate-500 px-1 rounded uppercase">
-                                                                {abs.period === 'Matin' ? 'AM' : 'PM'}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                        <div key={abs.id} className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
+                                            <span className="w-2 h-2 rounded-full bg-warning mt-1.5 flex-shrink-0" aria-hidden="true" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-text-base leading-snug">{doc?.name}</p>
+                                                <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
+                                                    {abs.reason}
+                                                    {abs.period && abs.period !== 'ALL_DAY' && (
+                                                        <Badge variant="gray" className="text-[9px] px-1 py-0">{abs.period === 'Matin' ? 'AM' : 'PM'}</Badge>
+                                                    )}
+                                                </p>
                                             </div>
-                                            <div className="text-[10px] text-slate-500 bg-white px-2 py-1 rounded border">
+                                            <span className="text-[10px] text-text-muted bg-muted px-2 py-1 rounded-btn-sm border border-border flex-shrink-0">
                                                 {abs.startDate === abs.endDate ? abs.startDate : `Jusqu'au ${abs.endDate.split('-').slice(1).reverse().join('/')}`}
-                                            </div>
+                                            </span>
                                         </div>
                                     )
                                 })
                             )}
-                        </div>
-                    </div>
+                        </CardBody>
+                    </Card>
                 </div>
 
                 {/* Right: Main Content (Day or Week View) */}

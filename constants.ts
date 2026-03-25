@@ -12,7 +12,7 @@ export const INITIAL_DOCTORS: Doctor[] = [
   { id: 'd8', name: 'Dr CORAGGIO', specialty: ['OS', 'Hepato'], color: 'bg-orange-100 text-orange-800', excludedDays: [], excludedActivities: [], excludedSlotTypes: [] },
   { id: 'd9', name: 'Dr GRELLIER', specialty: ['Dermato', 'Pneumologie'], color: 'bg-teal-100 text-teal-800', excludedDays: [], excludedActivities: [], excludedSlotTypes: [] },
   { id: 'd10', name: 'Dr DEBBI', specialty: ['Dermato', 'Oncologie'], color: 'bg-cyan-100 text-cyan-800', excludedDays: [], excludedActivities: [], excludedSlotTypes: [] },
-  { id: 'd11', name: 'Dr LASAR', specialty: ['OS', 'Digestif'], color: 'bg-gray-100 text-gray-800', excludedDays: [], excludedActivities: [], excludedSlotTypes: [] },
+  { id: 'd11', name: 'Dr LASAR', specialty: ['OS', 'Digestif'], color: 'bg-muted text-text-base', excludedDays: [], excludedActivities: [], excludedSlotTypes: [] },
 ];
 
 export const INITIAL_ACTIVITIES: ActivityDefinition[] = [

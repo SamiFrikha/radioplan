@@ -77,7 +77,7 @@ export const DoctorBadge: React.FC<DoctorBadgeProps> = ({
 
     const sizeClasses = {
         sm: 'w-5 h-5 text-[8px]',
-        md: 'w-7 h-7 text-[10px]',
+        md: 'w-6 h-6 text-[10px]',
         lg: 'w-9 h-9 text-xs'
     };
 
@@ -89,14 +89,15 @@ export const DoctorBadge: React.FC<DoctorBadgeProps> = ({
 
     return (
         <div className={`flex items-center gap-1.5 ${className}`}>
-            <div
-                className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-bold text-white shadow-sm flex-shrink-0`}
-                style={{ backgroundColor: hexColor }}
+            <span
+                className={`${sizeClasses[size]} inline-flex items-center justify-center rounded-full gradient-primary text-white font-bold font-heading shadow-sm flex-shrink-0 select-none`}
+                aria-label={`Dr ${doctor.name}`}
+                title={`Dr ${doctor.name}`}
             >
                 {doctor.name.substring(0, 2)}
-            </div>
+            </span>
             {showName && (
-                <span className={`${textSizeClasses[size]} font-semibold text-slate-700 truncate`}>
+                <span className={`${textSizeClasses[size]} font-semibold text-text-base truncate`}>
                     {showDrPrefix ? '' : 'Dr '}{doctor.name}
                 </span>
             )}
@@ -141,7 +142,7 @@ export const DoctorBadgeList: React.FC<DoctorBadgeListProps> = ({
                 );
             })}
             {remaining > 0 && (
-                <span className="text-xs text-slate-400 italic">+{remaining} autres</span>
+                <span className="text-xs text-text-muted italic">+{remaining} autres</span>
             )}
         </div>
     );

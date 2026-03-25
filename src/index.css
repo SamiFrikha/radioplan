@@ -1,3 +1,102 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-primary:    #4F46E5;
+  --color-secondary:  #7C3AED;
+  --color-success:    #10B981;
+  --color-warning:    #F59E0B;
+  --color-danger:     #DC2626;
+  --color-bg:         #F8FAFC;
+  --color-surface:    #FFFFFF;
+  --color-border:     #E2E8F0;
+  --color-text:       #0F172A;
+  --color-muted-fg:   #64748B;
+  /* Slot-type semantic tokens — Option C clinical palette */
+  --color-slot-consult:     #3B6FD4;
+  --color-slot-rcp-pending: #D97706;
+  --color-slot-rcp-done:    #059669;
+  --header-height:    56px;
+  --bottom-nav-height: 64px;
+  --gradient-primary: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+}
+
+@layer base {
+  body {
+    @apply bg-app-bg text-text-base font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  *:focus-visible {
+    outline: 2px solid #4F46E5;
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .press-scale {
+    transition: transform 150ms ease-out;
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #EEF2FF 25%, #E0E7FF 50%, #EEF2FF 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+/* Skeleton shimmer — Indigo tint */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Scrollbar — Indigo branded */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #F8FAFC; }
+::-webkit-scrollbar-thumb { background: #C7D2FE; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #4F46E5; }
+
+/* Floating label input */
+.float-label-wrapper { @apply relative; }
+.float-label-input {
+  @apply w-full h-14 px-4 pt-5 pb-1 rounded-input border border-border bg-surface
+         text-text-base text-sm focus:outline-none focus:border-primary
+         transition-colors duration-150;
+}
+.float-label-text {
+  @apply absolute left-4 text-text-muted pointer-events-none transition-all duration-150;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+}
+.float-label-input:focus ~ .float-label-text,
+.float-label-input:not(:placeholder-shown) ~ .float-label-text {
+  top: 0.5rem;
+  transform: translateY(0);
+  font-size: 0.65rem;
+  @apply text-primary font-semibold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; background: #EEF2FF; }
+  .press-scale { transition: none; }
+  .press-scale:active { transform: none; }
+  .float-label-text { transition: none; }
+  .float-label-input { transition: none; }
+}
+
+@media print {
+  .print\:hidden { display: none !important; }
+}

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { Button } from '../src/components/ui';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
     const { signInWithPassword } = useAuth();
 
@@ -29,58 +31,85 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-            <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-800 mb-2">RadioPlan AI</h1>
-                    <p className="text-slate-500">Connectez-vous pour accéder au planning</p>
+        <div
+            className="min-h-dvh bg-app-bg flex items-center justify-center p-4"
+            style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+            <div className="w-full max-w-[420px] bg-surface rounded-card shadow-modal border border-border/40 overflow-hidden">
+                {/* Brand gradient stripe */}
+                <div className="h-1.5 w-full bg-gradient-primary" aria-hidden="true" />
+
+                {/* Card content */}
+                <div className="px-8 pt-7 pb-8">
+                    {/* Logo / brand area */}
+                    <div className="mb-8">
+                        <h1 className="text-2xl font-extrabold text-gradient-primary tracking-tight">RadioPlan AI</h1>
+                        <p className="text-sm text-text-muted mt-1">Planification oncologie — Connexion</p>
+                    </div>
+
+                    {/* Form */}
+                    <form onSubmit={handleLogin}>
+                        <div className="space-y-4">
+                            {/* Email — floating label */}
+                            <div className="float-label-wrapper">
+                                <input
+                                    type="email"
+                                    id="email"
+                                    placeholder=" "
+                                    className="float-label-input"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    autoComplete="email"
+                                    required
+                                />
+                                <label htmlFor="email" className="float-label-text">Adresse e-mail</label>
+                            </div>
+
+                            {/* Password — floating label with toggle */}
+                            <div className="float-label-wrapper">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    placeholder=" "
+                                    className="float-label-input pr-12"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    autoComplete="current-password"
+                                    required
+                                />
+                                <label htmlFor="password" className="float-label-text">Mot de passe</label>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-text-muted hover:text-text-base transition-colors"
+                                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Error alert */}
+                        {error && (
+                            <div
+                                className="mt-4 px-4 py-3 rounded-btn-sm bg-danger/5 border border-danger/20 text-sm text-danger font-medium"
+                                role="alert"
+                            >
+                                {error}
+                            </div>
+                        )}
+
+                        {/* Submit */}
+                        <Button variant="primary" size="lg" loading={loading} className="w-full mt-6" type="submit">
+                            Se connecter
+                        </Button>
+
+                        {/* Footer note */}
+                        <p className="text-center text-xs text-text-muted mt-6">
+                            Accès réservé au personnel autorisé
+                        </p>
+                    </form>
                 </div>
-
-                {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleLogin} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="votre@email.com"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                                placeholder="••••••••"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? 'Connexion...' : 'Se connecter'}
-                    </button>
-                </form>
             </div>
         </div>
     );

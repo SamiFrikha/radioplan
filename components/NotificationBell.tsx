@@ -2,6 +2,7 @@
 import React, { useContext, useState } from 'react';
 import { Bell, CheckCheck, ArrowRight, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Drawer } from 'vaul';
 import { useNotifications } from '../context/NotificationContext';
 import { supabase } from '../services/supabaseClient';
 import { AppNotification } from '../types';
@@ -136,7 +137,7 @@ const ReplacementActions: React.FC<{
   if (confirmed) {
     return (
       <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${
-        confirmed === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        confirmed === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-danger/10 text-danger'
       }`}>
         {confirmed === 'ACCEPTED' ? '✅ Vous avez accepté' : '❌ Vous avez refusé'}
       </div>
@@ -150,7 +151,7 @@ const ReplacementActions: React.FC<{
         Accepter
       </button>
       <button onClick={() => handle('REJECTED')} disabled={loading}
-        className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full hover:bg-red-200 disabled:opacity-50 font-medium">
+        className="text-xs bg-danger/10 text-danger px-3 py-1 rounded-full hover:bg-danger/20 disabled:opacity-50 font-medium">
         Refuser
       </button>
     </div>
@@ -171,20 +172,20 @@ const NotificationItem: React.FC<{
   return (
     <div
       onClick={onRead}
-      className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors
-        ${!notification.read ? 'bg-blue-50' : ''}`}
+      className={`px-4 py-3 hover:bg-muted cursor-pointer transition-colors
+        ${!notification.read ? 'bg-primary/5' : ''}`}
     >
       <div className="flex items-start gap-2">
         <span className="text-lg mt-0.5 shrink-0">{icon}</span>
         <div className="flex-1 min-w-0">
-          <p className={`text-sm ${!notification.read ? 'font-semibold text-gray-800' : 'text-gray-700'}`}>
+          <p className={`text-sm ${!notification.read ? 'font-semibold text-text-base' : 'text-text-base'}`}>
             {notification.title}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.body}</p>
-          <p className="text-xs text-gray-400 mt-1">{date}</p>
+          <p className="text-xs text-text-muted mt-0.5 line-clamp-2">{notification.body}</p>
+          <p className="text-xs text-text-muted mt-1">{date}</p>
           {notification.type === 'REPLACEMENT_REQUEST' && requestId && (
             notification.data?.resolution ? (
-              <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${notification.data.resolution === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <div className={`mt-2 text-xs px-3 py-1.5 rounded-lg font-medium inline-flex items-center gap-1 ${notification.data.resolution === 'ACCEPTED' ? 'bg-green-100 text-green-700' : 'bg-danger/10 text-danger'}`}>
                 {notification.data.resolution === 'ACCEPTED' ? '✅ Vous avez accepté' : '❌ Vous avez refusé'}
               </div>
             ) : (
@@ -193,7 +194,7 @@ const NotificationItem: React.FC<{
           )}
         </div>
         {!notification.read && (
-          <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 shrink-0" />
+          <span className="w-2 h-2 bg-primary rounded-full mt-1.5 shrink-0" />
         )}
       </div>
     </div>
@@ -203,12 +204,12 @@ const NotificationItem: React.FC<{
 // Main Bell component
 const NotificationBell: React.FC = () => {
   const { notifications, unreadCount, markRead, markAllRead, clearAll, loading } = useNotifications();
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
   const navigate = useNavigate();
 
   const handleSeeAll = () => {
-    setOpen(false);
+    setIsOpen(false);
     navigate('/profile');
   };
 
@@ -218,66 +219,77 @@ const NotificationBell: React.FC = () => {
   };
 
   return (
-    <div className="relative">
+    <>
       <button
-        onClick={() => setOpen(o => !o)}
-        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
+        className="w-9 h-9 rounded-btn-sm bg-primary/10 hover:bg-primary/15 text-primary flex items-center justify-center relative press-scale transition-colors"
         aria-label="Notifications"
+        onClick={() => setIsOpen(v => !v)}
       >
-        <Bell size={20} className="text-gray-600" />
+        <Bell className="w-5 h-5 text-primary" aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full
-                           min-w-[18px] h-[18px] flex items-center justify-center px-1 leading-none font-medium">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-danger border-2 border-surface" aria-hidden="true" />
         )}
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-11 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b bg-gray-50">
-              <span className="font-semibold text-sm text-gray-700">
-                Notifications {unreadCount > 0 && `(${unreadCount})`}
-              </span>
+      <Drawer.Root open={isOpen} onOpenChange={setIsOpen} dismissible>
+        <Drawer.Portal>
+          <Drawer.Overlay className="fixed inset-0 bg-black/40 z-modal" />
+          <Drawer.Content
+            className="fixed bottom-0 left-0 right-0 z-modal bg-surface rounded-t-2xl
+                       border-t border-border outline-none overflow-hidden
+                       md:left-auto md:right-4 md:bottom-14 md:top-auto md:w-80 md:rounded-card md:border"
+            data-vaul-custom-container="true"
+          >
+            {/* Drag handle — mobile only */}
+            <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-2 md:hidden" aria-hidden="true" />
+
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <h2 className="font-heading font-semibold text-sm text-text-base">Notifications</h2>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead}
-                    className="text-xs text-blue-600 hover:underline flex items-center gap-1">
-                    <CheckCheck size={12} /> Tout lu
-                  </button>
+                  <>
+                    <span className="text-[11px] font-medium text-text-muted">{unreadCount} non lue(s)</span>
+                    <button onClick={markAllRead}
+                      className="text-xs text-primary hover:underline flex items-center gap-1">
+                      <CheckCheck size={12} /> Tout lu
+                    </button>
+                  </>
                 )}
                 {notifications.length > 0 && (
                   <button onClick={handleClearAll} disabled={clearing}
-                    className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 disabled:opacity-50">
+                    className="text-xs text-danger hover:opacity-80 flex items-center gap-1 disabled:opacity-50">
                     <Trash2 size={12} /> Vider
                   </button>
                 )}
               </div>
             </div>
-            <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
+
+            {/* Notification list */}
+            <div className="overflow-y-auto max-h-[50vh] md:max-h-80 divide-y divide-border">
               {loading && (
-                <p className="text-center py-8 text-gray-400 text-sm">Chargement...</p>
+                <p className="text-center py-8 text-text-muted text-sm">Chargement...</p>
               )}
               {!loading && notifications.length === 0 && (
-                <p className="text-center py-8 text-gray-400 text-sm">Aucune notification</p>
+                <p className="text-center py-8 text-text-muted text-sm">Aucune notification</p>
               )}
               {notifications.slice(0, 5).map(n => (
                 <NotificationItem key={n.id} notification={n} onRead={() => markRead(n.id)} />
               ))}
             </div>
+
+            {/* Footer */}
             <button
               onClick={handleSeeAll}
-              className="w-full flex items-center justify-center gap-1.5 py-3 text-sm text-blue-600 font-medium hover:bg-blue-50 transition-colors border-t border-gray-100"
+              className="w-full flex items-center justify-center gap-1.5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-sm text-primary font-medium hover:bg-primary/5 transition-colors border-t border-border"
             >
               Voir toutes les notifications
               <ArrowRight size={14} />
             </button>
-          </div>
-        </>
-      )}
-    </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
+    </>
   );
 };
 

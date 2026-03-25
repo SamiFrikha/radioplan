@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { getDoctorHexColor } from '../components/DoctorBadge';
 import { useAuth } from '../context/AuthContext';
+import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
 
 const Planning: React.FC = () => {
     const {
@@ -312,19 +313,19 @@ const Planning: React.FC = () => {
 
         if (holiday) {
             return (
-                <div className="h-full w-full bg-pink-50 flex items-center justify-center border-l-4 border-pink-200 flex-col opacity-80">
-                    <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider">Férié</span>
-                    <span className="text-[9px] text-pink-300">{holiday.name}</span>
+                <div className="h-full w-full bg-danger/5 flex items-center justify-center border-l-4 border-danger/20 flex-col opacity-80">
+                    <span className="text-[10px] text-danger/60 font-bold uppercase tracking-wider">Férié</span>
+                    <span className="text-[9px] text-danger/40">{holiday.name}</span>
                 </div>
-            )
+            );
         }
 
         if (day === DayOfWeek.MONDAY && period === Period.MORNING && location.startsWith('Box')) {
             return (
-                <div className="h-full w-full bg-gray-100 flex items-center justify-center border-l-4 border-gray-300">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Fermé</span>
+                <div className="h-full w-full bg-muted flex items-center justify-center border-l-4 border-border">
+                    <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Fermé</span>
                 </div>
-            )
+            );
         }
 
         const slot = schedule.find(s =>
@@ -336,20 +337,20 @@ const Planning: React.FC = () => {
         // For activity slots in non-validated weeks: show empty non-clickable cell
         if (slot && slot.type === SlotType.ACTIVITY && !isCurrentWeekValidated) {
             return (
-                <div className="h-full w-full bg-slate-50/50 min-h-[60px] flex items-center justify-center cursor-default">
-                    <span className="text-[10px] text-slate-300 italic">—</span>
+                <div className="h-full w-full bg-muted/50 min-h-[60px] flex items-center justify-center cursor-default">
+                    <span className="text-[10px] text-text-muted italic">—</span>
                 </div>
             );
         }
 
-        if (!slot) return <div className="h-full w-full bg-slate-50 min-h-[60px] flex items-center justify-center text-[10px] text-slate-300 border-l border-slate-100">--</div>;
+        if (!slot) return <div className="h-full w-full bg-muted min-h-[60px] flex items-center justify-center text-[10px] text-text-muted border-l border-border">--</div>;
 
         if (slot.isClosed) {
             const canClick = canInteractWithSlot(slot);
             return (
                 <div
-                    className={`relative h-full w-full bg-gray-100 border-l-4 border-gray-300 min-h-[60px] flex flex-col items-center justify-center opacity-80 ${canClick ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
-                    style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #e5e7eb 10px, #e5e7eb 20px)' }}
+                    className={`relative h-full w-full bg-muted border-l-4 border-border min-h-[60px] flex flex-col items-center justify-center opacity-80 ${canClick ? 'cursor-pointer hover:opacity-100' : 'cursor-default'}`}
+                    style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, var(--color-border) 10px, var(--color-border) 20px)' }}
                     onClick={() => {
                         if (canClick) {
                             setSelectedSlotId(slot.id);
@@ -360,8 +361,8 @@ const Planning: React.FC = () => {
                     }}
                 >
                     <div className="bg-white/80 p-1 rounded shadow-sm flex items-center">
-                        <Ban className="w-4 h-4 text-gray-500 mr-1" />
-                        <span className="text-[10px] font-bold text-gray-600 uppercase">Fermé</span>
+                        <Ban className="w-4 h-4 text-text-muted mr-1" />
+                        <span className="text-[10px] font-bold text-text-muted uppercase">Fermé</span>
                     </div>
                 </div>
             )
@@ -377,9 +378,10 @@ const Planning: React.FC = () => {
         let baseClasses = `relative h-full w-full p-2 border-l-4 flex flex-col justify-center transition-all ${canClick ? 'cursor-pointer hover:brightness-95' : 'cursor-default'}`;
         let bgClass = "";
         let borderClass = "";
+        let slotInlineStyle: React.CSSProperties = {};
 
         if (doc) {
-            bgClass = "bg-white";
+            bgClass = "bg-surface";
             if (doc.color.includes('blue')) borderClass = "border-blue-500";
             else if (doc.color.includes('green')) borderClass = "border-green-500";
             else if (doc.color.includes('red')) borderClass = "border-red-500";
@@ -388,29 +390,50 @@ const Planning: React.FC = () => {
             else if (doc.color.includes('indigo')) borderClass = "border-indigo-500";
             else if (doc.color.includes('pink')) borderClass = "border-pink-500";
             else if (doc.color.includes('orange')) borderClass = "border-orange-500";
-            else borderClass = "border-slate-400";
+            else borderClass = "border-border";
         } else {
-            bgClass = "bg-slate-50";
-            borderClass = "border-slate-300";
+            bgClass = "bg-muted";
+            borderClass = "border-border";
         }
 
         if (colorMode === 'ACTIVITY') {
             if (slot.type === SlotType.ACTIVITY) {
                 const def = activityDefinitions.find(a => a.id === slot.activityId);
                 if (def) {
-                    const colorParts = def.color.split(' ');
-                    bgClass = colorParts.find(c => c.startsWith('bg-')) || 'bg-gray-100';
-                    borderClass = "border-transparent";
+                    const name = (slot.subType || def.name || '').toLowerCase();
+                    let actHex: string;
+                    if (name.includes('astreinte')) actHex = '#DC4E3A';
+                    else if (name.includes('workflow')) actHex = '#0F766E';
+                    else if (name.includes('unity')) actHex = '#6D28D9';
+                    else actHex = getDoctorHexColor(def.color) || '#F59E0B';
+                    bgClass = '';
+                    borderClass = '';
+                    slotInlineStyle = {
+                        backgroundColor: actHex + '26', // ~15% opacity
+                        borderLeftColor: actHex,
+                    };
                 }
             } else if (slot.type === SlotType.RCP) {
-                bgClass = "bg-purple-100";
-                borderClass = "border-purple-500";
+                bgClass = '';
+                borderClass = '';
+                slotInlineStyle = {
+                    backgroundColor: 'rgba(124,58,237,0.10)',
+                    borderLeftColor: '#7C3AED',
+                };
+            } else if (slot.type === SlotType.CONSULTATION) {
+                bgClass = '';
+                borderClass = '';
+                slotInlineStyle = {
+                    backgroundColor: 'rgba(59,111,212,0.08)',
+                    borderLeftColor: '#3B6FD4',
+                };
             }
         }
 
         if (conflict) {
-            bgClass = "bg-red-50";
-            borderClass = "border-red-500";
+            bgClass = "bg-danger/10";
+            borderClass = "border-danger";
+            slotInlineStyle = {};
         }
 
         // Handle click based on access control
@@ -426,17 +449,18 @@ const Planning: React.FC = () => {
         return (
             <div
                 className={`${baseClasses} ${bgClass} ${borderClass}`}
+                style={slotInlineStyle}
                 onClick={handleSlotClick}
             >
                 {conflict && (
-                    <div className="absolute top-1 right-1 text-red-500 animate-pulse">
+                    <div className="absolute top-1 right-1 text-danger animate-pulse">
                         <AlertCircle className="w-4 h-4" />
                     </div>
                 )}
 
                 {/* Show lock icon for non-editable slots (for doctors) */}
                 {!canClick && !isAdmin && (
-                    <div className="absolute top-1 left-1 text-slate-300">
+                    <div className="absolute top-1 left-1 text-text-muted">
                         <Lock className="w-3 h-3" />
                     </div>
                 )}
@@ -450,16 +474,16 @@ const Planning: React.FC = () => {
                             >
                                 {doc.name.substring(0, 2)}
                             </div>
-                            <div className="font-bold text-[10px] md:text-sm text-slate-800 leading-tight break-words">{doc.name}</div>
+                            <div className="font-bold text-[10px] md:text-sm text-text-base leading-tight break-words">{doc.name}</div>
                         </div>
 
                         {secondaryDocs && secondaryDocs.length > 0 && (
-                            <div className="text-xs text-slate-500 mt-1 pl-7">
+                            <div className="text-xs text-text-muted mt-1 pl-7">
                                 + {secondaryDocs.map(d => d?.name).join(', ')}
                             </div>
                         )}
                         {slot.type === SlotType.ACTIVITY && colorMode === 'DOCTOR' && (
-                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 ml-7">
+                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-warning/10 text-warning-text ml-7">
                                 {slot.subType}
                             </span>
                         )}
@@ -469,8 +493,8 @@ const Planning: React.FC = () => {
                     </>
                 ) : (
                     <div className="text-center">
-                        <span className="text-xs text-slate-400 italic">Non assigné</span>
-                        {conflict && <div className="text-[10px] text-red-500 font-bold mt-1">Absent</div>}
+                        <span className="text-xs text-text-muted italic">Non assigné</span>
+                        {conflict && <div className="text-[10px] text-danger font-bold mt-1">Absent</div>}
                     </div>
                 )}
             </div>
@@ -487,31 +511,31 @@ const Planning: React.FC = () => {
 
         const isHoliday = isFrenchHoliday(date);
         if (isHoliday && slots.length === 0) {
-            return <div className="bg-pink-50 h-full text-[10px] text-pink-300 flex items-center justify-center">Férié</div>
+            return <div className="bg-danger/5 h-full text-[10px] text-danger/40 flex items-center justify-center">Férié</div>;
         }
 
-        if (slots.length === 0) return <div className="bg-slate-50 h-full"></div>;
+        if (slots.length === 0) return <div className="bg-muted h-full"></div>;
 
         return (
             <div className="flex flex-col gap-1 p-1">
                 {slots.map(s => {
-                    let badgeColor = "bg-white border-slate-200 text-slate-700";
+                    let variant: 'gray' | 'blue' | 'amber' = 'gray';
                     if (colorMode === 'ACTIVITY') {
-                        if (s.type === SlotType.RCP) badgeColor = "bg-purple-100 border-purple-200 text-purple-800";
-                        if (s.type === SlotType.ACTIVITY) badgeColor = "bg-orange-100 border-orange-200 text-orange-800";
+                        if (s.type === SlotType.RCP) variant = 'blue';
+                        if (s.type === SlotType.ACTIVITY) variant = 'amber';
                     }
 
                     return (
-                        <div key={s.id} className={`text-[10px] px-1 py-0.5 rounded border shadow-sm truncate ${badgeColor}`}>
+                        <Badge key={s.id} variant={variant} className="text-[10px] px-1 py-0.5 truncate">
                             <span className="font-bold mr-1">
                                 {s.type === SlotType.CONSULTATION ? 'CS' : s.type === SlotType.RCP ? 'RCP' : 'ACT'}
                             </span>
                             {s.location}
-                        </div>
-                    )
+                        </Badge>
+                    );
                 })}
             </div>
-        )
+        );
     };
 
     const selectedSlot = schedule.find(s => s.id === selectedSlotId);
@@ -519,141 +543,152 @@ const Planning: React.FC = () => {
     const rowHeightClass = density === 'COMPACT' ? 'h-20' : 'h-28';
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col gap-4">
             {/* Access Denied Toast */}
             {accessDeniedMessage && (
-                <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="bg-orange-50 border border-orange-200 text-orange-800 px-4 py-3 rounded-lg shadow-lg flex items-center">
-                        <ShieldAlert className="w-5 h-5 mr-2 text-orange-600" />
+                <div className="fixed top-4 right-4 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="bg-warning/10 border border-warning/30 text-warning-text px-4 py-3 rounded-lg shadow-lg flex items-center">
+                        <ShieldAlert className="w-5 h-5 mr-2 text-warning-text" />
                         <span className="font-medium text-sm">{accessDeniedMessage}</span>
                     </div>
                 </div>
             )}
 
-            {/* Header controls */}
-            <div className="flex flex-col gap-3 mb-4 md:mb-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                        <h1 className="text-lg md:text-2xl font-bold text-slate-800 flex items-center">
-                            Planning Hebdomadaire
-                        </h1>
-                        <p className="text-xs md:text-sm text-slate-500 mt-1 hidden sm:block">Généré automatiquement selon les règles de configuration</p>
-                    </div>
+            {/* Page header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                    <h1 className="font-heading font-extrabold text-2xl text-text-base">Planning Global</h1>
+                    <p className="text-xs text-text-muted mt-0.5 hidden sm:block">Généré automatiquement selon les règles de configuration</p>
+                </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto items-center">
-
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowSettings(!showSettings)}
-                                className={`p-2 rounded-lg border flex items-center text-sm font-medium transition-colors ${showSettings ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                            >
-                                <Settings className="w-4 h-4 mr-2" />
-                                Affichage
-                            </button>
-
-                            {showSettings && (
-                                <div className="absolute top-full mt-2 right-0 w-64 bg-white rounded-xl shadow-xl border border-slate-200 p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
-                                    <div className="mb-4">
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
-                                            <LayoutGrid className="w-3 h-3 mr-1" /> Mode de Vue
-                                        </h4>
-                                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                                            <button
-                                                onClick={() => setViewMode('ROOM')}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'ROOM' ? 'bg-white shadow text-blue-700' : 'text-slate-500'}`}
-                                            >
-                                                Par Poste
-                                            </button>
-                                            <button
-                                                onClick={() => setViewMode('DOCTOR')}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'DOCTOR' ? 'bg-white shadow text-blue-700' : 'text-slate-500'}`}
-                                            >
-                                                Par Médecin
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="mb-4">
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
-                                            <Palette className="w-3 h-3 mr-1" /> Couleurs
-                                        </h4>
-                                        <div className="space-y-2">
-                                            <button
-                                                onClick={() => setColorMode('DOCTOR')}
-                                                className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                            >
-                                                <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
-                                                Par Médecin
-                                            </button>
-                                            <button
-                                                onClick={() => setColorMode('ACTIVITY')}
-                                                className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                            >
-                                                <div className="w-3 h-3 rounded-full bg-orange-400 mr-2"></div>
-                                                Par Activité
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h4 className="text-xs font-bold text-slate-400 uppercase mb-2 flex items-center">
-                                            <Eye className="w-3 h-3 mr-1" /> Densité
-                                        </h4>
-                                        <div className="flex bg-slate-100 p-1 rounded-lg">
-                                            <button
-                                                onClick={() => setDensity('COMPACT')}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMPACT' ? 'bg-white shadow text-slate-700' : 'text-slate-500'}`}
-                                            >
-                                                Compact
-                                            </button>
-                                            <button
-                                                onClick={() => setDensity('COMFORTABLE')}
-                                                className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMFORTABLE' ? 'bg-white shadow text-slate-700' : 'text-slate-500'}`}
-                                            >
-                                                Aéré
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex items-center space-x-2 bg-white p-1.5 md:p-2 rounded-lg shadow-sm border border-slate-200">
-                            <button onClick={() => handleWeekChange('prev')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600">
-                                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
-                            </button>
-
-                            <input
-                                type="date"
-                                className="border-none text-slate-700 font-medium text-xs md:text-sm focus:ring-0 bg-transparent w-28 md:w-32"
-                                value={currentWeekStart.toISOString().split('T')[0]}
-                                onChange={handleDateChange}
-                            />
-
-                            <button onClick={() => handleWeekChange('next')} className="p-1.5 md:p-2 hover:bg-slate-100 rounded-full text-slate-600">
-                                <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-                            </button>
-                        </div>
-
+                <div className="flex flex-wrap gap-2 items-center">
+                    {/* Settings dropdown */}
+                    <div className="relative">
                         <button
-                            onClick={handleDownloadPDF}
-                            disabled={isGeneratingPdf}
-                            className="bg-slate-800 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-slate-700 flex items-center text-xs md:text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-wait"
+                            onClick={() => setShowSettings(!showSettings)}
+                            className={`p-2 rounded-btn border flex items-center text-sm font-medium transition-colors ${showSettings ? 'bg-primary/10 border-primary/30 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
                         >
-                            {isGeneratingPdf ? <Loader2 className="w-4 h-4 md:mr-2 animate-spin" /> : <Printer className="w-4 h-4 md:mr-2" />}
-                            <span className="hidden md:inline">{isGeneratingPdf ? 'Génération...' : 'Télécharger PDF'}</span>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Affichage
                         </button>
 
+                        {showSettings && (
+                            <div className="absolute top-full mt-2 right-0 w-64 bg-surface rounded-card shadow-modal border border-border p-4 z-[50] animate-in fade-in zoom-in-95 duration-150">
+                                <div className="mb-4">
+                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
+                                        <LayoutGrid className="w-3 h-3 mr-1" /> Mode de Vue
+                                    </h4>
+                                    <div className="flex bg-muted p-1 rounded-btn">
+                                        <button
+                                            onClick={() => setViewMode('ROOM')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'ROOM' ? 'bg-surface shadow text-primary' : 'text-text-muted'}`}
+                                        >
+                                            Par Poste
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('DOCTOR')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'DOCTOR' ? 'bg-surface shadow text-primary' : 'text-text-muted'}`}
+                                        >
+                                            Par Médecin
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mb-4">
+                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
+                                        <Palette className="w-3 h-3 mr-1" /> Couleurs
+                                    </h4>
+                                    <div className="space-y-2">
+                                        <button
+                                            onClick={() => setColorMode('DOCTOR')}
+                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                                        >
+                                            <div className="w-3 h-3 rounded-full bg-primary mr-2"></div>
+                                            Par Médecin
+                                        </button>
+                                        <button
+                                            onClick={() => setColorMode('ACTIVITY')}
+                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                                        >
+                                            <div className="w-3 h-3 rounded-full bg-warning mr-2"></div>
+                                            Par Activité
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
+                                        <Eye className="w-3 h-3 mr-1" /> Densité
+                                    </h4>
+                                    <div className="flex bg-muted p-1 rounded-btn">
+                                        <button
+                                            onClick={() => setDensity('COMPACT')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMPACT' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
+                                        >
+                                            Compact
+                                        </button>
+                                        <button
+                                            onClick={() => setDensity('COMFORTABLE')}
+                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMFORTABLE' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
+                                        >
+                                            Aéré
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
+
+                    {/* Week navigation */}
+                    <div className="flex items-center space-x-1 bg-surface p-1 rounded-btn shadow-card border border-border">
+                        <Button variant="ghost" size="sm" onClick={() => handleWeekChange('prev')} className="p-1.5">
+                            <ChevronLeft className="w-4 h-4" />
+                        </Button>
+
+                        <input
+                            type="date"
+                            className="border-none text-text-base font-medium text-xs focus:ring-0 bg-transparent w-28"
+                            value={currentWeekStart.toISOString().split('T')[0]}
+                            onChange={handleDateChange}
+                        />
+
+                        <Button variant="ghost" size="sm" onClick={() => handleWeekChange('next')} className="p-1.5">
+                            <ChevronRight className="w-4 h-4" />
+                        </Button>
+                    </div>
+
+                    {/* Validated week badge */}
+                    {isCurrentWeekValidated && (
+                        <Badge variant="green">Semaine validée</Badge>
+                    )}
+
+                    {/* PDF download */}
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleDownloadPDF}
+                        disabled={isGeneratingPdf}
+                        className="flex items-center gap-1.5"
+                    >
+                        {isGeneratingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                        <span className="hidden md:inline">{isGeneratingPdf ? 'Génération...' : 'PDF'}</span>
+                    </Button>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto bg-white rounded-xl shadow border border-slate-200" ref={tableContainerRef}>
-                <div className="bg-white p-1 md:p-4 min-w-[600px] md:min-w-[1000px]">
-                    <table className="w-full border-collapse md:table-fixed">
+            {/* Planning grid card */}
+            <Card className="flex-1 min-h-0 flex flex-col">
+                {/* Dual-axis scroll container */}
+                <div
+                    ref={tableContainerRef}
+                    className="flex-1 overflow-x-auto overflow-y-auto overscroll-contain"
+                    style={{ touchAction: 'pan-x pan-y' }}
+                >
+                    <table className="w-full border-collapse" style={{ minWidth: '600px' }}>
                         <thead>
-                            <tr>
-                                <th className="p-1 md:p-3 border-b border-r bg-slate-100 w-16 md:w-28 text-left text-[9px] md:text-xs font-bold text-slate-500 uppercase">
+                            <tr className="sticky top-0 z-table-header bg-surface border-b-2 border-border">
+                                {/* Sticky top-left corner cell */}
+                                <th className="sticky left-0 z-[12] bg-surface px-3 py-3 border-r border-border border-b-2 border-border min-w-[80px] max-w-[100px] text-left text-[9px] md:text-xs font-bold text-text-muted uppercase">
                                     <span className="hidden md:inline">{viewMode === 'ROOM' ? 'Lieu / Créneau' : 'Médecin'}</span>
                                     <span className="md:hidden">{viewMode === 'ROOM' ? 'Lieu' : 'Dr'}</span>
                                 </th>
@@ -662,15 +697,20 @@ const Planning: React.FC = () => {
                                     const holiday = isFrenchHoliday(date);
                                     const [dYear, dMonth, dDay] = date.split('-');
                                     const displayDate = `${dDay}/${dMonth}`;
+                                    const todayStr = new Date().toISOString().split('T')[0];
+                                    const isToday = date === todayStr;
 
                                     return (
-                                        <th key={day} className={`p-1 md:p-3 border-b border-r text-slate-700 font-bold uppercase text-[10px] md:text-sm w-1/5 ${holiday ? 'bg-pink-50' : 'bg-slate-50'}`}>
+                                        <th key={day} className={isToday
+                                            ? "text-[11px] font-bold text-white uppercase tracking-wider px-3 py-3 min-w-[80px] text-center bg-gradient-primary border-r border-primary/20"
+                                            : "text-[11px] font-semibold text-text-muted uppercase tracking-wider px-3 py-3 min-w-[80px] text-center border-r border-border"
+                                        }>
                                             {day.substring(0, 3)}
-                                            <div className="text-[8px] md:text-[10px] text-slate-400 font-normal mt-0.5 md:mt-1 flex justify-center items-center">
+                                            <div className="text-[9px] font-normal mt-0.5 flex justify-center items-center opacity-80">
                                                 {displayDate}
                                             </div>
                                         </th>
-                                    )
+                                    );
                                 })}
                             </tr>
                         </thead>
@@ -679,25 +719,25 @@ const Planning: React.FC = () => {
                                 // ROOM VIEW
                                 displayRows.map((loc, index) => (
                                     <React.Fragment key={loc}>
-                                        <tr>
-                                            <td rowSpan={2} className={`p-1 md:p-3 border-r border-b text-[9px] md:text-xs text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] font-bold
-                                    ${postes.includes(loc) ? 'bg-slate-50 text-slate-700' : 'bg-orange-50 text-orange-800'}
-                                `}>
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
+                                            <td rowSpan={2} className={`sticky left-0 z-sticky p-1 md:p-3 border-r border-b border-border text-[9px] md:text-xs text-center font-bold shadow-card
+                                                ${postes.includes(loc) ? 'bg-surface text-text-base' : 'bg-warning/10 text-warning-text'}
+                                            `}>
                                                 <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
                                             </td>
                                             {days.map(day => (
-                                                <td key={`${day}-matin`} className={`border-r border-b border-slate-100 relative ${rowHeightClass} align-top p-0`}>
-                                                    <div className="absolute top-0 left-0 right-0 bg-yellow-50/80 text-[9px] px-1 text-yellow-700 uppercase font-bold tracking-wider z-0 border-b border-yellow-100">Matin</div>
+                                                <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0`}>
+                                                    <div className="absolute top-0 left-0 right-0 bg-warning/10 text-[9px] px-1 text-warning-text uppercase font-bold tracking-wider z-0 border-b border-warning/20">Matin</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.MORNING, loc)}
                                                     </div>
                                                 </td>
                                             ))}
                                         </tr>
-                                        <tr>
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-slate-200 relative ${rowHeightClass} align-top p-0`}>
-                                                    <div className="absolute top-0 left-0 right-0 bg-indigo-50/80 text-[9px] px-1 text-indigo-700 uppercase font-bold tracking-wider z-0 border-b border-indigo-100">A.Midi</div>
+                                                <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0`}>
+                                                    <div className="absolute top-0 left-0 right-0 bg-primary/10 text-[9px] px-1 text-primary-text uppercase font-bold tracking-wider z-0 border-b border-primary/20">A.Midi</div>
                                                     <div className="pt-4 h-full">
                                                         {renderCell(day, Period.AFTERNOON, loc)}
                                                     </div>
@@ -710,28 +750,28 @@ const Planning: React.FC = () => {
                                 // DOCTOR VIEW
                                 doctors.map(doc => (
                                     <React.Fragment key={doc.id}>
-                                        <tr>
-                                            <td rowSpan={2} className="p-1 md:p-3 border-r border-b bg-slate-50 text-center shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
+                                            <td rowSpan={2} className="sticky left-0 z-sticky px-3 py-3 border-r border-b border-border bg-surface text-center shadow-card font-semibold text-text-base text-sm min-w-[80px]">
                                                 <div
                                                     className="w-6 h-6 md:w-8 md:h-8 rounded-full mx-auto flex items-center justify-center text-[8px] md:text-xs font-bold text-white"
                                                     style={{ backgroundColor: getDoctorHexColor(doc.color) }}
                                                 >
                                                     {doc.name.substring(0, 2)}
                                                 </div>
-                                                <div className="text-[8px] md:text-[10px] font-bold text-slate-700 mt-0.5 md:mt-1 leading-tight break-words text-center">{doc.name}</div>
+                                                <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">{doc.name}</div>
                                             </td>
                                             {days.map(day => (
-                                                <td key={`${day}-matin`} className="border-r border-b border-slate-100 relative h-20 align-top p-0">
-                                                    <div className="pt-0 h-full">
+                                                <td key={`${day}-matin`} className="border-r border-b border-border relative h-11 align-top p-0">
+                                                    <div className="h-full">
                                                         {renderDoctorCell(doc, day, Period.MORNING)}
                                                     </div>
                                                 </td>
                                             ))}
                                         </tr>
-                                        <tr>
+                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
                                             {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className="border-r border-b-2 border-slate-200 relative h-20 align-top p-0">
-                                                    <div className="pt-0 h-full bg-slate-50/30">
+                                                <td key={`${day}-apres-midi`} className="border-r border-b-2 border-border relative h-11 align-top p-0">
+                                                    <div className="h-full bg-muted/30">
                                                         {renderDoctorCell(doc, day, Period.AFTERNOON)}
                                                     </div>
                                                 </td>
@@ -743,7 +783,7 @@ const Planning: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </Card>
 
             {selectedSlot && (
                 <SlotDetailsModal

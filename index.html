@@ -3,34 +3,36 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
     <link rel="manifest" href="/radioplan/manifest.json" />
     <link rel="apple-touch-icon" href="/radioplan/icon-192.png" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#4F46E5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RadioPlan" />
     <title>RadioPlan AI - Radiothérapie</title>
-    <link rel="stylesheet" href="./mobile.css" />
     <style>
       @media print {
         @page {
           margin: 0.5cm;
           size: landscape;
         }
-        
+
         body {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
           background-color: white !important;
         }
 
-        /* 
+        /*
            CRITICAL PRINT FIXES:
-           The main app container uses flex and h-screen which breaks printing (clips content).
+           The main app container uses flex and min-h-dvh which breaks printing (clips content).
            We must reset these to block/auto for print.
         */
-        #root, .flex.h-screen {
+        #root, .min-h-dvh {
             display: block !important;
             height: auto !important;
             overflow: visible !important;
@@ -57,11 +59,11 @@
           width: 100% !important;
           table-layout: fixed !important;
         }
-        
+
         thead {
             display: table-header-group;
         }
-        
+
         tr {
             break-inside: avoid;
         }
@@ -72,7 +74,7 @@
           height: auto !important;
           max-height: none !important;
         }
-        
+
         /* Remove sticky headers in print to avoid overlap/cut-off */
         .sticky {
             position: static !important;
@@ -85,7 +87,7 @@
       }
     </style>
 </head>
-  <body class="bg-slate-50 text-slate-900 font-sans antialiased">
+  <body class="antialiased">
     <div id="root"></div>
   <script type="module" src="./index.tsx"></script>
 </body>
