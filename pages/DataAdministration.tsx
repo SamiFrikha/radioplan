@@ -4,6 +4,7 @@ import { AppContext } from '../App';
 import { GlobalBackupData } from '../types';
 import { Download, Upload, Database, FileJson, AlertTriangle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardBody } from '../src/components/ui';
+import { Button } from '../src/components/ui/Button';
 
 const DataAdministration: React.FC = () => {
   const {
@@ -73,14 +74,10 @@ const DataAdministration: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-4">
         {/* Header */}
-        <div>
-            <h1 className="text-2xl font-extrabold text-text-base tracking-tight flex items-center">
-                <Database className="w-6 h-6 mr-3 text-text-muted" />
-                Administration des Données
+        <div className="sticky top-0 z-sticky bg-[#0F172A] px-4 py-3 -mx-4 -mt-4 mb-4 md:-mx-6 md:-mt-6 md:mb-6">
+            <h1 className="text-base font-semibold text-white/60 uppercase tracking-widest">
+                Administration des données
             </h1>
-            <p className="text-sm text-text-muted mt-1 max-w-2xl">
-                Sauvegardez l'intégralité de la configuration et des données de l'application ou restaurez une sauvegarde précédente.
-            </p>
         </div>
 
         {/* --- DATA ADMINISTRATION (EXPORT/IMPORT) --- */}
@@ -98,13 +95,10 @@ const DataAdministration: React.FC = () => {
                             <p className="text-xs text-text-muted mt-1">Sauvegardez l'état complet (Médecins, Plannings, Absences, Historique) dans un fichier JSON.</p>
                         </div>
                     </div>
-                    <button
-                        onClick={handleExport}
-                        className="w-full py-3 bg-primary hover:opacity-90 text-white rounded-btn font-bold text-sm flex items-center justify-center transition-colors shadow-sm"
-                    >
+                    <Button variant="primary" size="sm" onClick={handleExport} className="w-full">
                         <FileJson className="w-4 h-4 mr-2" />
                         Télécharger le Backup (.json)
-                    </button>
+                    </Button>
                 </div>
 
                 {/* IMPORT */}
