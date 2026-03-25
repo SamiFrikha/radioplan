@@ -4,6 +4,7 @@ import { AppRole, AppPermission } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { Save, Shield, Check, X } from 'lucide-react';
 import { Card, CardBody, EmptyState } from '../../src/components/ui';
+import { Badge } from '../../src/components/ui/Badge';
 
 const RoleManagement: React.FC = () => {
     const { hasPermission } = useAuth();
@@ -56,14 +57,14 @@ const RoleManagement: React.FC = () => {
 
     return (
         <div className="p-6">
-            <h1 className="font-heading font-bold text-xl text-text-base mb-6 flex items-center gap-2">
-                <Shield className="w-6 h-6" /> Gestion des Rôles
+            <h1 className="text-2xl font-extrabold text-text-base tracking-tight mb-6 flex items-center gap-2">
+                <Shield className="w-6 h-6 text-primary" /> Gestion des Rôles
             </h1>
 
             <Card>
                 <CardBody className="overflow-x-auto">
                     {/* Desktop table */}
-                    <div className="hidden md:block">
+                    <div className="hidden md:block overflow-x-auto rounded-card border border-border/40">
                         {permissions.length === 0 ? (
                             <EmptyState
                                 icon={Shield}
@@ -73,21 +74,21 @@ const RoleManagement: React.FC = () => {
                         ) : (
                             <table className="min-w-full border-collapse">
                                 <thead>
-                                    <tr>
-                                        <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">
+                                    <tr className="sticky top-0 z-table-header bg-[#0F172A]">
+                                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-white/60 uppercase tracking-widest">
                                             Permission
                                         </th>
                                         {roles.map(role => (
-                                            <th key={role.id} className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-center border-b border-border min-w-[100px]">
-                                                <div className="font-bold text-text-base">{role.name}</div>
-                                                <div className="text-[10px] text-text-muted font-normal">{role.description}</div>
+                                            <th key={role.id} className="px-4 py-3 text-center text-[11px] font-semibold text-white/60 uppercase tracking-widest min-w-[100px]">
+                                                <div className="font-bold text-white">{role.name}</div>
+                                                <div className="text-[10px] text-white/40 font-normal normal-case tracking-normal">{role.description}</div>
                                             </th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {permissions.map(perm => (
-                                        <tr key={perm.id} className="hover:bg-muted h-11 border-b border-border">
+                                        <tr key={perm.id} className="border-b border-border/50 hover:bg-primary/5 transition-colors">
                                             <td className="px-3 py-2">
                                                 <div className="font-medium text-sm text-text-base">{perm.code}</div>
                                                 <div className="text-[11px] text-text-muted">{perm.description}</div>
@@ -99,7 +100,7 @@ const RoleManagement: React.FC = () => {
                                                         <button
                                                             onClick={() => togglePermission(role.id, perm.code, perm.id)}
                                                             disabled={role.name === 'Admin'} // Admin has all by default usually
-                                                            className={`p-2 rounded-full transition-colors ${hasPerm ? 'bg-green-100 text-green-600' : 'bg-muted text-text-muted'
+                                                            className={`p-2 rounded-full transition-colors ${hasPerm ? 'bg-success/10 text-success' : 'bg-muted text-text-muted'
                                                                 }`}
                                                         >
                                                             {hasPerm ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
@@ -136,7 +137,7 @@ const RoleManagement: React.FC = () => {
                                                         key={role.id}
                                                         onClick={() => togglePermission(role.id, perm.code, perm.id)}
                                                         disabled={role.name === 'Admin'}
-                                                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium transition-colors ${hasPerm ? 'bg-green-100 text-green-700' : 'bg-muted text-text-muted'}`}
+                                                        className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium transition-colors ${hasPerm ? 'bg-success/10 text-success-text' : 'bg-muted text-text-muted'}`}
                                                     >
                                                         {hasPerm ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
                                                         {role.name}

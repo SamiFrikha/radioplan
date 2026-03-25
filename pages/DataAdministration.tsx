@@ -74,7 +74,7 @@ const DataAdministration: React.FC = () => {
     <div className="h-full flex flex-col space-y-4">
         {/* Header */}
         <div>
-            <h1 className="font-heading font-bold text-xl text-text-base flex items-center">
+            <h1 className="text-2xl font-extrabold text-text-base tracking-tight flex items-center">
                 <Database className="w-6 h-6 mr-3 text-text-muted" />
                 Administration des Données
             </h1>
@@ -90,8 +90,8 @@ const DataAdministration: React.FC = () => {
                 {/* EXPORT */}
                 <div className="bg-muted p-6 rounded-card border border-border">
                     <div className="flex items-center mb-4">
-                        <div className="p-3 bg-blue-100 rounded-lg mr-4">
-                            <Download className="w-6 h-6 text-blue-600" />
+                        <div className="p-3 bg-primary/10 rounded-lg mr-4">
+                            <Download className="w-6 h-6 text-primary" />
                         </div>
                         <div>
                             <h4 className="font-bold text-lg text-text-base">Exporter la configuration</h4>
@@ -100,7 +100,7 @@ const DataAdministration: React.FC = () => {
                     </div>
                     <button
                         onClick={handleExport}
-                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-btn font-bold text-sm flex items-center justify-center transition-colors shadow-sm"
+                        className="w-full py-3 bg-primary hover:opacity-90 text-white rounded-btn font-bold text-sm flex items-center justify-center transition-colors shadow-sm"
                     >
                         <FileJson className="w-4 h-4 mr-2" />
                         Télécharger le Backup (.json)
@@ -110,8 +110,8 @@ const DataAdministration: React.FC = () => {
                 {/* IMPORT */}
                 <div className="bg-muted p-6 rounded-card border border-border relative overflow-hidden">
                     <div className="flex items-center mb-4">
-                        <div className="p-3 bg-orange-100 rounded-lg mr-4">
-                            <Upload className="w-6 h-6 text-orange-600" />
+                        <div className="p-3 bg-warning/10 rounded-lg mr-4">
+                            <Upload className="w-6 h-6 text-warning" />
                         </div>
                         <div>
                             <h4 className="font-bold text-lg text-text-base">Restaurer / Migrer</h4>
@@ -125,9 +125,9 @@ const DataAdministration: React.FC = () => {
                         <input type="file" className="hidden" accept=".json" onChange={handleImport} />
                     </label>
 
-                    <div className="mt-4 flex items-start bg-orange-50 p-3 rounded-lg border border-orange-200">
-                        <AlertTriangle className="w-4 h-4 text-orange-500 mr-2 mt-0.5" />
-                        <p className="text-xs text-orange-800 leading-tight">
+                    <div className="mt-4 flex items-start bg-warning/10 p-3 rounded-lg border border-warning/20">
+                        <AlertTriangle className="w-4 h-4 text-warning mr-2 mt-0.5" />
+                        <p className="text-xs text-warning-text leading-tight">
                             <strong>Attention :</strong> L'importation remplacera définitivement toutes les données actuelles de l'application. Assurez-vous d'avoir une sauvegarde si nécessaire.
                         </p>
                     </div>

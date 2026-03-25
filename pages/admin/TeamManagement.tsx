@@ -6,6 +6,7 @@ import { AppContext } from '../../App';
 import { unavailabilityService } from '../../services/unavailabilityService';
 import { Users, UserPlus, Edit2, Trash2, X, Save, Key, UserCheck, Mail, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, Stethoscope, Link2, Unlink, Tag, Plus, Ban, Calendar } from 'lucide-react';
 import { Card, CardBody, EmptyState } from '../../src/components/ui';
+import { Badge } from '../../src/components/ui/Badge';
 
 interface UserData {
     id: string;
@@ -852,7 +853,7 @@ const TeamManagement: React.FC = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
                 <div>
-                    <h1 className="font-heading font-bold text-xl text-text-base flex items-center gap-1.5 md:gap-2">
+                    <h1 className="text-2xl font-extrabold text-text-base tracking-tight flex items-center gap-1.5 md:gap-2">
                         <Users className="w-5 h-5 md:w-7 md:h-7 text-primary" /> Gestion d'Équipe
                     </h1>
                     <p className="text-text-muted text-xs md:text-sm mt-0.5 md:mt-1">
@@ -925,21 +926,21 @@ const TeamManagement: React.FC = () => {
                             <EmptyState icon={Users} title="Aucun utilisateur" description="Aucun utilisateur trouvé." />
                         ) : (
                             users.map(user => (
-                                <div key={user.id} className="p-3 hover:bg-muted">
+                                <div key={user.id} className="p-3 hover:bg-primary/5 transition-colors">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2 min-w-0 flex-1">
                                             <Mail className="w-3.5 h-3.5 text-text-muted flex-shrink-0" />
-                                            <span className="font-medium text-text-base text-xs break-all">{user.email}</span>
+                                            <span className="text-xs font-semibold text-text-base break-all">{user.email}</span>
                                         </div>
                                         <div className="flex gap-1 flex-shrink-0 ml-2">
                                             <button
-                                                className="text-text-muted hover:text-primary p-1.5 rounded hover:bg-muted"
+                                                className="text-text-muted hover:text-primary p-1.5 rounded hover:bg-primary/5"
                                                 onClick={() => openEditModal(user)}
                                             >
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </button>
                                             <button
-                                                className={`p-1.5 rounded ${deleteConfirmId === user.id ? 'bg-red-600 text-white' : 'text-text-muted hover:text-red-600 hover:bg-red-50'}`}
+                                                className={`p-1.5 rounded ${deleteConfirmId === user.id ? 'bg-danger text-white' : 'text-text-muted hover:text-danger hover:bg-danger/10'}`}
                                                 onClick={() => handleDeleteUser(user)}
                                             >
                                                 {deleteConfirmId === user.id ? <AlertTriangle className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -964,28 +965,27 @@ const TeamManagement: React.FC = () => {
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${user.app_roles?.name === 'Admin'
-                                            ? 'bg-purple-100 text-purple-700'
-                                            : user.app_roles?.name === 'Docteur' || user.app_roles?.name === 'Médecin'
-                                                ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-muted text-text-base'
-                                            }`}>
+                                        <Badge variant={
+                                            user.app_roles?.name === 'Admin' ? 'violet'
+                                            : user.app_roles?.name === 'Docteur' || user.app_roles?.name === 'Médecin' ? 'blue'
+                                            : 'gray'
+                                        }>
                                             {user.app_roles?.name || 'Sans rôle'}
-                                        </span>
+                                        </Badge>
                                     </div>
                                 </div>
                             ))
                         )}
                     </div>
                     {/* Desktop: table layout */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="min-w-full">
+                    <div className="hidden md:block overflow-x-auto rounded-card border border-border/40">
+                        <table className="min-w-full border-collapse">
                             <thead>
-                                <tr>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Email</th>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Profil Médecin</th>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Rôle</th>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-right border-b border-border">Actions</th>
+                                <tr className="sticky top-0 z-table-header bg-[#0F172A]">
+                                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-white/60 uppercase tracking-widest">Email</th>
+                                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-white/60 uppercase tracking-widest">Profil Médecin</th>
+                                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-white/60 uppercase tracking-widest">Rôle</th>
+                                    <th className="px-4 py-3 text-right text-[11px] font-semibold text-white/60 uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -997,14 +997,14 @@ const TeamManagement: React.FC = () => {
                                     </tr>
                                 ) : (
                                     users.map(user => (
-                                        <tr key={user.id} className="hover:bg-muted h-11 border-b border-border">
-                                            <td className="px-3 py-2">
+                                        <tr key={user.id} className="border-b border-border/50 hover:bg-primary/5 transition-colors">
+                                            <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <Mail className="w-4 h-4 text-text-muted" />
-                                                    <span className="font-medium text-text-base">{user.email}</span>
+                                                    <span className="text-sm font-semibold text-text-base">{user.email}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-2">
+                                            <td className="px-4 py-3">
                                                 {user.doctors ? (
                                                     <div className="flex items-center gap-2">
                                                         <div
@@ -1013,28 +1013,27 @@ const TeamManagement: React.FC = () => {
                                                         >
                                                             {user.doctors.name.substring(0, 2)}
                                                         </div>
-                                                        <span className="font-medium text-text-base">{user.doctors.name}</span>
+                                                        <span className="text-sm font-semibold text-text-base">{user.doctors.name}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-text-muted italic flex items-center gap-1">
+                                                    <span className="text-sm text-text-muted italic flex items-center gap-1">
                                                         <Unlink className="w-3 h-3" /> Non lié
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.app_roles?.name === 'Admin'
-                                                    ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                                                    : user.app_roles?.name === 'Docteur' || user.app_roles?.name === 'Médecin'
-                                                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                                        : 'bg-muted text-text-base border border-border'
-                                                    }`}>
+                                            <td className="px-4 py-3">
+                                                <Badge variant={
+                                                    user.app_roles?.name === 'Admin' ? 'violet'
+                                                    : user.app_roles?.name === 'Docteur' || user.app_roles?.name === 'Médecin' ? 'blue'
+                                                    : 'gray'
+                                                }>
                                                     {user.app_roles?.name || 'Sans rôle'}
-                                                </span>
+                                                </Badge>
                                             </td>
-                                            <td className="px-3 py-2 text-right">
+                                            <td className="px-4 py-3 text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <button
-                                                        className="text-text-muted hover:text-primary p-2 rounded hover:bg-muted transition-colors"
+                                                        className="text-text-muted hover:text-primary p-2 rounded hover:bg-primary/5 transition-colors"
                                                         onClick={() => openEditModal(user)}
                                                         title="Modifier"
                                                     >
@@ -1042,8 +1041,8 @@ const TeamManagement: React.FC = () => {
                                                     </button>
                                                     <button
                                                         className={`p-2 rounded transition-colors ${deleteConfirmId === user.id
-                                                            ? 'bg-red-600 text-white'
-                                                            : 'text-text-muted hover:text-red-600 hover:bg-red-50'
+                                                            ? 'bg-danger text-white'
+                                                            : 'text-text-muted hover:text-danger hover:bg-danger/10'
                                                             }`}
                                                         onClick={() => handleDeleteUser(user)}
                                                         title={deleteConfirmId === user.id ? "Confirmer" : "Supprimer"}
@@ -1076,7 +1075,7 @@ const TeamManagement: React.FC = () => {
                             <EmptyState icon={Stethoscope} title="Aucun profil médecin" description="Aucun profil médecin trouvé." />
                         ) : (
                             allDoctors.map(doctor => (
-                                <div key={doctor.id} className="p-3 hover:bg-muted">
+                                <div key={doctor.id} className="p-3 hover:bg-primary/5 transition-colors">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-2 min-w-0 flex-1">
                                             <div
@@ -1086,7 +1085,7 @@ const TeamManagement: React.FC = () => {
                                                 {doctor.name.substring(0, 2)}
                                             </div>
                                             <div className="min-w-0">
-                                                <div className="font-medium text-text-base text-xs">{doctor.name}</div>
+                                                <div className="text-xs font-bold text-text-base">{doctor.name}</div>
                                                 <div className="text-[10px] text-text-muted">
                                                     {doctor.specialty && doctor.specialty.length > 0
                                                         ? doctor.specialty.join(', ')
@@ -1097,13 +1096,13 @@ const TeamManagement: React.FC = () => {
                                         </div>
                                         <div className="flex gap-1 flex-shrink-0 ml-2">
                                             <button
-                                                className="text-text-muted hover:text-primary p-1.5 rounded hover:bg-muted"
+                                                className="text-text-muted hover:text-primary p-1.5 rounded hover:bg-primary/5"
                                                 onClick={() => openEditDoctorModal(doctor)}
                                             >
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </button>
                                             <button
-                                                className={`p-1.5 rounded ${deleteDoctorConfirmId === doctor.id ? 'bg-red-600 text-white' : 'text-text-muted hover:text-red-600 hover:bg-red-50'}`}
+                                                className={`p-1.5 rounded ${deleteDoctorConfirmId === doctor.id ? 'bg-danger text-white' : 'text-text-muted hover:text-danger hover:bg-danger/10'}`}
                                                 onClick={() => handleDeleteDoctor(doctor)}
                                             >
                                                 {deleteDoctorConfirmId === doctor.id ? <AlertTriangle className="w-3.5 h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
@@ -1114,7 +1113,7 @@ const TeamManagement: React.FC = () => {
                                         <div className="flex items-center gap-1.5 min-w-0">
                                             {doctor.linkedUser ? (
                                                 <>
-                                                    <Link2 className="w-3 h-3 text-green-500 flex-shrink-0" />
+                                                    <Link2 className="w-3 h-3 text-success flex-shrink-0" />
                                                     <span className="text-[10px] text-text-base break-all">{doctor.linkedUser.email}</span>
                                                 </>
                                             ) : (
@@ -1123,26 +1122,23 @@ const TeamManagement: React.FC = () => {
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 ${doctor.linkedUser
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-orange-100 text-orange-700'
-                                            }`}>
+                                        <Badge variant={doctor.linkedUser ? 'green' : 'amber'}>
                                             {doctor.linkedUser ? 'Lié' : 'Orphelin'}
-                                        </span>
+                                        </Badge>
                                     </div>
                                 </div>
                             ))
                         )}
                     </div>
                     {/* Desktop: table layout */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="min-w-full">
+                    <div className="hidden md:block overflow-x-auto rounded-card border border-border/40">
+                        <table className="min-w-full border-collapse">
                             <thead>
-                                <tr>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Profil Médecin</th>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Utilisateur Lié</th>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-left border-b border-border">Statut</th>
-                                    <th className="sticky top-0 bg-app-bg text-[11px] font-medium uppercase tracking-wider text-text-muted px-3 py-2 text-right border-b border-border">Actions</th>
+                                <tr className="sticky top-0 z-table-header bg-[#0F172A]">
+                                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-white/60 uppercase tracking-widest">Profil Médecin</th>
+                                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-white/60 uppercase tracking-widest">Utilisateur Lié</th>
+                                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-white/60 uppercase tracking-widest">Statut</th>
+                                    <th className="px-4 py-3 text-right text-[11px] font-semibold text-white/60 uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1154,8 +1150,8 @@ const TeamManagement: React.FC = () => {
                                     </tr>
                                 ) : (
                                     allDoctors.map(doctor => (
-                                        <tr key={doctor.id} className="hover:bg-muted h-11 border-b border-border">
-                                            <td className="px-3 py-2">
+                                        <tr key={doctor.id} className="border-b border-border/50 hover:bg-primary/5 transition-colors">
+                                            <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <div
                                                         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow"
@@ -1164,7 +1160,7 @@ const TeamManagement: React.FC = () => {
                                                         {doctor.name.substring(0, 2)}
                                                     </div>
                                                     <div>
-                                                        <div className="font-medium text-text-base">{doctor.name}</div>
+                                                        <div className="text-sm font-semibold text-text-base">{doctor.name}</div>
                                                         <div className="text-xs text-text-muted">
                                                             {doctor.specialty && doctor.specialty.length > 0
                                                                 ? doctor.specialty.join(', ')
@@ -1174,30 +1170,27 @@ const TeamManagement: React.FC = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-3 py-2">
+                                            <td className="px-4 py-3">
                                                 {doctor.linkedUser ? (
                                                     <div className="flex items-center gap-2">
-                                                        <Link2 className="w-4 h-4 text-green-500" />
-                                                        <span className="text-text-base">{doctor.linkedUser.email}</span>
+                                                        <Link2 className="w-4 h-4 text-success" />
+                                                        <span className="text-sm text-text-base">{doctor.linkedUser.email}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-text-muted italic flex items-center gap-1">
+                                                    <span className="text-sm text-text-muted italic flex items-center gap-1">
                                                         <Unlink className="w-4 h-4" /> Aucun utilisateur
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-3 py-2">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${doctor.linkedUser
-                                                    ? 'bg-green-100 text-green-700 border border-green-200'
-                                                    : 'bg-orange-100 text-orange-700 border border-orange-200'
-                                                    }`}>
+                                            <td className="px-4 py-3">
+                                                <Badge variant={doctor.linkedUser ? 'green' : 'amber'}>
                                                     {doctor.linkedUser ? 'Lié' : 'Orphelin'}
-                                                </span>
+                                                </Badge>
                                             </td>
-                                            <td className="px-3 py-2 text-right">
+                                            <td className="px-4 py-3 text-right">
                                                 <div className="flex justify-end gap-1">
                                                     <button
-                                                        className="text-text-muted hover:text-primary p-2 rounded hover:bg-muted transition-colors"
+                                                        className="text-text-muted hover:text-primary p-2 rounded hover:bg-primary/5 transition-colors"
                                                         onClick={() => openEditDoctorModal(doctor)}
                                                         title="Modifier le profil"
                                                     >
@@ -1205,8 +1198,8 @@ const TeamManagement: React.FC = () => {
                                                     </button>
                                                     <button
                                                         className={`p-2 rounded transition-colors ${deleteDoctorConfirmId === doctor.id
-                                                            ? 'bg-red-600 text-white'
-                                                            : 'text-text-muted hover:text-red-600 hover:bg-red-50'
+                                                            ? 'bg-danger text-white'
+                                                            : 'text-text-muted hover:text-danger hover:bg-danger/10'
                                                             }`}
                                                         onClick={() => handleDeleteDoctor(doctor)}
                                                         title={deleteDoctorConfirmId === doctor.id ? "Confirmer la suppression" : "Supprimer le profil"}
@@ -1319,8 +1312,8 @@ const TeamManagement: React.FC = () => {
                                                 )}
                                                 <button
                                                     className={`p-2 rounded transition-colors ${deleteSpecialtyConfirmId === spec.id
-                                                        ? 'bg-red-600 text-white'
-                                                        : 'text-text-muted hover:text-red-600 hover:bg-red-50'
+                                                        ? 'bg-danger text-white'
+                                                        : 'text-text-muted hover:text-danger hover:bg-danger/10'
                                                         }`}
                                                     onClick={() => handleDeleteSpecialty(spec)}
                                                     title={deleteSpecialtyConfirmId === spec.id ? "Confirmer la suppression" : "Supprimer"}
