@@ -167,173 +167,164 @@ const Planning: React.FC = () => {
         try {
             setIsGeneratingPdf(true);
 
-            // ── jsPDF native drawing — no html2canvas, no DOM cloning ──────────
-            // A4 landscape in points: 841.89 × 595.28 pt
+            // ── jsPDF native — A4 landscape (841.89 × 595.28 pt) ─────────────
+            // Layout mirrors Planning Global exactly:
+            //   rows  = location × period (2 rows per location: Matin then Après-midi)
+            //   cols  = Lieu (rowspan 2) | Créneau | Lun | Mar | Mer | Jeu | Ven
             const pdf = new jsPDF('l', 'pt', 'a4');
-            const PW = 841.89;
-            const PH = 595.28;
-            const M  = 20; // page margin
+            const PW = 841.89, PH = 595.28, M = 20;
 
-            // ── colour helpers ────────────────────────────────────────────────
+            // ── helpers ───────────────────────────────────────────────────────
             const hexRgb = (hex: string) => ({
                 r: parseInt(hex.slice(1, 3), 16),
                 g: parseInt(hex.slice(3, 5), 16),
                 b: parseInt(hex.slice(5, 7), 16),
             });
-            const fill  = (hex: string) => { const { r, g, b } = hexRgb(hex); pdf.setFillColor(r, g, b); };
-            const stroke= (hex: string) => { const { r, g, b } = hexRgb(hex); pdf.setDrawColor(r, g, b); };
-            const tc    = (hex: string) => { const { r, g, b } = hexRgb(hex); pdf.setTextColor(r, g, b); };
+            const fill   = (h: string) => { const { r, g, b } = hexRgb(h); pdf.setFillColor(r, g, b); };
+            const stroke = (h: string) => { const { r, g, b } = hexRgb(h); pdf.setDrawColor(r, g, b); };
+            const tc     = (h: string) => { const { r, g, b } = hexRgb(h); pdf.setTextColor(r, g, b); };
 
-            const slotBg = (slot?: typeof schedule[0]): string => {
-                if (!slot || slot.isClosed) return '#F1F5F9';
-                if (slot.type === SlotType.CONSULTATION) return '#EEF4FF';
-                if (slot.type === SlotType.RCP)          return '#F5F0FF';
-                if (slot.type === SlotType.ACTIVITY) {
-                    const n = (slot.subType || '').toLowerCase();
-                    if (n.includes('astreinte')) return '#FFF0EE';
-                    if (n.includes('workflow'))  return '#ECFDF5';
-                    if (n.includes('unity'))     return '#F3F0FF';
-                    return '#FFFBEB';
-                }
-                return '#F8FAFC';
+            const slotBg = (s?: typeof schedule[0]) => {
+                if (!s || s.isClosed) return '#F1F5F9';
+                if (s.type === SlotType.CONSULTATION) return '#EEF4FF';
+                if (s.type === SlotType.RCP)          return '#F5F0FF';
+                const n = (s.subType || '').toLowerCase();
+                if (n.includes('astreinte')) return '#FFF0EE';
+                if (n.includes('workflow'))  return '#ECFDF5';
+                if (n.includes('unity'))     return '#F3F0FF';
+                return '#FFFBEB';
             };
-            const slotAccent = (slot?: typeof schedule[0]): string => {
-                if (!slot || slot.isClosed) return '#CBD5E1';
-                if (slot.type === SlotType.CONSULTATION) return '#3B6FD4';
-                if (slot.type === SlotType.RCP)          return '#7C3AED';
-                if (slot.type === SlotType.ACTIVITY) {
-                    const n = (slot.subType || '').toLowerCase();
-                    if (n.includes('astreinte')) return '#DC4E3A';
-                    if (n.includes('workflow'))  return '#0F766E';
-                    if (n.includes('unity'))     return '#6D28D9';
-                    return '#F59E0B';
-                }
-                return '#CBD5E1';
+            const slotAccent = (s?: typeof schedule[0]) => {
+                if (!s || s.isClosed) return '#CBD5E1';
+                if (s.type === SlotType.CONSULTATION) return '#3B6FD4';
+                if (s.type === SlotType.RCP)          return '#7C3AED';
+                const n = (s.subType || '').toLowerCase();
+                if (n.includes('astreinte')) return '#DC4E3A';
+                if (n.includes('workflow'))  return '#0F766E';
+                if (n.includes('unity'))     return '#6D28D9';
+                return '#F59E0B';
             };
 
-            // ── layout constants ──────────────────────────────────────────────
-            const TITLE_H   = 40;
-            const DAY_HDR_H = 18;
-            const PER_HDR_H = 11;
-            const LOC_W     = 50;
-            const N_COLS    = days.length * 2; // 5 days × 2 periods = 10
-            const CELL_W    = (PW - 2 * M - LOC_W) / N_COLS;
-            const DATA_H    = PH - 2 * M - TITLE_H - DAY_HDR_H - PER_HDR_H;
-            const ROW_H     = DATA_H / displayRows.length;
-            const TABLE_X   = M + LOC_W;
-            const TABLE_TOP = M + TITLE_H + DAY_HDR_H + PER_HDR_H;
+            // ── layout ────────────────────────────────────────────────────────
+            const TITLE_H = 36;   // title block height
+            const HDR_H   = 20;   // day-column header height
+            const LOC_W   = 52;   // "Lieu" column width (spans 2 rows)
+            const PER_W   = 32;   // "Créneau" column width (Matin / Après-m.)
+            const CELL_W  = (PW - 2*M - LOC_W - PER_W) / days.length; // one col per day
+            const N_ROWS  = displayRows.length * 2;                    // 2 periods per loc
+            const DATA_H  = PH - 2*M - TITLE_H - HDR_H;
+            const ROW_H   = DATA_H / N_ROWS;
+            const TABLE_X = M + LOC_W + PER_W;     // x where day columns start
+            const TABLE_Y = M + TITLE_H + HDR_H;   // y where data rows start
 
-            // ── 1. Header ─────────────────────────────────────────────────────
+            // ── 1. Title block ────────────────────────────────────────────────
             fill('#4F46E5');
-            pdf.rect(M, M, PW - 2 * M, 3, 'F');
+            pdf.rect(M, M, PW - 2*M, 3, 'F');
 
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(15);
-            tc('#0F172A');
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15); tc('#0F172A');
             pdf.text('PLANNING RADIOTHÉRAPIE', M, M + 18);
 
-            pdf.setFont('helvetica', 'normal');
-            pdf.setFontSize(9);
-            tc('#64748B');
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); tc('#64748B');
             pdf.text(formatWeekRange(currentWeekStart), M, M + 30);
 
-            pdf.setFontSize(8);
-            tc('#94A3B8');
+            pdf.setFontSize(8); tc('#94A3B8');
             pdf.text(
-                `Généré le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                `Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' })}`,
                 PW - M, M + 18, { align: 'right' }
             );
 
-            // ── 2. Day column headers ─────────────────────────────────────────
-            // "Lieu" cell spans both header rows
-            fill('#0F172A'); stroke('#1E293B');
-            pdf.setLineWidth(0.4);
-            pdf.rect(M, M + TITLE_H, LOC_W, DAY_HDR_H + PER_HDR_H, 'FD');
-            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5);
-            tc('#FFFFFF');
-            pdf.text('Lieu / Créneau', M + LOC_W / 2, M + TITLE_H + (DAY_HDR_H + PER_HDR_H) / 2 + 2.5, { align: 'center' });
+            // ── 2. Column headers ─────────────────────────────────────────────
+            // "Lieu / Créneau" cell spans across LOC_W + PER_W, full header height
+            fill('#0F172A'); stroke('#1E293B'); pdf.setLineWidth(0.4);
+            pdf.rect(M, M + TITLE_H, LOC_W + PER_W, HDR_H, 'FD');
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); tc('#FFFFFF');
+            pdf.text('Lieu / Créneau', M + (LOC_W + PER_W)/2, M + TITLE_H + HDR_H/2 + 2.5, { align: 'center' });
 
             days.forEach((day, di) => {
-                const dateStr  = getDateForDayOfWeek(currentWeekStart, day);
-                const holiday  = isFrenchHoliday(dateStr);
-                const [, mo, dd] = dateStr.split('-');
-                const colX    = TABLE_X + di * CELL_W * 2;
-                const colW    = CELL_W * 2;
+                const dateStr      = getDateForDayOfWeek(currentWeekStart, day);
+                const holiday      = isFrenchHoliday(dateStr);
+                const [, mo, dd]   = dateStr.split('-');
+                const x = TABLE_X + di * CELL_W;
 
                 fill(holiday ? '#FEF2F2' : '#1E293B');
                 stroke(holiday ? '#FECACA' : '#334155');
-                pdf.rect(colX, M + TITLE_H, colW, DAY_HDR_H, 'FD');
+                pdf.rect(x, M + TITLE_H, CELL_W, HDR_H, 'FD');
 
-                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5);
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
                 tc(holiday ? '#DC2626' : '#FFFFFF');
-                pdf.text(`${day}  ${dd}/${mo}`, colX + colW / 2, M + TITLE_H + DAY_HDR_H / 2 + 3, { align: 'center' });
-
-                // Period sub-headers
-                [Period.MORNING, Period.AFTERNOON].forEach((period, pi) => {
-                    const sx = colX + pi * CELL_W;
-                    fill('#334155'); stroke('#475569');
-                    pdf.rect(sx, M + TITLE_H + DAY_HDR_H, CELL_W, PER_HDR_H, 'FD');
-                    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5);
-                    tc('#94A3B8');
-                    pdf.text(
-                        period === Period.MORNING ? 'Matin' : 'Après-m.',
-                        sx + CELL_W / 2,
-                        M + TITLE_H + DAY_HDR_H + PER_HDR_H / 2 + 2.3,
-                        { align: 'center' }
-                    );
-                });
+                pdf.text(`${day}  ${dd}/${mo}`, x + CELL_W/2, M + TITLE_H + HDR_H/2 + 3, { align: 'center' });
             });
 
-            // ── 3. Data rows ──────────────────────────────────────────────────
+            // ── 3. Data rows — 2 rows per location ────────────────────────────
             displayRows.forEach((loc, ri) => {
-                const rowY   = TABLE_TOP + ri * ROW_H;
-                const rowBg  = ri % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                const rowY0  = TABLE_Y + ri * 2 * ROW_H;       // Matin row top
+                const rowY1  = TABLE_Y + (ri * 2 + 1) * ROW_H; // Après-midi row top
+                const stripBg = ri % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
 
-                // Location cell
-                fill('#F8FAFC'); stroke('#E2E8F0');
-                pdf.setLineWidth(0.4);
-                pdf.rect(M, rowY, LOC_W, ROW_H, 'FD');
-                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7);
-                tc('#0F172A');
-                const locLines = pdf.splitTextToSize(loc, LOC_W - 6);
-                const locLineH = 8;
-                const locStartY = rowY + ROW_H / 2 - (locLines.length * locLineH) / 2 + 5;
+                // ── location cell (spans both period rows) ──────────────────
+                fill('#F1F5F9'); stroke('#CBD5E1');
+                pdf.setLineWidth(0.5);
+                pdf.rect(M, rowY0, LOC_W, ROW_H * 2, 'FD');
+
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#0F172A');
+                const locLines = pdf.splitTextToSize(loc, LOC_W - 8);
+                const lineH    = 8;
+                const locCY    = rowY0 + ROW_H; // vertical center of 2-row block
                 locLines.forEach((line: string, li: number) => {
-                    pdf.text(line, M + LOC_W / 2, locStartY + li * locLineH, { align: 'center' });
+                    const y = locCY + (li - (locLines.length - 1) / 2) * lineH + 2.5;
+                    pdf.text(line, M + LOC_W / 2, y, { align: 'center' });
                 });
 
-                // Row separator
-                stroke('#E2E8F0');
-                pdf.setLineWidth(0.5);
-                pdf.line(M, rowY + ROW_H, PW - M, rowY + ROW_H);
+                // ── thin separator between location groups ──────────────────
+                if (ri < displayRows.length - 1) {
+                    fill('#E2E8F0');
+                    pdf.rect(M, rowY1 + ROW_H - 0.8, PW - 2*M, 1.6, 'F');
+                }
 
-                // Data cells
-                days.forEach((day, di) => {
-                    [Period.MORNING, Period.AFTERNOON].forEach((period, pi) => {
-                        const cellX   = TABLE_X + (di * 2 + pi) * CELL_W;
+                // ── period rows ─────────────────────────────────────────────
+                [Period.MORNING, Period.AFTERNOON].forEach((period, pi) => {
+                    const rowY = pi === 0 ? rowY0 : rowY1;
+
+                    // Period label cell
+                    fill('#F8FAFC'); stroke('#E2E8F0');
+                    pdf.setLineWidth(0.35);
+                    pdf.rect(M + LOC_W, rowY, PER_W, ROW_H, 'FD');
+                    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5); tc('#64748B');
+                    pdf.text(
+                        period === Period.MORNING ? 'Matin' : 'Après-m.',
+                        M + LOC_W + PER_W/2, rowY + ROW_H/2 + 2.3, { align: 'center' }
+                    );
+
+                    // Thin separator between Matin and Après-midi
+                    if (pi === 0) {
+                        stroke('#E2E8F0'); pdf.setLineWidth(0.3);
+                        pdf.line(M + LOC_W, rowY + ROW_H, PW - M, rowY + ROW_H);
+                    }
+
+                    // ── day cells ───────────────────────────────────────────
+                    days.forEach((day, di) => {
+                        const cellX   = TABLE_X + di * CELL_W;
                         const dateStr = getDateForDayOfWeek(currentWeekStart, day);
                         const holiday = isFrenchHoliday(dateStr);
 
-                        // Holiday cell
+                        // Holiday
                         if (holiday) {
                             fill('#FEF2F2'); stroke('#FECACA');
                             pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
                             if (pi === 0) {
-                                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6);
-                                tc('#DC2626');
-                                const hn = holiday.name.length > 12 ? holiday.name.slice(0, 11) + '…' : holiday.name;
-                                pdf.text(hn, cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
+                                const hn = holiday.name.length > 16 ? holiday.name.slice(0, 15) + '…' : holiday.name;
+                                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6.5); tc('#DC2626');
+                                pdf.text(hn, cellX + CELL_W/2, rowY + ROW_H/2 + 2.3, { align: 'center' });
                             }
                             return;
                         }
 
-                        // Monday-morning Box closed
+                        // Monday morning Box → closed
                         if (day === DayOfWeek.MONDAY && period === Period.MORNING && loc.startsWith('Box')) {
                             fill('#F1F5F9'); stroke('#E2E8F0');
                             pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
-                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5);
-                            tc('#94A3B8');
-                            pdf.text('Fermé', cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
+                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5); tc('#94A3B8');
+                            pdf.text('Fermé', cellX + CELL_W/2, rowY + ROW_H/2 + 2.3, { align: 'center' });
                             return;
                         }
 
@@ -344,19 +335,18 @@ const Planning: React.FC = () => {
                         );
 
                         if (!slot) {
-                            fill(rowBg); stroke('#E2E8F0');
+                            fill(stripBg); stroke('#E2E8F0');
                             pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
                             tc('#CBD5E1'); pdf.setFontSize(9);
-                            pdf.text('—', cellX + CELL_W / 2, rowY + ROW_H / 2 + 3, { align: 'center' });
+                            pdf.text('—', cellX + CELL_W/2, rowY + ROW_H/2 + 3, { align: 'center' });
                             return;
                         }
 
                         if (slot.isClosed) {
                             fill('#F1F5F9'); stroke('#E2E8F0');
                             pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
-                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5);
-                            tc('#94A3B8');
-                            pdf.text('Fermé', cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
+                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5); tc('#94A3B8');
+                            pdf.text('Fermé', cellX + CELL_W/2, rowY + ROW_H/2 + 2.3, { align: 'center' });
                             return;
                         }
 
@@ -365,38 +355,31 @@ const Planning: React.FC = () => {
                         const bg          = hasConflict ? '#FFF0EE' : slotBg(slot);
                         const accent      = hasConflict ? '#DC2626' : slotAccent(slot);
 
-                        // Cell background
-                        fill(bg); stroke('#E2E8F0');
-                        pdf.setLineWidth(0.3);
+                        fill(bg); stroke('#E2E8F0'); pdf.setLineWidth(0.3);
                         pdf.rect(cellX, rowY, CELL_W, ROW_H, 'FD');
-
-                        // Left accent bar
                         fill(accent);
                         pdf.rect(cellX, rowY, 2.5, ROW_H, 'F');
 
                         if (!doc) {
-                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5);
-                            tc('#94A3B8');
-                            pdf.text('Non assigné', cellX + CELL_W / 2, rowY + ROW_H / 2 + 2, { align: 'center' });
+                            pdf.setFont('helvetica', 'italic'); pdf.setFontSize(6.5); tc('#94A3B8');
+                            pdf.text('Non assigné', cellX + CELL_W/2, rowY + ROW_H/2 + 2.3, { align: 'center' });
                             return;
                         }
 
                         // Doctor avatar circle
                         const docHex = getDoctorHexColor(doc.color) || '#64748B';
                         const { r: dr, g: dg, b: db } = hexRgb(docHex);
-                        const CR  = 5.5;
-                        const CX  = cellX + 2.5 + 4 + CR;
-                        const CY  = rowY + ROW_H / 2;
+                        const CR = 5.5;
+                        const CX = cellX + 2.5 + 4 + CR;
+                        const CY = rowY + ROW_H / 2;
 
                         pdf.setFillColor(dr, dg, db);
                         pdf.ellipse(CX, CY, CR, CR, 'F');
 
-                        // Initials inside circle
-                        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(4.5);
-                        tc('#FFFFFF');
+                        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(4.5); tc('#FFFFFF');
                         pdf.text(doc.name.substring(0, 2).toUpperCase(), CX, CY + 1.6, { align: 'center' });
 
-                        // Doctor name
+                        // Doctor name (truncated to fit)
                         const nameX  = CX + CR + 3;
                         const maxW   = cellX + CELL_W - nameX - 2;
                         const hasAct = slot.type === SlotType.ACTIVITY && slot.subType;
@@ -408,30 +391,26 @@ const Planning: React.FC = () => {
                         while (pdf.getTextWidth(dName) > maxW && dName.length > 3) dName = dName.slice(0, -1);
                         if (dName !== doc.name) dName += '…';
 
-                        const nameY = hasAct ? CY - 1.5 : CY + 2.5;
-                        pdf.text(dName, nameX, nameY);
+                        pdf.text(dName, nameX, hasAct ? CY - 1.5 : CY + 2.5);
 
                         // Activity sub-type
                         if (hasAct) {
-                            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6);
-                            tc('#64748B');
+                            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); tc('#64748B');
                             let sub = slot.subType || '';
                             while (pdf.getTextWidth(sub) > maxW && sub.length > 3) sub = sub.slice(0, -1);
                             pdf.text(sub, nameX, CY + 5.5);
                         }
 
-                        // Conflict label
                         if (hasConflict) {
-                            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(5.5);
-                            tc('#DC2626');
+                            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(5.5); tc('#DC2626');
                             pdf.text('CONFLIT', cellX + CELL_W - 2, rowY + ROW_H - 4, { align: 'right' });
                         }
                     });
                 });
             });
 
-            // ── 4. Legend ─────────────────────────────────────────────────────
-            const LY = TABLE_TOP + displayRows.length * ROW_H + 8;
+            // ── 4. Legend + footer ────────────────────────────────────────────
+            const LY = TABLE_Y + N_ROWS * ROW_H + 6;
             const legendItems = [
                 { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
                 { accent: '#7C3AED', bg: '#F5F0FF', label: 'RCP' },
@@ -447,21 +426,18 @@ const Planning: React.FC = () => {
             legendItems.forEach(({ accent, bg, label }) => {
                 fill(bg); stroke(accent); pdf.setLineWidth(0.5);
                 pdf.rect(lx, LY, 10, 8, 'FD');
-                fill(accent);
-                pdf.rect(lx, LY, 2.5, 8, 'F');
+                fill(accent); pdf.rect(lx, LY, 2.5, 8, 'F');
                 pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); tc('#0F172A');
                 pdf.text(label, lx + 12, LY + 5.5);
                 lx += pdf.getTextWidth(label) + 20;
             });
 
-            // Footer line
             stroke('#E2E8F0'); pdf.setLineWidth(0.5);
             pdf.line(M, LY + 14, PW - M, LY + 14);
             pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); tc('#CBD5E1');
             pdf.text('RadioPlan AI — document généré automatiquement', M, LY + 20);
             pdf.text(formatWeekRange(currentWeekStart), PW - M, LY + 20, { align: 'right' });
 
-            // ── 5. Save ───────────────────────────────────────────────────────
             pdf.save(`Planning_${currentWeekStart.toISOString().split('T')[0]}.pdf`);
 
         } catch (err) {
