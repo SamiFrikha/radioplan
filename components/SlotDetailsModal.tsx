@@ -4,6 +4,7 @@ import { Conflict, Doctor, ScheduleSlot, ReplacementSuggestion, SlotType } from 
 import { getAvailableDoctors, getAlgorithmicReplacementSuggestion } from '../services/scheduleService';
 import { X, Calculator, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../src/components/ui/Button';
 
 interface Props {
     slot: ScheduleSlot;
@@ -77,32 +78,32 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                 onClick={onClose}
             >
                 <div
-                    className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                    className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
                     role="dialog"
                     aria-modal="true"
-                    aria-labelledby="modal-title-slot"
+                    aria-labelledby="modal-title-slot-denied"
                     onClick={e => e.stopPropagation()}
                 >
-                    <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+                    {/* Mobile drag handle */}
+                    <div className="w-10 h-1 rounded-full bg-border mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
-                    {/* HEADER */}
-                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                        <h2 id="modal-title-slot" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
-                            <ShieldAlert className="w-5 h-5 text-accent-amber" aria-hidden="true" />
+                    {/* Gradient header */}
+                    <div className="gradient-primary px-5 py-4 flex items-center justify-between">
+                        <h2 id="modal-title-slot-denied" className="text-base font-bold text-white">
                             Accès Restreint
                         </h2>
                         <button
                             onClick={onClose}
                             aria-label="Fermer"
-                            className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
                         >
-                            <X className="w-5 h-5" aria-hidden="true" />
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="px-4 py-4">
                         <div className="mb-4 text-center">
-                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
                                 <ShieldAlert className="w-8 h-8 text-accent-amber" />
                             </div>
                             <h3 className="font-bold text-base text-text-base mb-2">Ce créneau ne vous concerne pas</h3>
@@ -123,12 +124,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                     </div>
 
                     <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 bg-text-base text-surface rounded-btn text-sm font-bold hover:opacity-90 transition-opacity"
-                        >
-                            Fermer
-                        </button>
+                        <Button variant="primary" size="md" onClick={onClose}>Fermer</Button>
                     </div>
                 </div>
             </div>
@@ -142,35 +138,26 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
             onClick={onClose}
         >
             <div
-                className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title-slot"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+                {/* Mobile drag handle */}
+                <div className="w-10 h-1 rounded-full bg-border mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
-                {/* HEADER */}
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                    <h2 id="modal-title-slot" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
-                        {conflict ? (
-                            <>
-                                <AlertTriangle className="w-5 h-5 text-accent-red" aria-hidden="true" />
-                                Conflit détecté
-                            </>
-                        ) : (
-                            <>
-                                <UserCheck className="w-5 h-5 text-primary" aria-hidden="true" />
-                                Gérer le Créneau
-                            </>
-                        )}
+                {/* Gradient header */}
+                <div className="gradient-primary px-5 py-4 flex items-center justify-between">
+                    <h2 id="modal-title-slot" className="text-base font-bold text-white">
+                        {conflict ? 'Conflit détecté' : 'Gérer le Créneau'}
                     </h2>
                     <button
                         onClick={onClose}
                         aria-label="Fermer"
-                        className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                        className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
                     >
-                        <X className="w-5 h-5" aria-hidden="true" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -218,7 +205,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                         ) : (
                             <button
                                 onClick={() => onResolve(slot.id, "")} // "" triggers removal of override
-                                className="flex items-center justify-center px-4 py-2 border border-blue-300 text-blue-600 rounded-btn hover:bg-blue-50 text-sm font-medium transition-colors"
+                                className="flex items-center justify-center px-4 py-2 border border-border text-primary rounded-btn hover:bg-muted text-sm font-medium transition-colors"
                             >
                                 <Lock className="w-4 h-4 mr-2" />
                                 Réouvrir
@@ -228,7 +215,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                         {slot.isLocked && !slot.isClosed && (
                             <button
                                 onClick={() => onResolve(slot.id, "")}
-                                className="flex items-center justify-center px-4 py-2 border border-orange-300 text-orange-600 rounded-btn hover:bg-orange-50 text-sm font-medium transition-colors"
+                                className="flex items-center justify-center px-4 py-2 border border-border text-text-muted rounded-btn hover:bg-muted text-sm font-medium transition-colors"
                             >
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Reset (Auto)
@@ -279,7 +266,7 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                                                 </p>
                                                 <button
                                                     onClick={() => onResolve(slot.id, doc.id)}
-                                                    className="w-full py-1.5 px-3 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-btn text-xs font-bold"
+                                                    className="w-full py-1.5 px-3 bg-muted text-primary hover:bg-muted/80 border border-border rounded-btn text-xs font-bold transition-colors"
                                                 >
                                                     Affecter {doc.name}
                                                 </button>
@@ -306,13 +293,14 @@ const SlotDetailsModal: React.FC<Props> = ({ slot, conflict, doctors, slots, una
                                             <option key={d.id} value={d.id}>{d.name}</option>
                                         ))}
                                     </select>
-                                    <button
+                                    <Button
+                                        variant="primary"
+                                        size="sm"
                                         disabled={!manualDoctorId}
                                         onClick={() => onResolve(slot.id, manualDoctorId)}
-                                        className="px-4 py-2 bg-text-base text-surface rounded-btn text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Valider
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </>

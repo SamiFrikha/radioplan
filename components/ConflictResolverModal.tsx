@@ -5,6 +5,7 @@ import { getAvailableDoctors, getAlgorithmicReplacementSuggestion, findConflicti
 import { X, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ArrowRight, Activity, Calendar, ShieldAlert, UserX, UserPlus, Send } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
+import { Button } from '../src/components/ui/Button';
 import { supabase } from '../services/supabaseClient';
 import { sendReplacementRequest } from '../services/replacementService';
 import { createNotification } from '../services/notificationService';
@@ -263,7 +264,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const getSlotColor = (s: ScheduleSlot) => {
         if (s.type === SlotType.RCP) return 'bg-purple-100 border-purple-200 text-purple-800';
         if (s.type === SlotType.ACTIVITY) return 'bg-orange-100 border-orange-200 text-orange-800';
-        return 'bg-blue-50 border-blue-200 text-blue-800';
+        return 'bg-muted border-border text-primary';
     };
 
     const getSlotIcon = (s: ScheduleSlot) => {
@@ -280,32 +281,32 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                 onClick={onClose}
             >
                 <div
-                    className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                    className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
                     role="dialog"
                     aria-modal="true"
-                    aria-labelledby="modal-title-conflict"
+                    aria-labelledby="modal-title-conflict-denied"
                     onClick={e => e.stopPropagation()}
                 >
-                    <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+                    {/* Mobile drag handle */}
+                    <div className="w-10 h-1 rounded-full bg-border mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
-                    {/* HEADER */}
-                    <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                        <h2 id="modal-title-conflict" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
-                            <ShieldAlert className="w-5 h-5 text-accent-amber" aria-hidden="true" />
+                    {/* Gradient header */}
+                    <div className="gradient-primary px-5 py-4 flex items-center justify-between">
+                        <h2 id="modal-title-conflict-denied" className="text-base font-bold text-white">
                             Accès Restreint
                         </h2>
                         <button
                             onClick={onClose}
                             aria-label="Fermer"
-                            className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
                         >
-                            <X className="w-5 h-5" aria-hidden="true" />
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="px-4 py-4">
                         <div className="mb-4 text-center">
-                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
                                 <ShieldAlert className="w-8 h-8 text-accent-amber" />
                             </div>
                             <h3 className="font-bold text-base text-text-base mb-2">Ce conflit ne vous concerne pas</h3>
@@ -317,9 +318,9 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
                         {/* Show conflict info */}
                         {conflict && (
-                            <div className="bg-red-50 p-3 rounded-card border border-red-200 mb-4">
+                            <div className="bg-muted p-3 rounded-card border border-border mb-4">
                                 <div className="text-xs font-bold text-accent-red uppercase mb-1">Conflit</div>
-                                <div className="text-sm text-red-700">{conflict.description}</div>
+                                <div className="text-sm text-text-base">{conflict.description}</div>
                             </div>
                         )}
 
@@ -334,12 +335,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     </div>
 
                     <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
-                        <button
-                            onClick={onClose}
-                            className="px-4 py-2 bg-text-base text-surface rounded-btn text-sm font-bold hover:opacity-90 transition-opacity"
-                        >
-                            Fermer
-                        </button>
+                        <Button variant="primary" size="md" onClick={onClose}>Fermer</Button>
                     </div>
                 </div>
             </div>
@@ -352,35 +348,26 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
             onClick={onClose}
         >
             <div
-                className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
+                className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title-conflict"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+                {/* Mobile drag handle */}
+                <div className="w-10 h-1 rounded-full bg-border mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
-                {/* HEADER */}
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                    <h2 id="modal-title-conflict" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
-                        {conflict ? (
-                            <>
-                                <AlertTriangle className="w-5 h-5 text-accent-red" aria-hidden="true" />
-                                Conflit Détecté
-                            </>
-                        ) : (
-                            <>
-                                <UserCheck className="w-5 h-5 text-primary" aria-hidden="true" />
-                                Gérer le Créneau
-                            </>
-                        )}
+                {/* Gradient header */}
+                <div className="gradient-primary px-5 py-4 flex items-center justify-between">
+                    <h2 id="modal-title-conflict" className="text-base font-bold text-white">
+                        {conflict ? 'Conflit Détecté' : 'Gérer le Créneau'}
                     </h2>
                     <button
                         onClick={onClose}
                         aria-label="Fermer"
-                        className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                        className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
                     >
-                        <X className="w-5 h-5" aria-hidden="true" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -431,13 +418,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                     {/* 🅱️ Request replacement */}
                                     <button
                                         onClick={() => setRcpMode('REQUEST')}
-                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-all group"
+                                        className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-border bg-muted hover:border-primary hover:bg-muted/80 transition-all group"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center mb-2">
-                                            <Send className="w-5 h-5 text-blue-600" />
+                                        <div className="w-10 h-10 rounded-full bg-surface group-hover:bg-muted flex items-center justify-center mb-2 border border-border">
+                                            <Send className="w-5 h-5 text-primary" />
                                         </div>
-                                        <span className="font-bold text-sm text-blue-800">Demander remplacement</span>
-                                        <span className="text-[11px] text-blue-600 mt-1 leading-tight">
+                                        <span className="font-bold text-sm text-text-base">Demander remplacement</span>
+                                        <span className="text-[11px] text-text-muted mt-1 leading-tight">
                                             Envoyer une demande à un médecin — il sera marqué présent s'il accepte
                                         </span>
                                     </button>
@@ -465,7 +452,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         ← Retour
                                     </button>
                                     <h4 className="font-bold text-sm text-text-base mb-3 flex items-center gap-2">
-                                        <Send className="w-4 h-4 text-blue-600" /> Choisir un médecin à qui demander
+                                        <Send className="w-4 h-4 text-primary" /> Choisir un médecin à qui demander
                                     </h4>
                                     {requestSent ? (
                                         <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700 font-medium">
@@ -480,7 +467,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                         Médecins référents ({doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).length})
                                                     </p>
                                                     {doctors.filter(d => d.id !== assignedDoctor?.id && referentDoctorIds.has(d.id)).map(doc => (
-                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-green-200 rounded-lg hover:border-green-400 transition mb-1.5">
+                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-green-200 rounded-lg hover:border-green-400 transition mb-1.5">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium text-text-base">{doc.name}</span>
                                                                 <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200">Référent</span>
@@ -492,7 +479,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                             <button
                                                                 onClick={() => handleRequestReplacement(doc.id)}
                                                                 disabled={sendingRequestTo === doc.id}
-                                                                className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50 font-medium"
+                                                                className="text-xs bg-muted text-primary px-3 py-1.5 rounded-btn border border-border hover:bg-muted/80 disabled:opacity-50 font-medium transition-colors"
                                                             >
                                                                 {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
                                                             </button>
@@ -507,7 +494,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                         Autres médecins — sélection exceptionnelle ({doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).length})
                                                     </p>
                                                     {doctors.filter(d => d.id !== assignedDoctor?.id && !referentDoctorIds.has(d.id)).map(doc => (
-                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-white border border-amber-200 rounded-lg hover:border-amber-400 transition mb-1.5">
+                                                        <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-amber-200 rounded-lg hover:border-amber-400 transition mb-1.5">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium text-text-base">{doc.name}</span>
                                                                 <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200">Exceptionnel</span>
@@ -519,7 +506,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                             <button
                                                                 onClick={() => handleRequestReplacement(doc.id)}
                                                                 disabled={sendingRequestTo === doc.id}
-                                                                className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50 font-medium"
+                                                                className="text-xs bg-muted text-primary px-3 py-1.5 rounded-btn border border-border hover:bg-muted/80 disabled:opacity-50 font-medium transition-colors"
                                                             >
                                                                 {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
                                                             </button>
@@ -550,7 +537,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                     <div
                                                         key={doc.id}
                                                         onClick={() => setRcpDirectDoctorId(doc.id)}
-                                                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-green-500 bg-green-50' : 'border-green-200 bg-white hover:border-green-400'}`}
+                                                        className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-green-500 bg-green-50' : 'border-green-200 bg-surface hover:border-green-400'}`}
                                                     >
                                                         <div className="flex items-center gap-2">
                                                             {rcpDirectDoctorId === doc.id && <span className="text-green-600 font-bold">✓</span>}
@@ -572,7 +559,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                 <div
                                                     key={doc.id}
                                                     onClick={() => setRcpDirectDoctorId(doc.id)}
-                                                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-amber-500 bg-amber-50' : 'border-amber-200 bg-white hover:border-amber-400'}`}
+                                                    className={`flex items-center justify-between p-2.5 rounded-lg border cursor-pointer transition mb-1 ${rcpDirectDoctorId === doc.id ? 'border-amber-500 bg-amber-50' : 'border-amber-200 bg-surface hover:border-amber-400'}`}
                                                 >
                                                     <div className="flex items-center gap-2">
                                                         {rcpDirectDoctorId === doc.id && <span className="text-amber-600 font-bold">✓</span>}
@@ -592,13 +579,15 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                             ⚠️ Ce médecin n'est pas dans l'affectation initiale de la RCP. Il sera ajouté exceptionnellement et bloqué sur cette demi-journée.
                                         </div>
                                     )}
-                                    <button
+                                    <Button
+                                        variant="primary"
+                                        size="md"
                                         onClick={handleRcpDirectReplacement}
                                         disabled={!rcpDirectDoctorId || rcpActionLoading}
-                                        className="w-full py-2.5 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="w-full"
                                     >
                                         {rcpActionLoading ? 'Enregistrement…' : 'Confirmer le remplacement'}
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                         </div>
@@ -710,7 +699,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                 const doc = doctors.find(d => d.id === sugg.suggestedDoctorId);
                                                 if (!doc) return null;
                                                 return (
-                                                    <div key={sugg.suggestedDoctorId} className="border border-white bg-white rounded-lg p-3 hover:border-blue-300 shadow-sm transition-all group">
+                                                    <div key={sugg.suggestedDoctorId} className="border border-border bg-surface rounded-lg p-3 hover:border-primary shadow-sm transition-all group">
                                                         <div className="flex justify-between items-start mb-2">
                                                             <div className="flex items-center">
                                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold mr-3 ${doc.color}`}>
@@ -738,7 +727,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                             <button
                                                                 onClick={() => handleRequestReplacement(doc.id)}
                                                                 disabled={sendingRequestTo === doc.id || requestSent}
-                                                                className="text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-200 disabled:opacity-50"
+                                                                className="text-xs bg-muted text-primary px-3 py-1.5 rounded-btn border border-border hover:bg-muted/80 disabled:opacity-50 transition-colors"
                                                             >
                                                                 {sendingRequestTo === doc.id ? 'Envoi...' : 'Demander remplacement'}
                                                             </button>
@@ -797,13 +786,15 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                     ))
                                                 }
                                             </select>
-                                            <button
+                                            <Button
+                                                variant="primary"
+                                                size="md"
                                                 disabled={!manualDoctorId}
                                                 onClick={() => onResolve(targetSlotForReplacement.id, manualDoctorId)}
-                                                className="w-full py-2.5 bg-text-base text-surface rounded-btn text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed shadow-modal transition-all"
+                                                className="w-full"
                                             >
                                                 Valider le choix manuel
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
 

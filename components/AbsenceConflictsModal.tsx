@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, AlertTriangle, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { Button } from '../src/components/ui/Button';
 import { ScheduleTemplateSlot, ScheduleSlot, Doctor, ActivityDefinition, Unavailability, Conflict, Period, ShiftHistory, RcpDefinition, RcpAttendance, RcpException } from '../types';
 import { generateScheduleForWeek } from '../services/scheduleService';
 import ConflictResolverModal from './ConflictResolverModal';
@@ -142,26 +143,26 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
       onClick={onDismiss}
     >
       <div
-        className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
+        className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title-absence"
         onClick={e => e.stopPropagation()}
       >
-        <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+        {/* Mobile drag handle */}
+        <div className="w-10 h-1 rounded-full bg-border mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h2 id="modal-title-absence" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-accent-amber" aria-hidden="true" />
+        {/* Gradient header */}
+        <div className="gradient-primary px-5 py-4 flex items-center justify-between">
+          <h2 id="modal-title-absence" className="text-base font-bold text-white">
             Créneaux impactés
           </h2>
           <button
             onClick={onDismiss}
             aria-label="Fermer"
-            className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
           >
-            <X className="w-5 h-5" aria-hidden="true" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -237,12 +238,9 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
           <span className="text-xs text-text-muted">
             {resolvedSlots.size}/{conflictingSlots.length} résolu{resolvedSlots.size > 1 ? 's' : ''}
           </span>
-          <button
-            onClick={onDismiss}
-            className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-btn hover:bg-primary-hover"
-          >
+          <Button variant="primary" size="md" onClick={onDismiss}>
             {conflictingSlots.length === 0 || resolvedSlots.size === conflictingSlots.length ? 'Terminé' : 'Passer pour le moment'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

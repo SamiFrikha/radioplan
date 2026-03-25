@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Doctor, RcpException, ScheduleSlot, SlotType } from '../types';
 import { Calendar, Clock, Users, X, AlertTriangle, RotateCcw, Save } from 'lucide-react';
+import { Button } from '../src/components/ui/Button';
 
 interface Props {
     slot: ScheduleSlot;
@@ -73,26 +74,26 @@ const RcpExceptionModal: React.FC<Props> = ({ slot, doctors, existingException, 
             onClick={onClose}
         >
             <div
-                className="bg-surface rounded-t-[16px] md:rounded-card shadow-modal w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
+                className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[540px] mx-auto max-h-[90dvh] overflow-y-auto"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title-rcp"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="w-8 h-1 bg-border rounded-full mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+                {/* Mobile drag handle */}
+                <div className="w-10 h-1 rounded-full bg-border mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
 
-                {/* HEADER */}
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                    <h2 id="modal-title-rcp" className="font-heading font-semibold text-base text-text-base flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-purple-600" aria-hidden="true" />
+                {/* Gradient header */}
+                <div className="gradient-primary px-5 py-4 flex items-center justify-between">
+                    <h2 id="modal-title-rcp" className="text-base font-bold text-white">
                         Modifier l'occurrence RCP
                     </h2>
                     <button
                         onClick={onClose}
                         aria-label="Fermer"
-                        className="w-11 h-11 flex items-center justify-center rounded-btn hover:bg-muted -mr-2 text-text-muted hover:text-text-base"
+                        className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
                     >
-                        <X className="w-5 h-5" aria-hidden="true" />
+                        <X className="w-4 h-4" />
                     </button>
                 </div>
 
@@ -172,12 +173,12 @@ const RcpExceptionModal: React.FC<Props> = ({ slot, doctors, existingException, 
                                         <div
                                             key={doc.id}
                                             onClick={() => toggleDoctor(doc.id)}
-                                            className={`flex items-center p-2 rounded-btn cursor-pointer transition-colors ${customDoctorIds.includes(doc.id) ? 'bg-purple-100 border border-purple-200' : 'bg-surface border border-transparent hover:border-border'}`}
+                                            className={`flex items-center p-2 rounded-btn cursor-pointer transition-colors ${customDoctorIds.includes(doc.id) ? 'bg-primary/10 border border-primary/30' : 'bg-surface border border-transparent hover:border-border'}`}
                                         >
                                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold mr-2 ${doc.color} ${!customDoctorIds.includes(doc.id) && 'opacity-50'}`}>
                                                 {doc.name.substring(0, 2)}
                                             </div>
-                                            <span className={`text-xs ${customDoctorIds.includes(doc.id) ? 'font-bold text-purple-900' : 'text-text-muted'}`}>{doc.name}</span>
+                                            <span className={`text-xs ${customDoctorIds.includes(doc.id) ? 'font-bold text-primary' : 'text-text-muted'}`}>{doc.name}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -188,14 +189,10 @@ const RcpExceptionModal: React.FC<Props> = ({ slot, doctors, existingException, 
                 </div>
 
                 <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 text-text-muted hover:text-text-base text-sm font-medium">Annuler</button>
-                    <button
-                        onClick={handleSave}
-                        className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-btn shadow text-sm font-bold flex items-center"
-                    >
-                        <Save className="w-4 h-4 mr-2" />
+                    <Button variant="ghost" size="md" onClick={onClose}>Annuler</Button>
+                    <Button variant="primary" size="md" onClick={handleSave}>
                         Appliquer l'exception
-                    </button>
+                    </Button>
                 </div>
 
             </div>
