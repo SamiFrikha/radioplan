@@ -62,7 +62,7 @@ const Sidebar: React.FC = () => {
   const visibleAdminItems = adminItems.filter(i => i.show);
 
   return (
-    <aside className="print:hidden hidden md:flex flex-col h-full w-sidebar-collapsed lg:w-sidebar bg-[#0F172A] border-r border-white/5 z-sidebar">
+    <aside className="print:hidden hidden md:flex flex-col flex-shrink-0 w-sidebar-collapsed lg:w-sidebar bg-[#0F172A] border-r border-white/5 z-sidebar overflow-y-auto">
 
       {/* Header */}
       <div className="flex items-center h-14 px-4 border-b border-white/10 flex-shrink-0">

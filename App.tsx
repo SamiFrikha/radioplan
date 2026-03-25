@@ -51,12 +51,12 @@ const AppLayout: React.FC = () => {
     if (!session) return <Outlet />;
 
     return (
-        <div className="flex min-h-dvh bg-app-bg">
+        <div className="flex h-dvh bg-app-bg overflow-hidden">
             {/* Sidebar: hidden on mobile (handled by CSS inside Sidebar component) */}
             <Sidebar />
 
             {/* Main content column */}
-            <div className="flex-1 flex flex-col min-w-0 lg:ml-sidebar">
+            <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
                 {/* Mobile top bar */}
                 <TopBar />
 
