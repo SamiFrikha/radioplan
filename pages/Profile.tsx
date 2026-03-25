@@ -932,16 +932,15 @@ const Profile: React.FC = () => {
                     {/* User info card */}
                     <Card>
                         <div className="gradient-primary p-4 text-white rounded-t-card">
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-3">
-                                    <div
-                                        className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shadow-lg border-4 border-white/20 flex-shrink-0"
-                                        style={{ background: currentDoctor.color || 'var(--color-primary)' }}
-                                    >
-                                        {currentDoctor.name.substring(0, 2)}
-                                    </div>
-                                    <div>
-                                        {isEditingProfile ? (
+                            <div className="flex items-start gap-3">
+                                <div
+                                    className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shadow-lg border-4 border-white/20 flex-shrink-0"
+                                    style={{ background: currentDoctor.color || 'var(--color-primary)' }}
+                                >
+                                    {currentDoctor.name.substring(0, 2)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    {isEditingProfile ? (
                                             <div className="space-y-3 bg-white/10 p-3 rounded-card backdrop-blur-sm">
                                                 <div>
                                                     <label className="text-xs text-white/70 mb-1 block">Nom</label>
@@ -993,26 +992,22 @@ const Profile: React.FC = () => {
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="flex items-center space-x-2">
-                                                    <h2 className="text-lg font-bold">{currentDoctor.name}</h2>
-                                                    <button onClick={() => setIsEditingProfile(true)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded">
+                                                <div className="flex items-center gap-2">
+                                                    <h2 className="text-lg font-bold leading-tight">{currentDoctor.name}</h2>
+                                                    <button onClick={() => setIsEditingProfile(true)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-1 rounded flex-shrink-0">
                                                         <Edit className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                                 <p className="text-white/80 mt-0.5 flex items-center text-sm">
-                                                    <Briefcase className="w-3 h-3 mr-1 opacity-70" />
+                                                    <Briefcase className="w-3 h-3 mr-1 opacity-70 flex-shrink-0" />
                                                     {currentDoctor.specialty?.join(' • ') || 'Généraliste'}
                                                 </p>
-                                                <div className="mt-2 inline-flex items-center bg-green-400/20 text-green-100 border border-green-400/30 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">
+                                                <p className="text-white/60 text-xs mt-0.5 truncate">{profile.email}</p>
+                                                <div className="mt-2 inline-flex items-center bg-success/20 text-green-100 border border-success/30 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider">
                                                     <UserCheck className="w-3 h-3 mr-1" /> Connecté
                                                 </div>
                                             </>
                                         )}
-                                    </div>
-                                </div>
-                                <div className="text-right text-xs text-white/80 flex-shrink-0 min-w-0">
-                                    <div className="truncate max-w-[160px]">{profile.email}</div>
-                                    <div className="text-xs mt-1 opacity-75">{profile.role_name || profile.role}</div>
                                 </div>
                             </div>
                         </div>
