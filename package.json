@@ -26,6 +26,7 @@
     "autoprefixer": "^10.4.27",
     "jimp": "^1.6.0",
     "postcss": "^8.5.8",
+    "serve": "^14.2.6",
     "tailwindcss": "^3.4.19",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
