@@ -1302,93 +1302,98 @@ const Profile: React.FC = () => {
                                         const lockedByOther = lockedByDoctorId && lockedByDoctorId !== currentDoctor!.id;
                                         const lockedDoctor = lockedByOther ? doctors.find(d => d.id === lockedByDoctorId) : null;
                                         return (
-                                            <div key={idx} className={`border rounded-card p-4 ${rcp.isCancelled ? 'opacity-50 bg-muted' : 'bg-surface border-border'}`}>
-                                                {/* Header */}
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="flex-1">
-                                                        <p className="font-semibold text-text-base text-sm">
-                                                            {rcp.template.location || rcp.template.id}
-                                                            {rcp.isExceptional && (
-                                                                <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 font-bold">
-                                                                    Exceptionnel
-                                                                </span>
-                                                            )}
-                                                        </p>
-                                                        <p className="text-xs text-text-muted mt-0.5">
-                                                            {new Date(rcp.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}
-                                                            {rcp.time !== 'N/A' && ` · ${rcp.time}`}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex flex-wrap gap-1 justify-end shrink-0">
-                                                        {rcp.isCancelled && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">Annulé</span>}
-                                                        {rcp.isMoved && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Déplacé</span>}
-                                                        {rcp.holiday && <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Férié</span>}
-                                                    </div>
-                                                </div>
+                                            <div key={idx} className={`bg-surface rounded-card shadow-card border border-border/40 overflow-hidden ${rcp.isCancelled ? 'opacity-50' : ''}`}>
+                                                <div className="flex">
+                                                    {/* Violet left accent strip */}
+                                                    <div className="w-1 bg-secondary flex-shrink-0" />
+                                                    <div className="flex-1 p-4">
 
-                                                {!rcp.isCancelled && (
-                                                    <>
-                                                        {/* Lock: confirmed by colleague */}
-                                                        {lockedByOther && (
-                                                            <div className="mt-2 text-xs text-primary bg-primary/5 rounded-btn-sm px-3 py-1.5 flex items-center gap-1.5">
-                                                                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                                                                Confirmé par {lockedDoctor?.name || 'un collègue'}
+                                                        {/* Header */}
+                                                        <div className="flex items-start justify-between gap-2 mb-3">
+                                                            <div className="flex-1">
+                                                                <p className="text-sm font-bold text-text-base leading-tight">
+                                                                    {rcp.template.location || rcp.template.id}
+                                                                    {rcp.isExceptional && (
+                                                                        <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full border border-amber-200 font-bold">
+                                                                            Exceptionnel
+                                                                        </span>
+                                                                    )}
+                                                                </p>
+                                                                <p className="text-xs text-text-muted mt-0.5">
+                                                                    {new Date(rcp.date + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                                                                    {rcp.time !== 'N/A' && ` · ${rcp.time}`}
+                                                                </p>
                                                             </div>
-                                                        )}
-
-                                                        {/* My decision + action buttons */}
-                                                        <div className="mt-3 flex items-center gap-2 flex-wrap">
-                                                            {rcp.myStatus === 'PRESENT' && (
-                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                                                                    <CheckCircle2 className="w-3 h-3" /> Présent
-                                                                </span>
-                                                            )}
-                                                            {rcp.myStatus === 'ABSENT' && (
-                                                                <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                                                                    <XCircle className="w-3 h-3" /> Absent
-                                                                </span>
-                                                            )}
-                                                            <div className="flex gap-2 ml-auto">
-                                                                {!lockedByOther && (
-                                                                    <button
-                                                                        onClick={() => handleAttendanceToggle(rcp.generatedId, 'PRESENT')}
-                                                                        disabled={rcp.myStatus === 'PRESENT'}
-                                                                        className={`text-xs px-3 py-1.5 rounded-btn-sm font-medium transition-colors ${rcp.myStatus === 'PRESENT' ? 'bg-green-600 text-white cursor-default' : 'bg-muted text-text-base hover:bg-green-50 hover:text-green-700'}`}
-                                                                    >
-                                                                        Présent
-                                                                    </button>
-                                                                )}
-                                                                <button
-                                                                    onClick={() => handleAttendanceToggle(rcp.generatedId, 'ABSENT')}
-                                                                    disabled={rcp.myStatus === 'ABSENT'}
-                                                                    className={`text-xs px-3 py-1.5 rounded-btn-sm font-medium transition-colors ${rcp.myStatus === 'ABSENT' ? 'bg-red-500 text-white cursor-default' : 'bg-muted text-text-base hover:bg-red-50 hover:text-red-600'}`}
-                                                                >
-                                                                    Absent
-                                                                </button>
-                                                                {rcp.myStatus && (
-                                                                    <button onClick={() => handleClearDecision(rcp.generatedId)}
-                                                                        className="text-xs px-2 py-1.5 rounded-btn-sm text-text-muted hover:text-text-base hover:bg-muted" title="Réinitialiser">
-                                                                        <RotateCcw className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                )}
+                                                            <div className="flex flex-wrap gap-1 justify-end shrink-0">
+                                                                {rcp.isCancelled && <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full font-medium">Annulé</span>}
+                                                                {rcp.isMoved && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Déplacé</span>}
+                                                                {rcp.holiday && <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">Férié</span>}
                                                             </div>
                                                         </div>
 
-                                                        {/* Colleagues */}
-                                                        {rcp.colleaguesStatus.length > 0 && (
-                                                            <div className="mt-3 pt-3 border-t border-border">
-                                                                <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider mb-1.5">Collègues</p>
-                                                                <div className="flex flex-wrap gap-1.5">
-                                                                    {rcp.colleaguesStatus.map((col: any) => (
-                                                                        <span key={col.id} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${col.status === 'PRESENT' ? 'bg-green-100 text-green-700' : col.status === 'ABSENT' ? 'bg-red-100 text-red-600' : 'bg-muted text-text-muted'}`}>
-                                                                            {col.name}{col.status === 'PRESENT' ? ' ✓' : col.status === 'ABSENT' ? ' ✗' : ' ?'}
-                                                                        </span>
-                                                                    ))}
+                                                        {!rcp.isCancelled && (
+                                                            <>
+                                                                {/* Lock: confirmed by colleague */}
+                                                                {lockedByOther && (
+                                                                    <div className="mb-3 text-xs text-primary bg-primary/5 rounded-btn-sm px-3 py-1.5 flex items-center gap-1.5">
+                                                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                                                        Confirmé par {lockedDoctor?.name || 'un collègue'}
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Attendance pill buttons */}
+                                                                <div className="flex gap-2 mb-3">
+                                                                    {!lockedByOther && (
+                                                                        <button
+                                                                            onClick={() => handleAttendanceToggle(rcp.generatedId, 'PRESENT')}
+                                                                            disabled={rcp.myStatus === 'PRESENT'}
+                                                                            className={`flex-1 py-2 rounded-btn text-sm font-semibold transition-all press-scale ${
+                                                                                rcp.myStatus === 'PRESENT'
+                                                                                    ? 'bg-success text-white shadow-[0_2px_8px_rgba(16,185,129,0.3)] cursor-default'
+                                                                                    : 'bg-muted text-text-muted hover:bg-success/10 hover:text-success border border-border'
+                                                                            }`}
+                                                                        >
+                                                                            Présent
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        onClick={() => handleAttendanceToggle(rcp.generatedId, 'ABSENT')}
+                                                                        disabled={rcp.myStatus === 'ABSENT'}
+                                                                        className={`flex-1 py-2 rounded-btn text-sm font-semibold transition-all press-scale ${
+                                                                            rcp.myStatus === 'ABSENT'
+                                                                                ? 'bg-danger text-white shadow-[0_2px_8px_rgba(220,38,38,0.3)] cursor-default'
+                                                                                : 'bg-muted text-text-muted hover:bg-danger/10 hover:text-danger border border-border'
+                                                                        }`}
+                                                                    >
+                                                                        Absent
+                                                                    </button>
+                                                                    {rcp.myStatus && (
+                                                                        <button onClick={() => handleClearDecision(rcp.generatedId)}
+                                                                            className="px-2 py-2 rounded-btn text-text-muted hover:text-text-base hover:bg-muted border border-border transition-all" title="Réinitialiser">
+                                                                            <RotateCcw className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    )}
                                                                 </div>
-                                                            </div>
+
+                                                                {/* Colleagues status pills */}
+                                                                {rcp.colleaguesStatus.length > 0 && (
+                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                        <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Collègues :</span>
+                                                                        {rcp.colleaguesStatus.map((col: any) => (
+                                                                            <span key={col.id} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                                                                col.status === 'PRESENT' ? 'bg-success/10 text-success'
+                                                                                : col.status === 'ABSENT' ? 'bg-danger/10 text-danger'
+                                                                                : 'bg-muted text-text-muted'
+                                                                            }`}>
+                                                                                {col.name}{col.status === 'PRESENT' ? ' ✓' : col.status === 'ABSENT' ? ' ✗' : ' ?'}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </>
                                                         )}
-                                                    </>
-                                                )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         );
                                     })}
