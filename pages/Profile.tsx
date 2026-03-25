@@ -919,7 +919,7 @@ const Profile: React.FC = () => {
     const upcomingRcps = getUpcomingRcps();
 
     return (
-        <div className="max-w-5xl mx-auto pb-20 p-1 md:p-4">
+        <div className="max-w-5xl pb-20">
 
             {/* PAGE HEADER */}
             <h1 className="text-2xl font-extrabold text-text-base tracking-tight mb-4">Mon Profil</h1>
@@ -1010,8 +1010,8 @@ const Profile: React.FC = () => {
                                         )}
                                     </div>
                                 </div>
-                                <div className="text-right text-xs text-white/80 flex-shrink-0">
-                                    <div className="truncate max-w-[120px]">{profile.email}</div>
+                                <div className="text-right text-xs text-white/80 flex-shrink-0 min-w-0">
+                                    <div className="truncate max-w-[160px]">{profile.email}</div>
                                     <div className="text-xs mt-1 opacity-75">{profile.role_name || profile.role}</div>
                                 </div>
                             </div>

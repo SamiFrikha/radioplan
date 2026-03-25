@@ -666,9 +666,9 @@ const Planning: React.FC = () => {
                 >
                     <table className="w-full border-collapse" style={{ minWidth: '600px' }}>
                         <thead>
-                            <tr className="sticky top-0 z-table-header bg-[#1E293B]">
+                            <tr className="sticky top-0 z-table-header bg-surface border-b-2 border-border">
                                 {/* Sticky top-left corner cell */}
-                                <th className="sticky left-0 z-[12] bg-[#1E293B] px-3 py-3 border-r border-white/5 border-b border-white/5 min-w-[80px] max-w-[100px] text-left text-[9px] md:text-xs font-bold text-text-muted uppercase">
+                                <th className="sticky left-0 z-[12] bg-surface px-3 py-3 border-r border-border border-b-2 border-border min-w-[80px] max-w-[100px] text-left text-[9px] md:text-xs font-bold text-text-muted uppercase">
                                     <span className="hidden md:inline">{viewMode === 'ROOM' ? 'Lieu / Créneau' : 'Médecin'}</span>
                                     <span className="md:hidden">{viewMode === 'ROOM' ? 'Lieu' : 'Dr'}</span>
                                 </th>
@@ -682,8 +682,8 @@ const Planning: React.FC = () => {
 
                                     return (
                                         <th key={day} className={isToday
-                                            ? "text-[11px] font-bold text-white uppercase tracking-wider px-3 py-3 min-w-[80px] text-center bg-gradient-primary border-r border-white/10"
-                                            : "text-[11px] font-semibold text-white/70 uppercase tracking-wider px-3 py-3 min-w-[80px] text-center border-r border-white/5"
+                                            ? "text-[11px] font-bold text-white uppercase tracking-wider px-3 py-3 min-w-[80px] text-center bg-gradient-primary border-r border-primary/20"
+                                            : "text-[11px] font-semibold text-text-muted uppercase tracking-wider px-3 py-3 min-w-[80px] text-center border-r border-border"
                                         }>
                                             {day.substring(0, 3)}
                                             <div className="text-[9px] font-normal mt-0.5 flex justify-center items-center opacity-80">
