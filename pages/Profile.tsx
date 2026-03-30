@@ -910,9 +910,15 @@ const Profile: React.FC = () => {
                         Votre compte n'est pas encore lié à un profil médecin.
                         Contactez un administrateur pour configurer votre profil.
                     </p>
-                    <p className="text-sm text-text-muted">
+                    <p className="text-sm text-text-muted mb-6">
                         Connecté en tant que : <strong>{profile.email}</strong>
                     </p>
+                    <button
+                        onClick={() => signOut()}
+                        className="inline-flex items-center gap-2 bg-danger/10 hover:bg-danger/20 text-danger border border-danger/20 px-4 py-2 rounded-btn text-sm font-semibold transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" /> Se déconnecter
+                    </button>
                 </div>
             </div>
         );
@@ -923,7 +929,7 @@ const Profile: React.FC = () => {
     const upcomingRcps = getUpcomingRcps();
 
     return (
-        <div className="max-w-5xl pb-20">
+        <div className="pb-20 lg:pb-6">
 
             {/* PAGE HEADER */}
             <h1 className="text-2xl font-extrabold text-text-base tracking-tight mb-4">Mon Profil</h1>

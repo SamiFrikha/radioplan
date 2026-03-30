@@ -673,7 +673,7 @@ const Configuration: React.FC = () => {
     const rows = getRows();
 
     return (
-        <div className="h-full flex flex-col space-y-4 pb-20">
+        <div className={`${activeTab === SlotType.RCP && rcpViewMode === 'RULES' ? 'min-h-full' : 'h-full'} flex flex-col space-y-4 pb-20`}>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div className="mb-4 md:mb-0">
                     <h1 className="text-2xl font-extrabold text-text-base tracking-tight flex items-center">
