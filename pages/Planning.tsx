@@ -123,8 +123,9 @@ const Planning: React.FC = () => {
                     return { ...slot, assignedDoctorId: doctorId, isLocked: true, isAutoAssigned: isAuto };
                 }
             }
-            // If week is NOT validated, clear activity assignments so they don't show in Planning Global
-            if (!isCurrentWeekValidated && slot.type === SlotType.ACTIVITY) {
+            // ACTIVITY slots: only show doctor if explicitly assigned via manual override.
+            // Template defaults should never appear as real assignments.
+            if (slot.type === SlotType.ACTIVITY) {
                 return { ...slot, assignedDoctorId: null };
             }
             return slot;
@@ -143,9 +144,18 @@ const Planning: React.FC = () => {
 
     const days = Object.values(DayOfWeek);
 
-    // Always show all Postes and Activities rows. NO RCPs.
-    // Activity content will be empty if the week is not validated in Activities.
-    const displayRows = [...postes, ...activityDefinitions.map(a => a.name)];
+    // Row order: Astreinte → Unity → Workflow → other activities → postes (consultation)
+    const activitySortPriority = (name: string): number => {
+        const n = name.toLowerCase();
+        if (n.includes('astreinte')) return 0;
+        if (n.includes('unity'))     return 1;
+        if (n.includes('workflow') || n.includes('supervision')) return 2;
+        return 3;
+    };
+    const sortedActivityRows = [...activityDefinitions]
+        .sort((a, b) => activitySortPriority(a.name) - activitySortPriority(b.name))
+        .map(a => a.name);
+    const displayRows = [...sortedActivityRows, ...postes];
 
     const handleResolve = (slotId: string, newDoctorId: string) => {
         if (newDoctorId === "") {
@@ -503,8 +513,8 @@ const Planning: React.FC = () => {
             (s.location === location || s.subType === location)
         );
 
-        // For activity slots in non-validated weeks: show empty non-clickable cell
-        if (slot && slot.type === SlotType.ACTIVITY && !isCurrentWeekValidated) {
+        // For activity slots with no explicit assignment: show empty non-clickable cell
+        if (slot && slot.type === SlotType.ACTIVITY && !slot.assignedDoctorId) {
             return (
                 <div className="h-full w-full bg-muted/50 min-h-[60px] flex items-center justify-center cursor-default">
                     <span className="text-[10px] text-text-muted italic">—</span>

@@ -105,8 +105,9 @@ const Dashboard: React.FC = () => {
                     return { ...slot, assignedDoctorId: doctorId, isLocked: true, isAutoAssigned: isAuto };
                 }
             }
-            // If week is NOT validated, clear activity assignments so they don't show in Dashboard
-            if (!isCurrentWeekValidated && slot.type === SlotType.ACTIVITY) {
+            // ACTIVITY slots: only show doctor if explicitly assigned via manual override.
+            // Template defaults should never appear as real assignments.
+            if (slot.type === SlotType.ACTIVITY) {
                 return { ...slot, assignedDoctorId: null };
             }
             return slot;
@@ -396,13 +397,27 @@ const Dashboard: React.FC = () => {
     }
 
 
+    // Slot display order: Astreinte → Unity → Workflow → RCP → Consultation → other
+    const slotSortPriority = (s: any): number => {
+        if (s.type === SlotType.ACTIVITY) {
+            const sub = (s.subType || s.location || '').toLowerCase();
+            if (sub.includes('astreinte'))  return 0;
+            if (sub.includes('unity'))      return 1;
+            if (sub.includes('workflow') || sub.includes('supervision')) return 2;
+            return 3;
+        }
+        if (s.type === SlotType.RCP)          return 4;
+        if (s.type === SlotType.CONSULTATION) return 5;
+        return 6;
+    };
+
     // --- RENDER HELPERS ---
     const renderDayView = () => {
         const dateStr = selectedDate.toISOString().split('T')[0];
         const daySlots = schedule.filter(s => s.date === dateStr);
 
-        const morningSlots = daySlots.filter(s => s.period === Period.MORNING);
-        const afternoonSlots = daySlots.filter(s => s.period === Period.AFTERNOON);
+        const morningSlots = daySlots.filter(s => s.period === Period.MORNING).sort((a, b) => slotSortPriority(a) - slotSortPriority(b));
+        const afternoonSlots = daySlots.filter(s => s.period === Period.AFTERNOON).sort((a, b) => slotSortPriority(a) - slotSortPriority(b));
 
         const renderSlotList = (slots: typeof daySlots) => (
             <div className="space-y-2">
