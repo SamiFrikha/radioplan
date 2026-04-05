@@ -1498,58 +1498,44 @@ const Profile: React.FC = () => {
                                                                 )}
 
                                                                 {/* Remplacement / assignation directe */}
-                                                                {rcp.myStatus !== 'PRESENT' && (
-                                                                    <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const syntheticSlot: ScheduleSlot = {
-                                                                                    id: rcp.generatedId,
-                                                                                    date: rcp.date,
-                                                                                    day: rcp.template.day,
-                                                                                    period: rcp.template.period ?? Period.MORNING,
-                                                                                    time: rcp.template.time,
-                                                                                    location: rcp.template.location || rcp.template.id,
-                                                                                    subType: rcp.template.location,
-                                                                                    type: SlotType.RCP,
-                                                                                    assignedDoctorId: currentDoctor!.id,
-                                                                                    secondaryDoctorIds: rcp.template.secondaryDoctorIds ?? [],
-                                                                                    backupDoctorId: rcp.template.backupDoctorId,
-                                                                                    isUnconfirmed: true,
-                                                                                };
-                                                                                setConflictModalSlot(syntheticSlot);
-                                                                                setConflictModalConflict(null);
-                                                                            }}
-                                                                            className="flex-1 py-2 rounded-btn text-xs font-semibold border border-border text-text-muted hover:bg-muted transition-all flex items-center justify-center gap-1.5"
-                                                                        >
-                                                                            <UserCheck className="w-3.5 h-3.5" />
-                                                                            Demander remplacement
-                                                                        </button>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const syntheticSlot: ScheduleSlot = {
-                                                                                    id: rcp.generatedId,
-                                                                                    date: rcp.date,
-                                                                                    day: rcp.template.day,
-                                                                                    period: rcp.template.period ?? Period.MORNING,
-                                                                                    time: rcp.template.time,
-                                                                                    location: rcp.template.location || rcp.template.id,
-                                                                                    subType: rcp.template.location,
-                                                                                    type: SlotType.RCP,
-                                                                                    assignedDoctorId: currentDoctor!.id,
-                                                                                    secondaryDoctorIds: rcp.template.secondaryDoctorIds ?? [],
-                                                                                    backupDoctorId: rcp.template.backupDoctorId,
-                                                                                    isUnconfirmed: true,
-                                                                                };
-                                                                                setConflictModalSlot(syntheticSlot);
-                                                                                setConflictModalConflict(null);
-                                                                            }}
-                                                                            className="flex-1 py-2 rounded-btn text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
-                                                                        >
-                                                                            <UserCheck className="w-3.5 h-3.5" />
-                                                                            Assigner directement
-                                                                        </button>
-                                                                    </div>
-                                                                )}
+                                                                {rcp.myStatus !== 'PRESENT' && (() => {
+                                                                    const replacementSlot: ScheduleSlot = {
+                                                                        id: rcp.generatedId,
+                                                                        date: rcp.date,
+                                                                        day: rcp.template.day,
+                                                                        period: rcp.template.period ?? Period.MORNING,
+                                                                        time: rcp.template.time,
+                                                                        location: rcp.template.location || rcp.template.id,
+                                                                        subType: rcp.template.location,
+                                                                        type: SlotType.RCP,
+                                                                        assignedDoctorId: currentDoctor!.id,
+                                                                        secondaryDoctorIds: rcp.template.secondaryDoctorIds ?? [],
+                                                                        backupDoctorId: rcp.template.backupDoctorId,
+                                                                        isUnconfirmed: true,
+                                                                    };
+                                                                    const openModal = () => {
+                                                                        setConflictModalSlot(replacementSlot);
+                                                                        setConflictModalConflict(null);
+                                                                    };
+                                                                    return (
+                                                                        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+                                                                            <button
+                                                                                onClick={openModal}
+                                                                                className="flex-1 py-2 rounded-btn text-xs font-semibold border border-border text-text-muted hover:bg-muted transition-all flex items-center justify-center gap-1.5"
+                                                                            >
+                                                                                <UserCheck className="w-3.5 h-3.5" />
+                                                                                Demander remplacement
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={openModal}
+                                                                                className="flex-1 py-2 rounded-btn text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
+                                                                            >
+                                                                                <UserCheck className="w-3.5 h-3.5" />
+                                                                                Assigner directement
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </>
                                                         )}
                                                     </div>
