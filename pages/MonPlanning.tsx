@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
-import { LayoutGrid } from 'lucide-react';
+import React, { useState, useContext } from 'react';
+import { AppContext } from '../App';
 import PersonalAgendaWeek from '../components/PersonalAgendaWeek';
 import PersonalAgendaMonth from '../components/PersonalAgendaMonth';
+import ConflictResolverModal from '../components/ConflictResolverModal';
+import { ScheduleSlot } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 const MonPlanning: React.FC = () => {
   const [agendaView, setAgendaView] = useState<'week' | 'month'>('week');
   const [agendaWeekOffset, setAgendaWeekOffset] = useState(0);
+  const [selectedConsultSlot, setSelectedConsultSlot] = useState<ScheduleSlot | null>(null);
+  const [selectedRcpSlot, setSelectedRcpSlot] = useState<ScheduleSlot | null>(null);
+
+  const {
+    doctors, unavailabilities, manualOverrides, setManualOverrides,
+  } = useContext(AppContext);
+
+  const { profile } = useAuth();
+
+  const handleConsultResolve = (slotId: string, newDoctorId: string) => {
+    setManualOverrides({ ...manualOverrides, [slotId]: newDoctorId });
+    setSelectedConsultSlot(null);
+  };
+
+  const handleConsultCloseSlot = (slotId: string) => {
+    setManualOverrides({ ...manualOverrides, [slotId]: '__CLOSED__' });
+    setSelectedConsultSlot(null);
+  };
+
+  const weekSlots: ScheduleSlot[] = [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
@@ -29,11 +52,33 @@ const MonPlanning: React.FC = () => {
         </div>
 
         {agendaView === 'week' ? (
-          <PersonalAgendaWeek weekOffset={agendaWeekOffset} onOffsetChange={setAgendaWeekOffset} />
+          <PersonalAgendaWeek
+            weekOffset={agendaWeekOffset}
+            onOffsetChange={setAgendaWeekOffset}
+            onConsultClick={setSelectedConsultSlot}
+            onRcpClick={setSelectedRcpSlot}
+          />
         ) : (
           <PersonalAgendaMonth />
         )}
       </div>
+
+      {selectedConsultSlot && (
+        <ConflictResolverModal
+          slot={selectedConsultSlot}
+          doctors={doctors}
+          slots={weekSlots}
+          unavailabilities={unavailabilities}
+          onClose={() => setSelectedConsultSlot(null)}
+          onResolve={handleConsultResolve}
+          onCloseSlot={handleConsultCloseSlot}
+        />
+      )}
+
+      {selectedRcpSlot && profile?.doctor_id && (
+        // RcpAttendanceModal will be added in T9
+        <div style={{ display: 'none' }} />
+      )}
     </div>
   );
 };
