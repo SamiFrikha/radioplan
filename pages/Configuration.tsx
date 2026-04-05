@@ -121,6 +121,7 @@ const Configuration: React.FC = () => {
     const [autoConfigDay, setAutoConfigDay] = useState('Vendredi');
     const [autoConfigTime, setAutoConfigTime] = useState('14:00');
     const [autoConfigMode, setAutoConfigMode] = useState<'8weeks' | 'permanent'>('8weeks');
+    const [autoConfigStartDate, setAutoConfigStartDate] = useState<string>('');
     const [savingAutoConfig, setSavingAutoConfig] = useState(false);
     const [launchWeekDate, setLaunchWeekDate] = useState<string>('');
     const [cancellingWeek, setCancellingWeek] = useState<string | null>(null);
@@ -339,12 +340,23 @@ const Configuration: React.FC = () => {
             const DAY_OFFSET: Record<string, number> = {
                 'Lundi': 0, 'Mardi': 1, 'Mercredi': 2, 'Jeudi': 3, 'Vendredi': 4,
             };
-            const today = new Date();
-            const dow = today.getDay();
-            const diff = today.getDate() - dow + (dow === 0 ? -6 : 1);
-            const currentMonday = new Date(today);
-            currentMonday.setDate(diff);
-            currentMonday.setHours(0, 0, 0, 0);
+            let currentMonday: Date;
+            if (autoConfigStartDate) {
+                // Use chosen start date, snapped to its Monday
+                const chosen = new Date(autoConfigStartDate + 'T12:00:00');
+                const dow2 = chosen.getDay();
+                const diff2 = chosen.getDate() - dow2 + (dow2 === 0 ? -6 : 1);
+                currentMonday = new Date(chosen);
+                currentMonday.setDate(diff2);
+                currentMonday.setHours(0, 0, 0, 0);
+            } else {
+                const today = new Date();
+                const dow = today.getDay();
+                const diff = today.getDate() - dow + (dow === 0 ? -6 : 1);
+                currentMonday = new Date(today);
+                currentMonday.setDate(diff);
+                currentMonday.setHours(0, 0, 0, 0);
+            }
 
             const [h, m] = autoConfigTime.split(':').map(Number);
             const weeksCount = autoConfigMode === 'permanent' ? 52 : 8;
@@ -1216,6 +1228,16 @@ const Configuration: React.FC = () => {
                                 <input type="time" value={autoConfigTime}
                                     onChange={e => setAutoConfigTime(e.target.value)}
                                     className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-text-base mb-1.5">Applicable à partir de</label>
+                                <input
+                                    type="date"
+                                    value={autoConfigStartDate}
+                                    onChange={e => setAutoConfigStartDate(e.target.value)}
+                                    className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                />
+                                <p className="text-xs text-text-muted mt-1">Laisser vide pour démarrer dès cette semaine</p>
                             </div>
                             <div className="md:col-span-2 flex flex-col gap-2">
                                 <div className="flex items-center gap-1 p-1 bg-muted rounded-btn w-full">

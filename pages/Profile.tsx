@@ -51,8 +51,8 @@ const NotificationSection: React.FC<{
 
     const NOTIFICATION_CONTENT: Record<string, { title: string; body: string }> = {
       RCP_AUTO_ASSIGNED:    { title: 'Vous avez été assigné à un RCP', body: 'Vous avez été sélectionné pour le RCP du 2026-05-07 (Lymphomes)' },
-      RCP_REMINDER_24H:    { title: 'Rappel RCP — 24h avant tirage', body: "Personne n'a encore confirmé pour le RCP du 2026-05-07. Tirage automatique dans 24h." },
-      RCP_REMINDER_12H:    { title: 'Rappel RCP — 12h avant tirage', body: "Personne n'a encore confirmé pour le RCP du 2026-05-07. Tirage automatique dans 12h." },
+      RCP_REMINDER_24H:    { title: 'Rappel RCP — Lymphomes — 24h avant tirage', body: 'Rappel : vous êtes assigné au RCP "Lymphomes" du 2026-05-07. Confirmez votre présence ou déclarez une absence avant le tirage automatique dans 24h.' },
+      RCP_REMINDER_12H:    { title: 'Rappel RCP — Lymphomes — 12h avant tirage', body: 'Rappel : vous êtes assigné au RCP "Lymphomes" du 2026-05-07. Confirmez votre présence ou déclarez une absence avant le tirage automatique dans 12h.' },
       RCP_UNASSIGNED_ALERT: { title: 'RCP sans médecin disponible', body: 'Aucun médecin disponible pour le RCP du 2026-05-07 (Lymphomes)' },
       RCP_SLOT_FILLED:     { title: 'RCP créneau pourvu', body: 'Le créneau RCP du 2026-05-07 a été pourvu.' },
       REPLACEMENT_REQUEST: { title: 'Demande de remplacement 🔄', body: 'Dr. Martin vous demande de le remplacer le 2026-05-07 (après-midi).' },
@@ -151,9 +151,9 @@ const NotificationSection: React.FC<{
         }
     };
 
-    const REPLACEMENT_TYPES = ['REPLACEMENT_REQUEST', 'REPLACEMENT_ACCEPTED', 'REPLACEMENT_REJECTED'];
-    const filteredNotifications = notifications.filter((n: any) => REPLACEMENT_TYPES.includes(n.type));
+    const filteredNotifications = notifications;
     const filteredUnreadCount = filteredNotifications.filter((n: any) => !n.read).length;
+    const REPLACEMENT_TYPES = ['REPLACEMENT_REQUEST', 'REPLACEMENT_ACCEPTED', 'REPLACEMENT_REJECTED'];
 
     return (
         <div className="space-y-3">
@@ -258,7 +258,7 @@ const NotificationSection: React.FC<{
 
             {loading && <p className="text-sm text-text-muted py-6 text-center">Chargement...</p>}
             {!loading && filteredNotifications.length === 0 && (
-                <p className="text-sm text-text-muted py-6 text-center">Aucune notification de remplacement</p>
+                <p className="text-sm text-text-muted py-6 text-center">Aucune notification</p>
             )}
 
             <div className="space-y-2">
