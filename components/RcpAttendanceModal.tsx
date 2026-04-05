@@ -20,32 +20,35 @@ const RcpAttendanceModal: React.FC<Props> = ({ slot, doctorId, onClose }) => {
     setLoading(status);
     try {
       if (status === 'PRESENT') {
-        await supabase
+        const { error } = await supabase
           .from('rcp_attendance')
           .upsert(
             { slot_id: slot.id, doctor_id: doctorId, status: 'PRESENT' },
             { onConflict: 'slot_id, doctor_id' }
           );
+        if (error) throw error;
         setRcpAttendance({
           ...rcpAttendance,
           [slot.id]: { ...(rcpAttendance[slot.id] ?? {}), [doctorId]: 'PRESENT' },
         });
       } else {
-        await supabase
+        const { error } = await supabase
           .from('rcp_attendance')
           .delete()
           .eq('slot_id', slot.id)
           .eq('doctor_id', doctorId);
+        if (error) throw error;
         const updatedSlot = { ...(rcpAttendance[slot.id] ?? {}) };
         delete updatedSlot[doctorId];
         setRcpAttendance({ ...rcpAttendance, [slot.id]: updatedSlot });
       }
-      onClose();
     } catch (err) {
       console.error('RcpAttendanceModal error:', err);
+      return;
     } finally {
       setLoading(null);
     }
+    onClose();
   };
 
   const slotLabel = slot.subType || slot.location || 'RCP';
