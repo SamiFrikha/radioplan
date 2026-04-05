@@ -13,7 +13,7 @@ import { markReplacementResolved } from '../services/replacementService';
 import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
 import { createNotification } from '../services/notificationService';
-import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException } from '../types';
+import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException, NotificationType } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts, getWeekNumber, getNthDayOfMonth } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
@@ -44,8 +44,31 @@ const NotificationSection: React.FC<{
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [clearing, setClearing] = useState(false);
+    const [testingType, setTestingType] = useState<string | null>(null);
+    const [testedType, setTestedType] = useState<string | null>(null);
     const { permission, isStandalone, subscribe, loading: pushLoading, error: pushError } = usePushNotifications(userId);
     const { isEnabled, toggle, loading: prefsLoading } = useNotificationPreferences(userId);
+
+    const handleTestNotification = async (notifType: string) => {
+      if (!userId || testingType) return;
+      setTestingType(notifType);
+      try {
+        await createNotification({
+          user_id: userId,
+          type: notifType as NotificationType,
+          title: `[TEST] ${NOTIFICATION_TYPE_LABELS[notifType] ?? notifType}`,
+          body: 'Ceci est une notification de test. Elle apparaît dans votre liste de notifications.',
+          data: {},
+          read: false,
+        });
+        setTestedType(notifType);
+        setTimeout(() => setTestedType(null), 2000);
+      } catch (err) {
+        console.error('Test notification error:', err);
+      } finally {
+        setTestingType(null);
+      }
+    };
 
     const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
         const requestId = n.data?.requestId as string | undefined;
@@ -170,16 +193,33 @@ const NotificationSection: React.FC<{
                 {ALL_NOTIFICATION_TYPES.map(type => (
                   <div key={type} className="flex items-center justify-between gap-3">
                     <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
-                    <button
-                      disabled={prefsLoading}
-                      onClick={() => toggle(type)}
-                      aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
-                      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
-                        ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform
-                        ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleTestNotification(type)}
+                        disabled={!isEnabled(type) || !!testingType || prefsLoading}
+                        className="px-2 py-1 text-[10px] font-bold rounded border border-border text-text-muted hover:bg-muted disabled:opacity-40 transition-colors flex items-center gap-1"
+                        title="Envoyer une notification de test"
+                      >
+                        {testingType === type ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : testedType === type ? (
+                          '✓'
+                        ) : (
+                          '▶'
+                        )}
+                        {testingType === type ? '' : testedType === type ? 'Envoyé' : 'Test'}
+                      </button>
+                      <button
+                        disabled={prefsLoading}
+                        onClick={() => toggle(type)}
+                        aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
+                        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
+                          ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform
+                          ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
