@@ -14,8 +14,8 @@ export const getRcpAutoConfigs = async (): Promise<RcpAutoConfig[]> => {
   const { data, error } = await supabase
     .from('rcp_auto_config')
     .select('*')
-    .order('week_start_date', { ascending: false })
-    .limit(10);
+    .order('week_start_date', { ascending: true })
+    .limit(60);
   if (error) throw error;
   return (data ?? []).map(mapRow);
 };
@@ -47,6 +47,32 @@ export const deleteRcpAutoConfig = async (weekStartDate: string): Promise<void> 
     .from('rcp_auto_config')
     .delete()
     .eq('week_start_date', weekStartDate);
+  if (error) throw error;
+};
+
+export const deleteAllRcpAutoConfigs = async (
+  rcpTemplateIds: string[],
+  weekStartDates: string[]
+): Promise<void> => {
+  // Cancel all auto-attendance for each week
+  for (const weekStartDate of weekStartDates) {
+    const weekStart = new Date(weekStartDate + 'T12:00:00');
+    const dates = [0, 1, 2, 3, 4].map(i => {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      return toDateStr(d);
+    });
+    const slotIds = rcpTemplateIds.flatMap(id => dates.map(date => `${id}-${date}`));
+    if (slotIds.length > 0) {
+      await supabase
+        .from('rcp_attendance')
+        .delete()
+        .in('slot_id', slotIds)
+        .eq('status', 'PRESENT');
+    }
+  }
+  // Delete all config rows
+  const { error } = await supabase.from('rcp_auto_config').delete().neq('id', 0);
   if (error) throw error;
 };
 

@@ -5,7 +5,7 @@ import { Save, RefreshCw, LayoutTemplate, PlusCircle, Clock, Trash2, Check, X, M
 import { generateScheduleForWeek, getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
 import RcpExceptionModal from '../components/RcpExceptionModal';
 import { DoctorBadge, getDoctorHexColor } from '../components/DoctorBadge';
-import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow, cancelWeekAutoAssign, deleteRcpAutoConfig } from '../services/rcpAutoConfigService';
+import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow, cancelWeekAutoAssign, deleteRcpAutoConfig, deleteAllRcpAutoConfigs } from '../services/rcpAutoConfigService';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 
@@ -125,6 +125,7 @@ const Configuration: React.FC = () => {
     const [launchWeekDate, setLaunchWeekDate] = useState<string>('');
     const [cancellingWeek, setCancellingWeek] = useState<string | null>(null);
     const [deletingWeek, setDeletingWeek] = useState<string | null>(null);
+    const [deletingAll, setDeletingAll] = useState(false);
 
     const days = Object.values(DayOfWeek);
 
@@ -423,6 +424,28 @@ const Configuration: React.FC = () => {
             alert('Erreur lors de l\'annulation.');
         } finally {
             setCancellingWeek(null);
+        }
+    };
+
+    const handleDeleteAllRcpConfigs = async () => {
+        if (rcpAutoConfigs.length === 0) {
+            alert('Aucune configuration à supprimer.');
+            return;
+        }
+        if (!window.confirm(
+            `Supprimer TOUTES les règles d'attribution automatique ?\n\n${rcpAutoConfigs.length} semaine(s) configurée(s) seront supprimées, ainsi que toutes les assignations automatiques associées. Cette action est irréversible.`
+        )) return;
+        setDeletingAll(true);
+        try {
+            const ids = getRcpTemplateIds();
+            const weeks = rcpAutoConfigs.map(c => c.weekStartDate);
+            await deleteAllRcpAutoConfigs(ids, weeks);
+            setRcpAutoConfigs([]);
+        } catch (e) {
+            console.error(e);
+            alert('Erreur lors de la suppression.');
+        } finally {
+            setDeletingAll(false);
         }
     };
 
@@ -1219,13 +1242,22 @@ const Configuration: React.FC = () => {
                         <div className="border-t border-border pt-3">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">Planning configuré</span>
-                                <button
-                                    onClick={handleCancelAllRcpAutoAssignments}
-                                    disabled={cancellingWeek !== null}
-                                    className="flex items-center gap-1.5 text-xs bg-danger/10 text-danger border border-danger/20 px-3 py-1.5 rounded-btn hover:bg-danger/20 font-medium transition-colors disabled:opacity-50"
-                                >
-                                    <RotateCcw size={12} /> {cancellingWeek === 'all' ? 'Annulation...' : 'Annuler toutes'}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={handleCancelAllRcpAutoAssignments}
+                                        disabled={cancellingWeek !== null || deletingAll}
+                                        className="flex items-center gap-1.5 text-xs bg-danger/10 text-danger border border-danger/20 px-3 py-1.5 rounded-btn hover:bg-danger/20 font-medium transition-colors disabled:opacity-50"
+                                    >
+                                        <RotateCcw size={12} /> {cancellingWeek === 'all' ? 'Annulation...' : 'Annuler toutes'}
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteAllRcpConfigs}
+                                        disabled={cancellingWeek !== null || deletingWeek !== null || deletingAll}
+                                        className="flex items-center gap-1.5 text-xs bg-danger text-white px-3 py-1.5 rounded-btn hover:bg-danger/90 font-medium transition-colors disabled:opacity-50"
+                                    >
+                                        <Trash2 size={12} /> {deletingAll ? 'Suppression...' : 'Tout supprimer'}
+                                    </button>
+                                </div>
                             </div>
                             {rcpAutoConfigs.length > 0 && (
                                 <div className="flex items-center gap-2 mb-3 p-2 bg-warning/5 border border-warning/20 rounded-btn">
@@ -1272,7 +1304,33 @@ const Configuration: React.FC = () => {
                                 {rcpAutoConfigs.length === 0 && (
                                     <p className="text-sm text-text-muted italic">Aucune configuration. Choisissez un mode et cliquez sur "Appliquer".</p>
                                 )}
-                                {rcpAutoConfigs.map(c => (
+
+                                {/* Permanent rule: compact summary card */}
+                                {rcpAutoConfigs.length > 8 && (
+                                    <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-btn p-3 text-sm">
+                                        <div>
+                                            <span className="font-semibold text-primary">Règle permanente active</span>
+                                            <span className="text-text-muted ml-2 text-xs">
+                                                {rcpAutoConfigs.length} semaines · du {new Date(rcpAutoConfigs[0].weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })} au {new Date(rcpAutoConfigs[rcpAutoConfigs.length - 1].weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </span>
+                                            <div className="text-xs text-text-muted mt-0.5">
+                                                Tirage le {autoConfigDay} à {autoConfigTime} · {rcpAutoConfigs.filter(c => c.executedAt).length} exécuté(s)
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={handleDeleteAllRcpConfigs}
+                                            disabled={deletingAll}
+                                            title="Supprimer la règle permanente"
+                                            className="flex items-center gap-1.5 text-xs bg-danger text-white px-3 py-1.5 rounded-btn hover:bg-danger/90 font-medium disabled:opacity-50 whitespace-nowrap ml-3"
+                                        >
+                                            {deletingAll ? <RefreshCw size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                            {deletingAll ? 'Suppression...' : 'Supprimer la règle'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* 8-week mode: individual rows */}
+                                {rcpAutoConfigs.length > 0 && rcpAutoConfigs.length <= 8 && rcpAutoConfigs.map(c => (
                                     <div key={c.id}
                                         className="flex items-center justify-between bg-surface rounded-btn p-2.5 text-sm border border-border">
                                         <div>
@@ -1289,7 +1347,7 @@ const Configuration: React.FC = () => {
                                             {c.executedAt && (
                                                 <button
                                                     onClick={() => handleCancelWeek(c.weekStartDate)}
-                                                    disabled={cancellingWeek !== null || deletingWeek !== null}
+                                                    disabled={cancellingWeek !== null || deletingWeek !== null || deletingAll}
                                                     title="Réinitialiser les assignations de cette semaine"
                                                     className="text-warning/70 hover:text-warning disabled:opacity-40 transition-colors"
                                                 >
@@ -1301,7 +1359,7 @@ const Configuration: React.FC = () => {
                                             )}
                                             <button
                                                 onClick={() => handleDeleteWeekConfig(c.weekStartDate)}
-                                                disabled={cancellingWeek !== null || deletingWeek !== null}
+                                                disabled={cancellingWeek !== null || deletingWeek !== null || deletingAll}
                                                 title="Supprimer cette configuration"
                                                 className="text-danger/50 hover:text-danger disabled:opacity-40 transition-colors"
                                             >
