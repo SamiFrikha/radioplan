@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { AppContext } from '../App';
 import { DayOfWeek, Period, SlotType, RcpException, ScheduleSlot, RcpManualInstance, RcpAutoConfig } from '../types';
-import { Save, RefreshCw, LayoutTemplate, PlusCircle, Clock, Trash2, Check, X, MapPin, AlertCircle, Shield, Settings, Unlock, Lock, Calendar, ChevronLeft, ChevronRight, Edit3, AlertTriangle, UserPlus, Maximize2, Minimize2 } from 'lucide-react';
+import { Save, RefreshCw, LayoutTemplate, PlusCircle, Clock, Trash2, Check, X, MapPin, AlertCircle, Shield, Settings, Unlock, Lock, Calendar, ChevronLeft, ChevronRight, Edit3, AlertTriangle, UserPlus, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 import { generateScheduleForWeek, getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
 import RcpExceptionModal from '../components/RcpExceptionModal';
 import { DoctorBadge, getDoctorHexColor } from '../components/DoctorBadge';
@@ -39,7 +39,9 @@ const Configuration: React.FC = () => {
         configRcpFullscreen,
         setConfigRcpFullscreen,
         countingPeriods,
-        createNewCountingPeriod
+        createNewCountingPeriod,
+        manualOverrides,
+        setManualOverrides
     } = useContext(AppContext);
 
     const { profile } = useAuth();
@@ -356,6 +358,26 @@ const Configuration: React.FC = () => {
         } finally {
             setSavingAutoConfig(false);
         }
+    };
+
+    const handleCancelAllRcpAutoAssignments = () => {
+        if (!window.confirm(
+            'Annuler toutes les auto-affectations RCP ?\n\nLes affectations manuelles sont conservées. Seules les attributions automatiques (tirage au sort) seront supprimées.'
+        )) return;
+
+        const rcpTemplateIds = template
+            .filter(t => t.type === SlotType.RCP)
+            .map(t => t.id);
+
+        const newOverrides = Object.fromEntries(
+            Object.entries(manualOverrides).filter(([key, value]) => {
+                if (!(value as string).startsWith('auto:')) return true;
+                const isRcpSlot = rcpTemplateIds.some(id => key.startsWith(id + '-'));
+                return !isRcpSlot;
+            })
+        );
+
+        setManualOverrides(newOverrides);
     };
 
     // --- RENDER HELPERS ---
@@ -1144,6 +1166,12 @@ const Configuration: React.FC = () => {
                                     }}
                                     className="flex items-center gap-1.5 text-xs bg-warning text-white px-3 py-1.5 rounded-btn hover:bg-warning/90 font-medium">
                                     <RefreshCw size={12} /> Lancer maintenant
+                                </button>
+                                <button
+                                    onClick={handleCancelAllRcpAutoAssignments}
+                                    className="flex items-center gap-1.5 text-xs bg-danger/10 text-danger border border-danger/20 px-3 py-1.5 rounded-btn hover:bg-danger/20 font-medium transition-colors"
+                                >
+                                    <RotateCcw size={12} /> Annuler les auto-affectations
                                 </button>
                             </div>
                             <div className="space-y-1.5">
