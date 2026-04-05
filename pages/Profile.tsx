@@ -1297,7 +1297,7 @@ const Profile: React.FC = () => {
 
                     <h3 className="text-sm font-bold text-text-base mb-2 pl-1 flex items-center">
                         Historique des absences
-                        <span className="ml-2 text-[10px] text-text-muted font-normal">(lecture seule)</span>
+                        <span className="ml-2 text-[10px] text-text-muted font-normal">(supprimable jusqu'à J-30)</span>
                     </h3>
                     <ul className="divide-y divide-border bg-surface border border-border rounded-card max-h-60 overflow-y-auto shadow-sm">
                         {myAbsences.length === 0 ? (
