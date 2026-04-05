@@ -418,6 +418,23 @@ const Profile: React.FC = () => {
         );
     }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
 
+    // Schedule for the RCP tab's displayed week — used as slots prop in ConflictResolverModal from RCP tab
+    const rcpWeekSlots = useMemo(() => {
+        if (!currentDoctor) return [];
+        const today = new Date();
+        const currentMonday = new Date(today);
+        const day = currentMonday.getDay();
+        const diff = currentMonday.getDate() - day + (day === 0 ? -6 : 1);
+        currentMonday.setDate(diff);
+        currentMonday.setHours(0, 0, 0, 0);
+        const targetMonday = new Date(currentMonday);
+        targetMonday.setDate(targetMonday.getDate() + (notifWeekOffset * 7));
+        return generateScheduleForWeek(
+            targetMonday, template, unavailabilities, doctors,
+            activityDefinitions, rcpTypes, false, {}, rcpAttendance, rcpExceptions
+        );
+    }, [currentDoctor, notifWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+
     const profileConflicts = useMemo(() => {
         if (!currentDoctor || conflictsWeekSchedule.length === 0) return [];
 
@@ -1479,6 +1496,60 @@ const Profile: React.FC = () => {
                                                                         Déplacer
                                                                     </button>
                                                                 )}
+
+                                                                {/* Remplacement / assignation directe */}
+                                                                {rcp.myStatus !== 'PRESENT' && (
+                                                                    <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const syntheticSlot: ScheduleSlot = {
+                                                                                    id: rcp.generatedId,
+                                                                                    date: rcp.date,
+                                                                                    day: rcp.template.day,
+                                                                                    period: rcp.template.period ?? Period.MORNING,
+                                                                                    time: rcp.template.time,
+                                                                                    location: rcp.template.location || rcp.template.id,
+                                                                                    subType: rcp.template.location,
+                                                                                    type: SlotType.RCP,
+                                                                                    assignedDoctorId: currentDoctor!.id,
+                                                                                    secondaryDoctorIds: rcp.template.secondaryDoctorIds ?? [],
+                                                                                    backupDoctorId: rcp.template.backupDoctorId,
+                                                                                    isUnconfirmed: true,
+                                                                                };
+                                                                                setConflictModalSlot(syntheticSlot);
+                                                                                setConflictModalConflict(null);
+                                                                            }}
+                                                                            className="flex-1 py-2 rounded-btn text-xs font-semibold border border-border text-text-muted hover:bg-muted transition-all flex items-center justify-center gap-1.5"
+                                                                        >
+                                                                            <UserCheck className="w-3.5 h-3.5" />
+                                                                            Demander remplacement
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const syntheticSlot: ScheduleSlot = {
+                                                                                    id: rcp.generatedId,
+                                                                                    date: rcp.date,
+                                                                                    day: rcp.template.day,
+                                                                                    period: rcp.template.period ?? Period.MORNING,
+                                                                                    time: rcp.template.time,
+                                                                                    location: rcp.template.location || rcp.template.id,
+                                                                                    subType: rcp.template.location,
+                                                                                    type: SlotType.RCP,
+                                                                                    assignedDoctorId: currentDoctor!.id,
+                                                                                    secondaryDoctorIds: rcp.template.secondaryDoctorIds ?? [],
+                                                                                    backupDoctorId: rcp.template.backupDoctorId,
+                                                                                    isUnconfirmed: true,
+                                                                                };
+                                                                                setConflictModalSlot(syntheticSlot);
+                                                                                setConflictModalConflict(null);
+                                                                            }}
+                                                                            className="flex-1 py-2 rounded-btn text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
+                                                                        >
+                                                                            <UserCheck className="w-3.5 h-3.5" />
+                                                                            Assigner directement
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </>
                                                         )}
                                                     </div>
@@ -1660,7 +1731,7 @@ const Profile: React.FC = () => {
                 slot={conflictModalSlot}
                 conflict={conflictModalConflict || undefined}
                 doctors={doctors}
-                slots={conflictsWeekSchedule}
+                slots={conflictModalSlot?.type === SlotType.RCP ? rcpWeekSlots : conflictsWeekSchedule}
                 unavailabilities={unavailabilities}
                 onClose={() => { setConflictModalSlot(null); setConflictModalConflict(null); }}
                 onResolve={handleConflictResolve}
