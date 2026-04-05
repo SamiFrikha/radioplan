@@ -44,30 +44,19 @@ const NotificationSection: React.FC<{
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [clearing, setClearing] = useState(false);
-    const [testingType, setTestingType] = useState<string | null>(null);
-    const [testedType, setTestedType] = useState<string | null>(null);
+    const [previewType, setPreviewType] = useState<string | null>(null);
     const { permission, isStandalone, subscribe, loading: pushLoading, error: pushError } = usePushNotifications(userId);
     const { isEnabled, toggle, loading: prefsLoading } = useNotificationPreferences(userId);
 
-    const handleTestNotification = async (notifType: string) => {
-      if (!userId || testingType) return;
-      setTestingType(notifType);
-      try {
-        await createNotification({
-          user_id: userId,
-          type: notifType as NotificationType,
-          title: `[TEST] ${NOTIFICATION_TYPE_LABELS[notifType] ?? notifType}`,
-          body: 'Ceci est une notification de test. Elle apparaît dans votre liste de notifications.',
-          data: {},
-          read: false,
-        });
-        setTestedType(notifType);
-        setTimeout(() => setTestedType(null), 2000);
-      } catch (err) {
-        console.error('Test notification error:', err);
-      } finally {
-        setTestingType(null);
-      }
+    const NOTIFICATION_PREVIEW: Record<string, { title: string; body: string }> = {
+      RCP_AUTO_ASSIGNED:    { title: 'Vous avez été assigné à un RCP', body: 'Vous avez été sélectionné pour le RCP du 2026-05-07 (Lymphomes)' },
+      RCP_REMINDER_24H:    { title: 'Rappel RCP — 24h avant tirage', body: "Personne n'a encore confirmé pour le RCP du 2026-05-07. Tirage automatique dans 24h." },
+      RCP_REMINDER_12H:    { title: 'Rappel RCP — 12h avant tirage', body: "Personne n'a encore confirmé pour le RCP du 2026-05-07. Tirage automatique dans 12h." },
+      RCP_UNASSIGNED_ALERT: { title: 'RCP sans médecin disponible', body: 'Aucun médecin disponible pour le RCP du 2026-05-07 (Lymphomes)' },
+      RCP_SLOT_FILLED:     { title: 'RCP créneau pourvu', body: 'Le créneau RCP du 2026-05-07 a été pourvu.' },
+      REPLACEMENT_REQUEST: { title: 'Demande de remplacement 🔄', body: 'Dr. Martin vous demande de le remplacer le 2026-05-07 (après-midi).' },
+      REPLACEMENT_ACCEPTED: { title: 'Remplacement accepté ✅', body: 'Dr. Dupont a accepté votre demande de remplacement pour le 2026-05-07.' },
+      REPLACEMENT_REJECTED: { title: 'Remplacement refusé ❌', body: 'Dr. Dupont a refusé votre demande de remplacement pour le 2026-05-07.' },
     };
 
     const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
@@ -191,35 +180,37 @@ const NotificationSection: React.FC<{
                   Types de notifications push
                 </p>
                 {ALL_NOTIFICATION_TYPES.map(type => (
-                  <div key={type} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleTestNotification(type)}
-                        disabled={!isEnabled(type) || !!testingType || prefsLoading}
-                        className="px-2 py-1 text-[10px] font-bold rounded border border-border text-text-muted hover:bg-muted disabled:opacity-40 transition-colors flex items-center gap-1"
-                        title="Envoyer une notification de test"
-                      >
-                        {testingType === type ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : testedType === type ? (
-                          '✓'
-                        ) : (
-                          '▶'
-                        )}
-                        {testingType === type ? '' : testedType === type ? 'Envoyé' : 'Test'}
-                      </button>
-                      <button
-                        disabled={prefsLoading}
-                        onClick={() => toggle(type)}
-                        aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
-                        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
-                          ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
-                      >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform
-                          ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </button>
+                  <div key={type} className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setPreviewType(previewType === type ? null : type)}
+                          disabled={!isEnabled(type) || prefsLoading}
+                          className={`px-2 py-1 text-[10px] font-bold rounded border transition-colors flex items-center gap-1 disabled:opacity-40
+                            ${previewType === type ? 'border-primary text-primary bg-primary/10' : 'border-border text-text-muted hover:bg-muted'}`}
+                          title="Voir l'aperçu de cette notification"
+                        >
+                          👁 Aperçu
+                        </button>
+                        <button
+                          disabled={prefsLoading}
+                          onClick={() => toggle(type)}
+                          aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
+                          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
+                            ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform
+                            ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
                     </div>
+                    {previewType === type && NOTIFICATION_PREVIEW[type] && (
+                      <div className="ml-1 p-2.5 bg-muted border border-border rounded-btn text-xs space-y-0.5">
+                        <p className="font-semibold text-text-base">{NOTIF_ICON[type] ?? '🔔'} {NOTIFICATION_PREVIEW[type].title}</p>
+                        <p className="text-text-muted">{NOTIFICATION_PREVIEW[type].body}</p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

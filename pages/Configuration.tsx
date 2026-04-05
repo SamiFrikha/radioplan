@@ -5,7 +5,7 @@ import { Save, RefreshCw, LayoutTemplate, PlusCircle, Clock, Trash2, Check, X, M
 import { generateScheduleForWeek, getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
 import RcpExceptionModal from '../components/RcpExceptionModal';
 import { DoctorBadge, getDoctorHexColor } from '../components/DoctorBadge';
-import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow, cancelWeekAutoAssign } from '../services/rcpAutoConfigService';
+import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow, cancelWeekAutoAssign, deleteRcpAutoConfig } from '../services/rcpAutoConfigService';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 
@@ -123,6 +123,7 @@ const Configuration: React.FC = () => {
     const [savingAutoConfig, setSavingAutoConfig] = useState(false);
     const [launchWeekDate, setLaunchWeekDate] = useState<string>('');
     const [cancellingWeek, setCancellingWeek] = useState<string | null>(null);
+    const [deletingWeek, setDeletingWeek] = useState<string | null>(null);
 
     const days = Object.values(DayOfWeek);
 
@@ -348,7 +349,8 @@ const Configuration: React.FC = () => {
                 const monday = new Date(currentMonday);
                 monday.setDate(currentMonday.getDate() + w * 7);
                 const deadlineDay = new Date(monday);
-                deadlineDay.setDate(monday.getDate() + (DAY_OFFSET[autoConfigDay] ?? 4));
+                // deadline = same day-of-week but PREVIOUS week (week before the RCP)
+                deadlineDay.setDate(monday.getDate() + (DAY_OFFSET[autoConfigDay] ?? 4) - 7);
                 deadlineDay.setHours(h, m, 0, 0);
                 const weekStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
                 await upsertRcpAutoConfig(weekStr, deadlineDay.toISOString(), profile.id);
@@ -377,6 +379,23 @@ const Configuration: React.FC = () => {
             alert('Erreur lors de la réinitialisation.');
         } finally {
             setCancellingWeek(null);
+        }
+    };
+
+    const handleDeleteWeekConfig = async (weekStartDate: string) => {
+        const weekLabel = new Date(weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        if (!window.confirm(`Supprimer la configuration de la semaine du ${weekLabel} ?\n\nLes assignations automatiques de cette semaine seront également supprimées.`)) return;
+        setDeletingWeek(weekStartDate);
+        try {
+            await cancelWeekAutoAssign(weekStartDate, getRcpTemplateIds());
+            await deleteRcpAutoConfig(weekStartDate);
+            const updated = await getRcpAutoConfigs();
+            setRcpAutoConfigs(updated);
+        } catch (e) {
+            console.error(e);
+            alert('Erreur lors de la suppression.');
+        } finally {
+            setDeletingWeek(null);
         }
     };
 
@@ -1252,9 +1271,9 @@ const Configuration: React.FC = () => {
                                             {c.executedAt && (
                                                 <button
                                                     onClick={() => handleCancelWeek(c.weekStartDate)}
-                                                    disabled={cancellingWeek !== null}
-                                                    title="Réinitialiser cette semaine"
-                                                    className="text-danger/60 hover:text-danger disabled:opacity-40 transition-colors"
+                                                    disabled={cancellingWeek !== null || deletingWeek !== null}
+                                                    title="Réinitialiser les assignations de cette semaine"
+                                                    className="text-warning/70 hover:text-warning disabled:opacity-40 transition-colors"
                                                 >
                                                     {cancellingWeek === c.weekStartDate
                                                         ? <RefreshCw size={13} className="animate-spin" />
@@ -1262,6 +1281,17 @@ const Configuration: React.FC = () => {
                                                     }
                                                 </button>
                                             )}
+                                            <button
+                                                onClick={() => handleDeleteWeekConfig(c.weekStartDate)}
+                                                disabled={cancellingWeek !== null || deletingWeek !== null}
+                                                title="Supprimer cette configuration"
+                                                className="text-danger/50 hover:text-danger disabled:opacity-40 transition-colors"
+                                            >
+                                                {deletingWeek === c.weekStartDate
+                                                    ? <RefreshCw size={13} className="animate-spin" />
+                                                    : <Trash2 size={13} />
+                                                }
+                                            </button>
                                         </div>
                                     </div>
                                 ))}

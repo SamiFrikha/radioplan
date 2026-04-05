@@ -42,6 +42,14 @@ export const triggerAutoAssignNow = async (weekStartDate: string): Promise<void>
 const toDateStr = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
+export const deleteRcpAutoConfig = async (weekStartDate: string): Promise<void> => {
+  const { error } = await supabase
+    .from('rcp_auto_config')
+    .delete()
+    .eq('week_start_date', weekStartDate);
+  if (error) throw error;
+};
+
 export const cancelWeekAutoAssign = async (
   weekStartDate: string,
   rcpTemplateIds: string[]
