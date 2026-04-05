@@ -66,8 +66,8 @@ Deno.serve(async () => {
           await supabase.from('notifications').insert({
             user_id: prof.id,
             type,
-            title: `Rappel RCP — ${hoursLabel}h avant tirage`,
-            body: `Personne n'a encore confirmé pour le RCP du ${dateStr}. Tirage automatique dans ${hoursLabel}h.`,
+            title: `Rappel RCP${slot.sub_type ? ` — ${slot.sub_type}` : ''} — ${hoursLabel}h avant tirage`,
+            body: `Rappel : vous êtes assigné au RCP${slot.sub_type ? ` "${slot.sub_type}"` : ''} du ${dateStr}. Confirmez votre présence ou déclarez une absence avant le tirage automatique dans ${hoursLabel}h.`,
             data: { slotId, date: dateStr },
           });
         }

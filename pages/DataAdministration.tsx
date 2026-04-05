@@ -1,75 +1,56 @@
 
-import React, { useContext } from 'react';
-import { AppContext } from '../App';
-import { GlobalBackupData } from '../types';
-import { Download, Upload, Database, FileJson, AlertTriangle } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardBody } from '../src/components/ui';
+import React, { useState } from 'react';
+import { Download, Upload, FileJson, AlertTriangle } from 'lucide-react';
+import { Card } from '../src/components/ui';
 import { Button } from '../src/components/ui/Button';
+import { backupService } from '../services/backupService';
 
 const DataAdministration: React.FC = () => {
-  const {
-      template,
-      doctors,
-      rcpTypes,
-      postes,
-      activityDefinitions,
-      unavailabilities,
-      shiftHistory,
-      manualOverrides,
-      rcpAttendance,
-      rcpExceptions,
-      importConfiguration
-  } = useContext(AppContext);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   // --- EXPORT / IMPORT HANDLERS ---
-  const handleExport = () => {
-      const backup: GlobalBackupData = {
-          metadata: {
-              version: "1.0",
-              appName: "RadioPlan AI",
-              exportDate: new Date().toISOString()
-          },
-          data: {
-              doctors,
-              template,
-              rcpTypes,
-              postes,
-              activityDefinitions,
-              unavailabilities,
-              shiftHistory,
-              manualOverrides,
-              rcpAttendance,
-              rcpExceptions
-          }
-      };
-
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", `radioplan_backup_${new Date().toISOString().split('T')[0]}.json`);
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-  }
+  const handleExport = async () => {
+      setExporting(true);
+      try {
+          const backup = await backupService.exportData();
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backup, null, 2));
+          const downloadAnchorNode = document.createElement('a');
+          downloadAnchorNode.setAttribute("href", dataStr);
+          downloadAnchorNode.setAttribute("download", `radioplan_backup_${new Date().toISOString().split('T')[0]}.json`);
+          document.body.appendChild(downloadAnchorNode);
+          downloadAnchorNode.click();
+          downloadAnchorNode.remove();
+      } catch (err) {
+          alert("Erreur lors de l'export.");
+          console.error(err);
+      } finally {
+          setExporting(false);
+      }
+  };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (evt) => {
+      reader.onload = async (evt) => {
           try {
               const data = JSON.parse(evt.target?.result as string);
-              importConfiguration(data);
+              setImporting(true);
+              await backupService.importData(data);
+              alert('✅ Import réussi. Rechargez la page pour voir les données mises à jour.');
           } catch (err) {
-              alert("Fichier JSON invalide.");
+              alert("Fichier JSON invalide ou erreur lors de l'import.");
               console.error(err);
+          } finally {
+              setImporting(false);
           }
       };
       reader.readAsText(file);
       // Reset input
       e.target.value = '';
-  }
+  };
 
   return (
     <div className="h-full flex flex-col space-y-4">
@@ -95,9 +76,9 @@ const DataAdministration: React.FC = () => {
                             <p className="text-xs text-text-muted mt-1">Sauvegardez l'état complet (Médecins, Plannings, Absences, Historique) dans un fichier JSON.</p>
                         </div>
                     </div>
-                    <Button variant="primary" size="sm" onClick={handleExport} className="w-full">
+                    <Button variant="primary" size="sm" onClick={handleExport} disabled={exporting} className="w-full">
                         <FileJson className="w-4 h-4 mr-2" />
-                        Télécharger le Backup (.json)
+                        {exporting ? 'Export en cours...' : 'Télécharger le Backup (.json)'}
                     </Button>
                 </div>
 
@@ -113,10 +94,10 @@ const DataAdministration: React.FC = () => {
                         </div>
                     </div>
 
-                    <label className="w-full py-3 bg-text-base hover:opacity-90 text-white rounded-btn font-bold text-sm flex items-center justify-center transition-colors cursor-pointer shadow-sm">
+                    <label className={`w-full py-3 bg-text-base hover:opacity-90 text-white rounded-btn font-bold text-sm flex items-center justify-center transition-colors shadow-sm ${importing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                         <Upload className="w-4 h-4 mr-2" />
-                        Choisir un fichier...
-                        <input type="file" className="hidden" accept=".json" onChange={handleImport} />
+                        {importing ? 'Import en cours...' : 'Choisir un fichier...'}
+                        <input type="file" className="hidden" accept=".json" onChange={handleImport} disabled={importing} />
                     </label>
 
                     <div className="mt-4 flex items-start bg-warning/10 p-3 rounded-lg border border-warning/20">

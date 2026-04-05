@@ -13,7 +13,8 @@ export const backupService = {
             { data: rcpAttendance },
             { data: rcpExceptions },
             { data: appSettings },
-            { data: specialties }
+            { data: specialties },
+            { data: rcpAutoConfig }
         ] = await Promise.all([
             supabase.from('doctors').select('*'),
             supabase.from('activities').select('*'),
@@ -24,7 +25,8 @@ export const backupService = {
             supabase.from('rcp_attendance').select('*'),
             supabase.from('rcp_exceptions').select('*'),
             supabase.from('app_settings').select('*'),
-            supabase.from('specialties').select('*')
+            supabase.from('specialties').select('*'),
+            supabase.from('rcp_auto_config').select('*').order('week_start_date', { ascending: true })
         ]);
 
         return {
@@ -115,6 +117,12 @@ export const backupService = {
                     id: s.id,
                     name: s.name,
                     color: s.color
+                })),
+                rcpAutoConfig: (rcpAutoConfig || []).map((c: any) => ({
+                    weekStartDate: c.week_start_date,
+                    deadlineAt: c.deadline_at,
+                    executedAt: c.executed_at,
+                    createdBy: c.created_by
                 }))
             }
         };
@@ -269,6 +277,17 @@ export const backupService = {
                 color: s.color
             }));
             await supabase.from('specialties').upsert(dbSpec);
+        }
+
+        // 10. RCP Auto Config
+        if (d.rcpAutoConfig && d.rcpAutoConfig.length > 0) {
+            const dbAuto = d.rcpAutoConfig.map((c: any) => ({
+                week_start_date: c.weekStartDate,
+                deadline_at: c.deadlineAt,
+                executed_at: c.executedAt ?? null,
+                created_by: c.createdBy ?? null
+            }));
+            await supabase.from('rcp_auto_config').upsert(dbAuto, { onConflict: 'week_start_date' });
         }
     }
 };

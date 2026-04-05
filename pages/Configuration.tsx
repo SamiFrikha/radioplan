@@ -120,6 +120,7 @@ const Configuration: React.FC = () => {
     const [rcpAutoConfigs, setRcpAutoConfigs] = useState<RcpAutoConfig[]>([]);
     const [autoConfigDay, setAutoConfigDay] = useState('Vendredi');
     const [autoConfigTime, setAutoConfigTime] = useState('14:00');
+    const [autoConfigMode, setAutoConfigMode] = useState<'8weeks' | 'permanent'>('8weeks');
     const [savingAutoConfig, setSavingAutoConfig] = useState(false);
     const [launchWeekDate, setLaunchWeekDate] = useState<string>('');
     const [cancellingWeek, setCancellingWeek] = useState<string | null>(null);
@@ -345,7 +346,8 @@ const Configuration: React.FC = () => {
             currentMonday.setHours(0, 0, 0, 0);
 
             const [h, m] = autoConfigTime.split(':').map(Number);
-            for (let w = 0; w < 8; w++) {
+            const weeksCount = autoConfigMode === 'permanent' ? 52 : 8;
+            for (let w = 0; w < weeksCount; w++) {
                 const monday = new Date(currentMonday);
                 monday.setDate(currentMonday.getDate() + w * 7);
                 const deadlineDay = new Date(monday);
@@ -1172,7 +1174,7 @@ const Configuration: React.FC = () => {
                             <h3 className="font-heading font-bold text-xl text-text-base">Attribution automatique des RCP</h3>
                             <p className="text-sm text-text-muted mt-1">
                                 Chaque semaine, si aucun médecin n'a confirmé avant l'heure limite,
-                                le système tire au sort automatiquement. Ce planning s'applique aux 8 prochaines semaines.
+                                le système tire au sort automatiquement.
                             </p>
                         </div>
 
@@ -1192,10 +1194,26 @@ const Configuration: React.FC = () => {
                                     onChange={e => setAutoConfigTime(e.target.value)}
                                     className="w-full border border-border rounded-btn h-12 md:h-10 px-3 text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none" />
                             </div>
-                            <button onClick={handleSaveAutoConfig} disabled={savingAutoConfig}
-                                className="bg-primary text-white px-4 py-2 rounded-btn text-sm hover:bg-primary/90 disabled:opacity-50 font-medium whitespace-nowrap h-10 flex items-center justify-center md:col-span-2 w-full md:w-auto md:self-end">
-                                {savingAutoConfig ? 'Application...' : 'Appliquer aux 8 prochaines semaines'}
-                            </button>
+                            <div className="md:col-span-2 flex flex-col gap-2">
+                                <div className="flex items-center gap-1 p-1 bg-muted rounded-btn w-full">
+                                    <button
+                                        onClick={() => setAutoConfigMode('8weeks')}
+                                        className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${autoConfigMode === '8weeks' ? 'bg-surface shadow text-text-base' : 'text-text-muted hover:text-text-base'}`}
+                                    >
+                                        8 prochaines semaines
+                                    </button>
+                                    <button
+                                        onClick={() => setAutoConfigMode('permanent')}
+                                        className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${autoConfigMode === 'permanent' ? 'bg-surface shadow text-text-base' : 'text-text-muted hover:text-text-base'}`}
+                                    >
+                                        Règle permanente (52 sem.)
+                                    </button>
+                                </div>
+                                <button onClick={handleSaveAutoConfig} disabled={savingAutoConfig}
+                                    className="bg-primary text-white px-4 py-2 rounded-btn text-sm hover:bg-primary/90 disabled:opacity-50 font-medium h-10 flex items-center justify-center w-full">
+                                    {savingAutoConfig ? 'Application...' : autoConfigMode === 'permanent' ? 'Appliquer comme règle permanente' : 'Appliquer aux 8 prochaines semaines'}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="border-t border-border pt-3">
@@ -1252,7 +1270,7 @@ const Configuration: React.FC = () => {
 
                             <div className="space-y-1.5">
                                 {rcpAutoConfigs.length === 0 && (
-                                    <p className="text-sm text-text-muted italic">Aucune configuration. Cliquez sur "Appliquer aux 8 prochaines semaines".</p>
+                                    <p className="text-sm text-text-muted italic">Aucune configuration. Choisissez un mode et cliquez sur "Appliquer".</p>
                                 )}
                                 {rcpAutoConfigs.map(c => (
                                     <div key={c.id}
