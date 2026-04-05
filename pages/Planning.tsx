@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef, useMemo } from 'react';
+import React, { useContext, useState, useRef, useMemo, useEffect } from 'react';
 import { AppContext } from '../App';
 import { DayOfWeek, Period, SlotType } from '../types';
 import SlotDetailsModal from '../components/SlotDetailsModal';
@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { getDoctorHexColor } from '../components/DoctorBadge';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../services/supabaseClient';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
 
 const Planning: React.FC = () => {
@@ -27,7 +28,7 @@ const Planning: React.FC = () => {
     } = useContext(AppContext);
 
     // --- AUTH & ACCESS CONTROL ---
-    const { profile, isAdmin, isDoctor } = useAuth();
+    const { user, profile, isAdmin, isDoctor } = useAuth();
     const [accessDeniedMessage, setAccessDeniedMessage] = useState<string | null>(null);
 
     // Get the current user's doctor ID from their profile
@@ -70,6 +71,24 @@ const Planning: React.FC = () => {
     const [viewMode, setViewMode] = useState<'ROOM' | 'DOCTOR'>('ROOM');
     const [colorMode, setColorMode] = useState<'DOCTOR' | 'ACTIVITY'>('ACTIVITY');
     const [density, setDensity] = useState<'COMPACT' | 'COMFORTABLE'>('COMFORTABLE');
+    useEffect(() => {
+      if (!user?.id) return;
+      const loadDensity = async () => {
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('ui_prefs')
+            .eq('id', user.id)
+            .single();
+          if (data?.ui_prefs?.planning_density) {
+            setDensity(data.ui_prefs.planning_density as 'COMPACT' | 'COMFORTABLE');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      loadDensity();
+    }, [user?.id]);
     const [showSettings, setShowSettings] = useState(false);
 
     // Check if current week is validated/locked in Activities page
@@ -686,6 +705,20 @@ const Planning: React.FC = () => {
         );
     };
 
+    const handleDensityChange = async (newDensity: 'COMPACT' | 'COMFORTABLE') => {
+      setDensity(newDensity);
+      if (!user?.id) return;
+      try {
+        const { data } = await supabase.from('profiles').select('ui_prefs').eq('id', user.id).single();
+        const existing = data?.ui_prefs ?? {};
+        await supabase.from('profiles')
+          .update({ ui_prefs: { ...existing, planning_density: newDensity } })
+          .eq('id', user.id);
+      } catch (err) {
+        console.error('Failed to persist density preference:', err);
+      }
+    };
+
     const selectedSlot = schedule.find(s => s.id === selectedSlotId);
     const selectedConflict = conflicts.find(c => c.slotId === selectedSlotId);
     const rowHeightClass = density === 'COMPACT' ? 'h-20' : 'h-28';
@@ -770,13 +803,13 @@ const Planning: React.FC = () => {
                                     </h4>
                                     <div className="flex bg-muted p-1 rounded-btn">
                                         <button
-                                            onClick={() => setDensity('COMPACT')}
+                                            onClick={() => handleDensityChange('COMPACT')}
                                             className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMPACT' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
                                         >
                                             Compact
                                         </button>
                                         <button
-                                            onClick={() => setDensity('COMFORTABLE')}
+                                            onClick={() => handleDensityChange('COMFORTABLE')}
                                             className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMFORTABLE' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
                                         >
                                             Aéré
