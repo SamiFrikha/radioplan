@@ -1119,26 +1119,6 @@ const Profile: React.FC = () => {
                         </div>
                     </Card>
 
-                    {/* Admin QR code install card (desktop sidebar) */}
-                    {isAdmin && (
-                        <Card className="hidden lg:block">
-                            <CardHeader>
-                                <CardTitle>Installer l'application</CardTitle>
-                            </CardHeader>
-                            <CardBody className="flex flex-col items-center gap-3 p-4">
-                                <p className="text-xs text-text-muted text-center">
-                                    Scannez ce QR code pour installer RadioPlan AI sur un téléphone
-                                </p>
-                                <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}&bgcolor=ffffff&color=1e293b&margin=2`}
-                                    alt="QR code installation"
-                                    className="rounded-lg border border-border w-[180px] h-[180px]"
-                                />
-                                <p className="text-[11px] text-text-muted text-center">{typeof window !== 'undefined' ? window.location.origin : ''}</p>
-                            </CardBody>
-                        </Card>
-                    )}
-
                     {/* Admin links (desktop sidebar — always visible for admins) */}
                     {isAdmin && (
                         <Card className="hidden lg:block">
@@ -1185,14 +1165,6 @@ const Profile: React.FC = () => {
                                             <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-primary transition-colors" />
                                         </NavLink>
                                     ))}
-                                    <div className="border-t border-border p-4 flex flex-col items-center gap-2">
-                                        <p className="text-xs text-text-muted text-center">Installer RadioPlan AI</p>
-                                        <img
-                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}&bgcolor=ffffff&color=1e293b&margin=2`}
-                                            alt="QR code installation"
-                                            className="rounded-lg border border-border w-[160px] h-[160px]"
-                                        />
-                                    </div>
                                 </div>
                             )}
                         </div>

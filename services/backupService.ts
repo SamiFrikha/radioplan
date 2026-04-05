@@ -14,19 +14,21 @@ export const backupService = {
             { data: rcpExceptions },
             { data: appSettings },
             { data: specialties },
-            { data: rcpAutoConfig }
+            { data: rcpAutoConfig },
+            { data: countingPeriods }
         ] = await Promise.all([
             supabase.from('doctors').select('*'),
             supabase.from('activities').select('*'),
             supabase.from('rcp_definitions').select('*, rcp_manual_instances(*)'),
             supabase.from('schedule_templates').select('*'),
             supabase.from('unavailabilities').select('*'),
-            supabase.from('schedule_slots').select('*'),
+            supabase.from('schedule_slots').select('*').order('date', { ascending: true }),
             supabase.from('rcp_attendance').select('*'),
             supabase.from('rcp_exceptions').select('*'),
             supabase.from('app_settings').select('*'),
             supabase.from('specialties').select('*'),
-            supabase.from('rcp_auto_config').select('*').order('week_start_date', { ascending: true })
+            supabase.from('rcp_auto_config').select('*').order('week_start_date', { ascending: true }),
+            supabase.from('counting_periods').select('*').order('start_date', { ascending: true })
         ]);
 
         return {
@@ -123,6 +125,32 @@ export const backupService = {
                     deadlineAt: c.deadline_at,
                     executedAt: c.executed_at,
                     createdBy: c.created_by
+                })),
+                scheduleSlots: (slots || []).map((s: any) => ({
+                    id: s.id,
+                    date: s.date,
+                    day: s.day,
+                    period: s.period,
+                    time: s.time,
+                    location: s.location,
+                    type: s.type,
+                    assignedDoctorId: s.assigned_doctor_id,
+                    secondaryDoctorIds: s.secondary_doctor_ids,
+                    backupDoctorId: s.backup_doctor_id,
+                    subType: s.sub_type,
+                    isGenerated: s.is_generated,
+                    activityId: s.activity_id,
+                    isLocked: s.is_locked,
+                    isBlocking: s.is_blocking,
+                    isClosed: s.is_closed,
+                    isUnconfirmed: s.is_unconfirmed
+                })),
+                countingPeriods: (countingPeriods || []).map((p: any) => ({
+                    id: p.id,
+                    name: p.name,
+                    startDate: p.start_date,
+                    endDate: p.end_date,
+                    snapshot: p.snapshot
                 }))
             }
         };
@@ -154,7 +182,8 @@ export const backupService = {
                 granularity: a.granularity,
                 allow_double_booking: a.allowDoubleBooking,
                 color: a.color,
-                is_system: a.isSystem
+                is_system: a.isSystem,
+                equity_group: a.equityGroup ?? null
             }));
             await supabase.from('activities').upsert(dbActs);
         }
@@ -288,6 +317,42 @@ export const backupService = {
                 created_by: c.createdBy ?? null
             }));
             await supabase.from('rcp_auto_config').upsert(dbAuto, { onConflict: 'week_start_date' });
+        }
+
+        // 11. Schedule Slots (manual / locked slots)
+        if (d.scheduleSlots && d.scheduleSlots.length > 0) {
+            const dbSlots = d.scheduleSlots.map((s: any) => ({
+                id: s.id,
+                date: s.date,
+                day: s.day,
+                period: s.period,
+                time: s.time,
+                location: s.location,
+                type: s.type,
+                assigned_doctor_id: s.assignedDoctorId ?? null,
+                secondary_doctor_ids: s.secondaryDoctorIds ?? [],
+                backup_doctor_id: s.backupDoctorId ?? null,
+                sub_type: s.subType ?? null,
+                is_generated: s.isGenerated ?? true,
+                activity_id: s.activityId ?? null,
+                is_locked: s.isLocked ?? false,
+                is_blocking: s.isBlocking ?? false,
+                is_closed: s.isClosed ?? false,
+                is_unconfirmed: s.isUnconfirmed ?? false
+            }));
+            await supabase.from('schedule_slots').upsert(dbSlots, { onConflict: 'id' });
+        }
+
+        // 12. Counting Periods
+        if (d.countingPeriods && d.countingPeriods.length > 0) {
+            const dbPeriods = d.countingPeriods.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                start_date: p.startDate,
+                end_date: p.endDate,
+                snapshot: p.snapshot ?? null
+            }));
+            await supabase.from('counting_periods').upsert(dbPeriods, { onConflict: 'id' });
         }
     }
 };
