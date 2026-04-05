@@ -1,5 +1,6 @@
 # RadioPlan — Améliorations v2 : Design Spec
 **Date :** 2026-04-05
+**Révision :** 2 (post-review)
 **Approche :** Option C — migration DB en premier, puis features par domaine logique
 **Scope :** 12 corrections/fonctionnalités sur l'application existante
 
@@ -11,15 +12,13 @@ Application React 19 + Supabase (PostgreSQL) de gestion de planning médical (ra
 
 ---
 
-## Migration DB requise (prérequis)
-
-**Migration unique :** Ajouter colonne `ui_prefs JSONB DEFAULT '{}'` dans la table `profiles`.
+## Migration DB requise (prérequis — Migration 22)
 
 ```sql
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ui_prefs JSONB DEFAULT '{}';
 ```
 
-Utilisée pour persister la préférence de densité du planning global par utilisateur.
+Cette migration est ajoutée comme `22_add_ui_prefs_to_profiles.sql` (migrations 19-21 déjà occupées). Utilisée pour persister la préférence de densité du planning global par utilisateur.
 
 ---
 
@@ -27,16 +26,14 @@ Utilisée pour persister la préférence de densité du planning global par util
 
 **Fichier :** `pages/Profile.tsx` — onglet `absences`
 
-**Comportement actuel :** Les absences sont en ajout uniquement pour les médecins. Un message permanent indique de contacter un admin pour toute modification. Aucun bouton de suppression n'est visible pour les médecins.
+**Comportement actuel :** Les absences sont en ajout uniquement pour les médecins. Un message permanent indique de contacter un admin. Aucun bouton de suppression visible pour les médecins.
 
 **Comportement cible :**
 - Calculer `daysUntilStart = (new Date(abs.startDate).getTime() - Date.now()) / 86_400_000`
-- Si `daysUntilStart > 30` → afficher bouton poubelle → appel `deleteUnavailability(abs.id)`
-- Si `daysUntilStart ≤ 30` → afficher icône cadenas + tooltip "Suppression impossible — moins de 30 jours avant le début"
-- Admin (`isAdmin`) → bouton poubelle toujours visible, sans contrainte de délai
-- Le message "contactez un admin" devient conditionnel (visible uniquement si toutes les absences listées sont verrouillées)
-
-**Contraintes :** `deleteUnavailability` existe dans `AppContext` (à vérifier dans `unavailabilityService`). Pas de call Supabase direct ici, passer par le service existant.
+- Si `daysUntilStart > 30` → afficher bouton poubelle → appel **`removeUnavailability(abs.id)`** (fonction exposée par AppContext, pas `deleteUnavailability` qui n'existe pas)
+- Si `daysUntilStart ≤ 30` (inclut les absences en cours ou passées — comportement correct, on ne supprime pas une absence déjà commencée) → afficher icône cadenas + tooltip "Suppression impossible — moins de 30 jours avant le début"
+- Admin (`isAdmin`) → bouton poubelle toujours visible sans contrainte de délai
+- Supprimer le message hardcodé "Pour modifier ou supprimer une absence, contactez un administrateur" ; le remplacer par un message conditionnel visible uniquement si toutes les absences listées sont verrouillées
 
 ---
 
@@ -44,7 +41,7 @@ Utilisée pour persister la préférence de densité du planning global par util
 
 **Fichier :** `pages/Profile.tsx` — onglet `conflits`
 
-**Comportement actuel :** Tous les conflits dans `profileConflicts` s'affichent en rouge/amber. Une fois résolus via `ConflictResolverModal`, `manualOverrides` est mis à jour mais le visuel du conflit ne change pas.
+**Comportement actuel :** Tous les conflits dans `profileConflicts` s'affichent en rouge/amber. Une fois résolus via `ConflictResolverModal`, `manualOverrides` est mis à jour mais le visuel ne change pas.
 
 **Comportement cible :**
 Pour chaque conflit de `profileConflicts`, inspecter `manualOverrides[conflict.slotId]` :
@@ -55,7 +52,12 @@ Pour chaque conflit de `profileConflicts`, inspecter `manualOverrides[conflict.s
 | `__CLOSED__` | Fond gris, "Créneau fermé" |
 | absent/undefined | Fond rouge/amber (comportement actuel) |
 
-Le nom du médecin remplaçant est résolu depuis `doctors.find(d => d.id === resolvedId)`.
+**Extraction du nom :** Avant le lookup dans `doctors`, retirer le préfixe `auto:` si présent :
+```typescript
+const rawValue = manualOverrides[conflict.slotId] ?? '';
+const resolvedId = rawValue.startsWith('auto:') ? rawValue.substring(5) : rawValue;
+const replacingDoctor = doctors.find(d => d.id === resolvedId);
+```
 
 Les conflits résolus restent visibles dans la liste (traçabilité) — ils ne disparaissent pas.
 
@@ -63,17 +65,40 @@ Les conflits résolus restent visibles dans la liste (traçabilité) — ils ne 
 
 ## Feature 3 — Planning global : préférence compact/aéré persistée
 
-**Fichiers :** `pages/Planning.tsx`, `services/settingsService.ts` ou appel Supabase direct
+**Fichiers :** `pages/Planning.tsx`
 
 **Comportement actuel :** `density` est un state local React. Non persisté entre sessions.
 
 **Comportement cible :**
-- Au mount de `Planning.tsx` : lire `profile.ui_prefs?.planning_density ?? 'COMFORTABLE'`
-  → appel `supabase.from('profiles').select('ui_prefs').eq('id', user.id).single()`
-- À chaque changement de densité : persister
-  → `supabase.from('profiles').update({ ui_prefs: { ...existingPrefs, planning_density: newDensity } }).eq('id', user.id)`
-- `existingPrefs` = objet courant pour ne pas écraser d'autres préférences futures
-- Gestion d'erreur silencieuse (fallback sur la valeur locale)
+
+**Lecture au mount :** Effectuer un appel Supabase direct dans `Planning.tsx` (ne pas modifier AuthContext, `ui_prefs` n'est pas sélectionné dans `AuthContext.fetchProfile()`).
+```typescript
+useEffect(() => {
+  if (!user?.id) return;
+  supabase.from('profiles').select('ui_prefs').eq('id', user.id).single()
+    .then(({ data }) => {
+      if (data?.ui_prefs?.planning_density) {
+        setDensity(data.ui_prefs.planning_density);
+      }
+    });
+}, [user?.id]);
+```
+
+**Écriture à chaque changement :**
+```typescript
+const handleDensityChange = async (newDensity: 'COMPACT' | 'COMFORTABLE') => {
+  setDensity(newDensity);
+  if (!user?.id) return;
+  // Fetch existing prefs first to not overwrite other future keys
+  const { data } = await supabase.from('profiles').select('ui_prefs').eq('id', user.id).single();
+  const existing = data?.ui_prefs ?? {};
+  await supabase.from('profiles')
+    .update({ ui_prefs: { ...existing, planning_density: newDensity } })
+    .eq('id', user.id);
+};
+```
+
+Erreur silencieuse (log uniquement) — la valeur locale reste utilisée en cas d'échec.
 
 ---
 
@@ -84,9 +109,9 @@ Les conflits résolus restent visibles dans la liste (traçabilité) — ils ne 
 **Problème :** Le panneau `absolute top-full mt-2 right-0 w-64` déborde à gauche du viewport sur petit écran.
 
 **Correction CSS :**
-```
-avant : "absolute top-full mt-2 right-0 w-64 bg-surface ..."
-après : "absolute top-full mt-2 right-0 left-0 sm:left-auto w-auto sm:w-64 max-w-[calc(100vw-1rem)] bg-surface ..."
+```diff
+- "absolute top-full mt-2 right-0 w-64 bg-surface ..."
++ "absolute top-full mt-2 right-0 left-0 sm:left-auto w-auto sm:w-64 max-w-[calc(100vw-1rem)] bg-surface ..."
 ```
 
 `left-0 sm:left-auto` : ancré au bord gauche sur mobile, aligné à droite sur desktop.
@@ -98,13 +123,26 @@ après : "absolute top-full mt-2 right-0 left-0 sm:left-auto w-auto sm:w-64 max-
 
 **Fichier :** `pages/Dashboard.tsx`
 
-**Problème :** `max-w-[40px]` pour les noms de médecins dans la vue semaine (~4 caractères visibles).
+**Problème :** 5 sites de troncature dans la vue semaine.
 
-**Corrections :**
-- `max-w-[40px] md:max-w-[60px]` → `max-w-[56px] sm:max-w-[80px]`
-- Ajouter un helper `shortName(doctor: Doctor): string` retournant les 8 premiers caractères ou initiales pour les cas très courts :
-  `name.length > 8 ? name.split(' ').map(w => w[0]).join('').toUpperCase() : name`
-- Ce helper peut être utilisé dans Planning.tsx également si besoin
+**Helper à ajouter en tête de fichier :**
+```typescript
+const shortName = (name: string): string => {
+  const parts = name.split(' ');
+  if (parts.length <= 1) return name;
+  // Keep title (Dr./Pr.) + first 6 chars of last name
+  const title = parts[0]; // "Dr." or "Pr."
+  const rest = parts.slice(1).join(' ');
+  return rest.length > 8 ? `${title} ${rest.substring(0, 7)}…` : name;
+};
+```
+
+**Sites à corriger (tous dans la vue semaine) :**
+- Ligne ~555 (Astreinte) : `max-w-[40px]` → `max-w-[56px] sm:max-w-[80px]` + utiliser `shortName(docAstreinte.name)`
+- Ligne ~561 (Unity) : même correction
+- Ligne ~579 (Workflow) : même correction
+- Ligne ~600 (RCP doctor) : même correction sur le span du nom
+- Ligne ~624 (RCP second doctor) : même correction
 
 ---
 
@@ -112,93 +150,121 @@ après : "absolute top-full mt-2 right-0 left-0 sm:left-auto w-auto sm:w-64 max-
 
 **Fichier :** `pages/Profile.tsx` — fonction `getUpcomingRcps()`
 
-**Problème :** La fonction itère directement sur les templates RCP sans vérifier la fréquence (BIWEEKLY, MONTHLY). Résultat : un RCP bimensuel s'affiche toutes les semaines.
+**Problème :** La fonction a 3 branches (`standardRcps`, `manualRcps`, `exceptionalRcps`). La branche `standardRcps` itère sur les templates sans vérifier si la fréquence BIWEEKLY/MONTHLY correspond à la semaine affichée. **Ne pas remplacer la fonction entière** — cela casserait les branches MANUAL et exceptional.
 
-**Correction :** Remplacer l'itération sur les templates par un appel à `generateScheduleForWeek(targetMonday, ...)` pour la semaine affichée. Extraire les slots RCP depuis le résultat, puis enrichir avec les données de statut (myStatus, colleaguesStatus) comme actuellement.
+**Correction ciblée sur `standardRcps` uniquement :**
+
+Après calcul de `slotDate` (date dans la semaine cible), vérifier si le RCP est réellement prévu cette semaine-là en utilisant la même logique que `generateScheduleForWeek` (déjà implémentée dans `scheduleService.ts` autour de la ligne 695) :
 
 ```typescript
-const weekSlots = generateScheduleForWeek(
-  targetMonday, template, unavailabilities, doctors,
-  activityDefinitions, rcpTypes, false, {}, rcpAttendance, rcpExceptions
-);
-const rcpSlots = weekSlots.filter(s =>
-  s.type === SlotType.RCP && (
-    s.assignedDoctorId === currentDoctor.id ||
-    s.secondaryDoctorIds?.includes(currentDoctor.id) ||
-    rcpAttendance[s.id]?.[currentDoctor.id] === 'PRESENT'
-  )
-);
+// Vérification fréquence BIWEEKLY
+if (rcpDef.frequency === 'BIWEEKLY') {
+  const baseDate = new Date(rcpDef.createdAt || '2024-01-01');
+  const weeksSinceBase = Math.floor(
+    (targetMonday.getTime() - baseDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
+  );
+  if (weeksSinceBase % 2 !== 0) continue; // skip odd weeks
+}
+// Vérification fréquence MONTHLY
+if (rcpDef.frequency === 'MONTHLY') {
+  const targetWeekOfMonth = Math.ceil(targetMonday.getDate() / 7);
+  if (targetWeekOfMonth !== (rcpDef.monthlyWeekNumber || 1)) continue;
+}
+// Vérification isCancelled
+if (exception?.isCancelled) continue;
 ```
 
-Puis construire les objets `rcp` affichés à partir de ces slots (date, time, myStatus, colleaguesStatus). Les RCP manuels et exceptionnels sont inclus via le service (déjà géré).
+**Important :** Copier exactement la logique de parité BIWEEKLY de `scheduleService.ts` (lignes ~695-710) pour garantir la cohérence — ne pas recalculer différemment.
 
 ---
 
 ## Feature 7 — Profil RCP : demander/assigner un remplacement
 
-**Fichier :** `pages/Profile.tsx` — onglet `rcp`, rendu des cartes RCP
+**Fichier :** `pages/Profile.tsx` — onglet `rcp`
 
-**Comportement cible :** Ajouter une section d'actions sur chaque carte RCP (visible quand `myStatus !== 'PRESENT'`) :
-- Bouton "Demander un remplacement" → ouvre `ConflictResolverModal` en mode REQUEST
-- Bouton "Assigner directement" → ouvre `ConflictResolverModal` en mode DIRECT
-- Ces boutons sont disponibles à tous (pas admin only) — le médecin gère son propre RCP
-- Le slot synthétique à passer au modal est construit depuis les données du RCP calculé (via Feature 6)
+**Comportement cible :** Sur chaque carte RCP (visible quand `myStatus !== 'PRESENT'`), ajouter :
+- Bouton "Demander un remplacement" → ouvre `ConflictResolverModal`
+- Bouton "Assigner directement" → ouvre `ConflictResolverModal`
+- Ces boutons sont disponibles à tous (pas admin only)
 
-**Construction du ScheduleSlot synthétique :**
+**Construction du ScheduleSlot synthétique** (pattern déjà utilisé ligne ~1453 de Profile.tsx pour le bouton "Déplacer") :
 ```typescript
 const syntheticSlot: ScheduleSlot = {
   id: rcp.generatedId,
   type: SlotType.RCP,
   day: rcp.template.day,
-  period: Period.MORNING, // RCPs are typically AM
+  period: Period.MORNING,
   date: rcp.date,
-  location: rcp.template.location,
+  location: rcp.template.location ?? rcp.template.id,
+  subType: rcp.template.location,
   assignedDoctorId: currentDoctor.id,
-  // ...other required fields with defaults
+  secondaryDoctorIds: [],
+  backupDoctorId: rcp.template.backupDoctorId,
+  isUnconfirmed: rcp.myStatus !== 'PRESENT',
 };
 ```
 
-**Propagation :** `ConflictResolverModal` gère déjà l'envoi de la demande + notification. On passe `onResolve` qui met à jour `rcpAttendance` dans le contexte.
+**Prop `slots` pour ConflictResolverModal :** Générer le schedule pour la semaine du RCP affiché :
+```typescript
+// Calculer une seule fois par semaine affichée (useMemo sur notifWeekOffset)
+const rcpWeekSlots = useMemo(() => {
+  return generateScheduleForWeek(targetMonday, template, unavailabilities, doctors, activityDefinitions, rcpTypes, false, {}, rcpAttendance, rcpExceptions);
+}, [targetMonday, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+```
+
+Passer `rcpWeekSlots` comme `slots` au modal. `onResolve` met à jour `rcpAttendance` dans le contexte.
 
 ---
 
 ## Feature 8 — Vue semaine Mon Planning : clic sur Consultation
 
-**Fichier :** `components/PersonalAgendaWeek.tsx`
+**Fichiers :** `components/PersonalAgendaWeek.tsx`, `pages/MonPlanning.tsx`
 
-**Comportement cible :** Les cartes Consultation deviennent cliquables. Au clic, `ConflictResolverModal` s'ouvre avec le slot (sans conflict, permettant de demander un remplacement).
+**Architecture :** Lever l'état modal dans `MonPlanning.tsx` (pas dans `PersonalAgendaWeek` qui reste un composant d'affichage). Ajouter une prop optionnelle :
+```typescript
+// PersonalAgendaWeek.tsx — nouvelles props
+onConsultClick?: (slot: ScheduleSlot) => void;
+onRcpClick?: (slot: ScheduleSlot) => void;
+```
 
-**Props supplémentaires nécessaires dans PersonalAgendaWeek :**
-- `schedule` (slots de la semaine) — déjà calculé localement dans le composant
-- `onResolve: (slotId: string, newDoctorId: string) => void` — callback depuis `MonPlanning.tsx`
-- `onCloseSlot: (slotId: string) => void` — callback depuis `MonPlanning.tsx`
+`MonPlanning.tsx` : consommer `AppContext` (doctors, unavailabilities, manualOverrides, setManualOverrides), gérer l'état `selectedConsultSlot` et `selectedRcpSlot`, rendre `ConflictResolverModal` et `RcpAttendanceModal` conditionnellement.
 
-Ajouter `onClick={() => setSelectedConsultSlot(slot)}` sur les cartes consultation.
-State local : `const [selectedConsultSlot, setSelectedConsultSlot] = useState<ScheduleSlot | null>(null)`.
+**Callbacks `onResolve` et `onCloseSlot`** dans MonPlanning.tsx :
+```typescript
+const handleConsultResolve = (slotId: string, newDoctorId: string) => {
+  setManualOverrides(prev => ({ ...prev, [slotId]: newDoctorId }));
+  setSelectedConsultSlot(null);
+};
+const handleConsultClose = (slotId: string) => {
+  setManualOverrides(prev => ({ ...prev, [slotId]: '__CLOSED__' }));
+  setSelectedConsultSlot(null);
+};
+```
 
 ---
 
 ## Feature 9 — Vue semaine Mon Planning : clic sur RCP → Présent/Absent
 
-**Fichier :** `components/PersonalAgendaWeek.tsx` + nouveau composant `RcpAttendanceModal`
+**Fichiers :** `components/PersonalAgendaWeek.tsx`, `components/RcpAttendanceModal.tsx` (nouveau), `pages/MonPlanning.tsx`
 
-**Comportement cible :** Les cartes RCP deviennent cliquables. Au clic → modale légère avec :
-- Titre : nom du RCP + date
-- Bouton ✓ **Présent** (vert)
-- Bouton ✗ **Absent** (rouge)
-- Bouton Annuler
+**Nouveau composant `RcpAttendanceModal`** — léger (~60 lignes) :
+```
+Props: slot: ScheduleSlot, doctorId: string, currentStatus: 'PRESENT'|'ABSENT'|null, onClose: () => void
+```
+Deux boutons : ✓ Présent / ✗ Absent. Logique Supabase + mise à jour `setRcpAttendance` du contexte.
 
-**Logique Présent/Absent :**
+**Réutilisation du pattern existant** (Profile.tsx `handleAttendanceToggle`) — copier la logique upsert/delete, ne pas créer de hook séparé (YAGNI) :
 ```typescript
 // Présent :
 await supabase.from('rcp_attendance')
-  .upsert({ slot_id: slot.id, doctor_id: doctorId, status: 'PRESENT' });
+  .upsert({ slot_id: slot.id, doctor_id: doctorId, status: 'PRESENT' },
+           { onConflict: 'slot_id,doctor_id' });
 setRcpAttendance(prev => ({
   ...prev,
   [slot.id]: { ...(prev[slot.id] ?? {}), [doctorId]: 'PRESENT' }
 }));
 
-// Absent : delete from rcp_attendance where slot_id and doctor_id
+// Absent (clear) :
 await supabase.from('rcp_attendance')
   .delete().eq('slot_id', slot.id).eq('doctor_id', doctorId);
 setRcpAttendance(prev => {
@@ -208,7 +274,7 @@ setRcpAttendance(prev => {
 });
 ```
 
-`setRcpAttendance` doit être récupéré depuis `AppContext`.
+`setRcpAttendance` est récupéré depuis `AppContext` (exposé comme `setRcpAttendance`).
 
 ---
 
@@ -216,14 +282,28 @@ setRcpAttendance(prev => {
 
 **Fichier :** `components/PersonalAgendaMonth.tsx`
 
-**Comportement actuel :** Un panneau s'affiche en bas du calendrier après la grille.
+**Architecture :** Gérer le modal dans `PersonalAgendaMonth` lui-même (self-contained, pas de lift nécessaire — le mois est un composant autonome).
 
-**Comportement cible :** Modale centrée avec overlay semi-transparent. Le contenu (matin/après-midi, codes couleur, icônes) est identique. La modale :
-- Overlay : `fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4`
-- Panneau : `bg-surface rounded-xl shadow-modal max-w-sm w-full p-5`
-- Bouton ✕ en haut à droite
-- Fermeture au clic sur l'overlay ou le bouton ✕
-- `setSelectedDate(null)` à la fermeture
+**Remplacement du panneau bas par une modale centrée :**
+```tsx
+{selectedDate && (
+  <div
+    className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+    onClick={() => setSelectedDate(null)}
+  >
+    <div
+      className="bg-surface rounded-xl shadow-modal max-w-sm w-full p-5 max-h-[80vh] overflow-y-auto"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-semibold text-text-base capitalize">...</p>
+        <button onClick={() => setSelectedDate(null)}>✕</button>
+      </div>
+      {/* contenu identique à l'actuel */}
+    </div>
+  </div>
+)}
+```
 
 ---
 
@@ -231,10 +311,24 @@ setRcpAttendance(prev => {
 
 **Fichier :** `pages/Profile.tsx` — composant `NotificationSection`
 
-**Comportement cible :** À côté de chaque toggle de type de notification (`ALL_NOTIFICATION_TYPES`), ajouter un bouton ▶ "Tester" :
-- Appelle `createNotification({ user_id: userId, type: notifType, title: '[TEST] ' + NOTIFICATION_TYPE_LABELS[notifType], body: 'Notification de test.' })`
-- Désactivé (`disabled`) si `!isEnabled(notifType)` ou si notifications globalement désactivées
-- Feedback visuel : le bouton passe à "✓ Envoyé" pendant 2s après succès
+**Mécanisme :** Utiliser `createNotification()` pour créer une notification in-app (pas un vrai push edge function — infrastructure trop complexe pour un test). Le médecin verra la notification apparaître dans sa cloche de notifications.
+
+```typescript
+const handleTestNotification = async (notifType: string) => {
+  if (!userId) return;
+  await createNotification({
+    user_id: userId,
+    type: notifType,
+    title: `[TEST] ${NOTIFICATION_TYPE_LABELS[notifType]}`,
+    body: 'Ceci est une notification de test. Elle apparaît dans votre liste de notifications.',
+  });
+};
+```
+
+Bouton ▶ à côté de chaque toggle :
+- Désactivé si `!isEnabled(notifType)` ou `prefsLoading`
+- Feedback : `sending...` pendant l'appel, `✓` 2s après succès, retour à ▶
+- Ne déclenche PAS un vrai push web/mobile — uniquement in-app (cloche)
 
 ---
 
@@ -242,39 +336,48 @@ setRcpAttendance(prev => {
 
 **Fichier :** `pages/Configuration.tsx` — section RCP auto-affectation
 
-**Comportement cible :** Bouton "Annuler toutes les auto-affectations RCP" avec confirmation.
+**Logique :** Scope strictement limité aux slots RCP (exclut les auto-affectations d'activités comme l'Astreinte).
 
-**Logique :**
-1. Collecter les IDs des template slots de type RCP : `rcpTemplateIds = template.filter(t => t.type === SlotType.RCP).map(t => t.id)`
-2. Construire le nouveau `manualOverrides` en filtrant les entrées auto-RCP :
 ```typescript
-const newOverrides = Object.fromEntries(
-  Object.entries(manualOverrides).filter(([key, value]) => {
-    const isAutoAssigned = (value as string).startsWith('auto:');
-    if (!isAutoAssigned) return true; // keep manual assignments
-    const templateId = rcpTemplateIds.find(id => key.startsWith(id + '-'));
-    return !templateId; // remove if it's an RCP auto-assignment
-  })
-);
+const handleCancelAllRcpAutoAssignments = () => {
+  if (!window.confirm('Annuler toutes les auto-affectations RCP ? Les affectations manuelles sont conservées.')) return;
+
+  // IDs des template slots de type RCP uniquement
+  const rcpTemplateIds = template
+    .filter(t => t.type === SlotType.RCP)
+    .map(t => t.id);
+
+  const newOverrides = Object.fromEntries(
+    Object.entries(manualOverrides).filter(([key, value]) => {
+      if (!(value as string).startsWith('auto:')) return true; // garder les manuels
+      // Vérifier si la clé correspond à un template RCP
+      const isRcpSlot = rcpTemplateIds.some(id => key.startsWith(id + '-'));
+      return !isRcpSlot; // supprimer uniquement les RCP auto
+    })
+  );
+
+  setManualOverrides(newOverrides);
+  // setManualOverrides persiste via AppContext → app_settings.manual_overrides
+};
 ```
-3. Appeler `setManualOverrides(newOverrides)` → persiste via le mécanisme existant dans AppContext
+
+Bouton dans la section "Auto-affectation RCP" : rouge destructif, icône RotateCcw, avec confirmation.
 
 ---
 
-## Ordre d'implémentation recommandé
+## Ordre d'implémentation
 
-1. **Migration DB** — `ui_prefs` dans `profiles`
+1. **Migration DB (19)** — `ui_prefs` dans `profiles`
 2. **Feature 6** — RCP dates filtrées (prérequis logique de Feature 7)
-3. **Feature 7** — RCP remplacement/assignation directe
-4. **Feature 1** — Absence J-30
-5. **Feature 2** — Conflits verts
+3. **Feature 7** — RCP remplacement/assignation directe dans profil
+4. **Feature 1** — Absence J-30 (removeUnavailability)
+5. **Feature 2** — Conflits verts dans profil
 6. **Feature 12** — Annulation auto-affectations RCP
-7. **Feature 8** — Clic consultation vue semaine
-8. **Feature 9** — Clic RCP vue semaine + `RcpAttendanceModal`
-9. **Feature 10** — Fenêtre flottante vue mois
-10. **Feature 11** — Bouton test notifications
-11. **Feature 3** — Préférence densité persistée
-12. **Feature 4 + 5** — Corrections mobile Planning dropdown + Dashboard noms
+7. **Features 8+9** — Clic consultation + RCP vue semaine (MonPlanning.tsx + AppContext ensemble)
+8. **Feature 10** — Fenêtre flottante vue mois
+9. **Feature 11** — Bouton test notifications
+10. **Feature 3** — Préférence densité persistée
+11. **Features 4+5** — Corrections mobile Planning dropdown + Dashboard noms
 
 ---
 
@@ -283,16 +386,20 @@ const newOverrides = Object.fromEntries(
 | Fichier | Features |
 |---|---|
 | `pages/Profile.tsx` | 1, 2, 6, 7, 11 |
+| `pages/MonPlanning.tsx` | 8, 9 |
 | `pages/Planning.tsx` | 3, 4 |
 | `pages/Dashboard.tsx` | 5 |
 | `pages/Configuration.tsx` | 12 |
 | `components/PersonalAgendaWeek.tsx` | 8, 9 |
 | `components/PersonalAgendaMonth.tsx` | 10 |
-| `components/RcpAttendanceModal.tsx` | 9 (nouveau) |
-| Supabase migration | 3 |
+| `components/RcpAttendanceModal.tsx` | 9 (nouveau, ~60 lignes) |
+| Supabase migration 22 | 3 |
 
 ---
 
-## Pas de nouvelles tables Supabase
+## Contraintes transversales
 
-Seule la colonne `ui_prefs` dans `profiles` est ajoutée. Toutes les autres features utilisent les tables existantes (`rcp_attendance`, `replacement_requests`, `notifications`, `manual_overrides` dans `app_settings`).
+- **Pas de nouvelles tables Supabase** — seule la colonne `ui_prefs` dans `profiles` est ajoutée
+- **Pas de nouveaux services** — réutiliser l'existant
+- **Cohérence logique BIWEEKLY** — Feature 6 doit copier exactement la logique de parité de `scheduleService.ts` (~ligne 695)
+- **Pas de feature flags** — code direct
