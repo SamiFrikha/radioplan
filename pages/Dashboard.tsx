@@ -11,6 +11,14 @@ import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConf
 import { getDoctorHexColor } from '../components/DoctorBadge';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
 
+const shortName = (name: string): string => {
+  const parts = name.split(' ');
+  if (parts.length <= 1) return name;
+  const title = parts[0]; // "Dr." or "Pr."
+  const rest = parts.slice(1).join(' ');
+  return rest.length > 8 ? `${title} ${rest.substring(0, 7)}…` : name;
+};
+
 const Dashboard: React.FC = () => {
     const {
         doctors,
@@ -552,13 +560,13 @@ const Dashboard: React.FC = () => {
                                     {astreinte?.assignedDoctorId && docAstreinte && (
                                         <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(220,78,58,0.10)', borderColor: 'rgba(220,78,58,0.25)', borderLeftColor: '#DC4E3A' }}>
                                             <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#DC4E3A' }}>Astr.</span>
-                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docAstreinte.name}</span>
+                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[56px] sm:max-w-[80px] md:max-w-[60px]" title={docAstreinte.name}>{shortName(docAstreinte.name)}</span>
                                         </div>
                                     )}
                                     {unity?.assignedDoctorId && docUnity && (
                                         <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(109,40,217,0.10)', borderColor: 'rgba(109,40,217,0.25)', borderLeftColor: '#6D28D9' }}>
                                             <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#6D28D9' }}>UNITY</span>
-                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docUnity.name}</span>
+                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[56px] sm:max-w-[80px] md:max-w-[60px]" title={docUnity.name}>{shortName(docUnity.name)}</span>
                                         </div>
                                     )}
 
@@ -576,7 +584,7 @@ const Dashboard: React.FC = () => {
                                             <>
                                                 <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(15,118,110,0.10)', borderColor: 'rgba(15,118,110,0.25)', borderLeftColor: '#0F766E' }}>
                                                     <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#0F766E' }}>Wrkflw</span>
-                                                    <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[40px] md:max-w-[60px]">{docWorkflow.name}</span>
+                                                    <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[56px] sm:max-w-[80px] md:max-w-[60px]" title={docWorkflow.name}>{shortName(docWorkflow.name)}</span>
                                                 </div>
                                                 <div className="h-px bg-border my-1 md:my-2"></div>
                                             </>
