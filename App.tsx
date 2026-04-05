@@ -18,6 +18,7 @@ import { NotificationProvider } from './context/NotificationContext';
 import Login from './pages/Login';
 import RoleManagement from './pages/admin/RoleManagement';
 import TeamManagement from './pages/admin/TeamManagement';
+import Install from './pages/Install';
 
 // Services
 import { doctorService } from './services/doctorService';
@@ -697,6 +698,7 @@ const App: React.FC = () => {
             <Router>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/install" element={<Install />} />
 
                     {/* Protected layout shell */}
                     <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
