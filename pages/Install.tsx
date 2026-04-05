@@ -49,7 +49,7 @@ const Install: React.FC = () => {
           <p className="text-white/60 mt-2 text-sm">RadioPlan AI est disponible sur votre écran d'accueil.</p>
         </div>
         <a
-          href={window.location.origin}
+          href={`${window.location.origin}${import.meta.env.BASE_URL}`}
           className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors"
         >
           Ouvrir RadioPlan AI <ArrowRight size={16} />
@@ -122,7 +122,7 @@ const Install: React.FC = () => {
       )}
 
       {/* URL copiable */}
-      <p className="text-white/20 text-xs font-mono text-center break-all">{window.location.origin}</p>
+      <p className="text-white/20 text-xs font-mono text-center break-all">{`${window.location.origin}${import.meta.env.BASE_URL}`}</p>
     </div>
   );
 };

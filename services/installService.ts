@@ -10,10 +10,7 @@ export const setupInstallListener = () => {
     _deferredPrompt = e;
     _promptReady = true;
 
-    // Auto-trigger if URL contains ?install=true (QR code scan from admin)
-    if (window.location.search.includes('install=true') || window.location.href.includes('install=true')) {
-      (e as any).prompt();
-    }
+    // Note: auto-trigger removed — install is triggered by user gesture on /install page
   });
 };
 

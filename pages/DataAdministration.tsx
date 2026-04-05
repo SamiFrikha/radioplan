@@ -17,7 +17,8 @@ const DataAdministration: React.FC = () => {
   const [installAvailable, setInstallAvailable] = useState(false);
   const [installing, setInstalling] = useState(false);
 
-  const appUrl = typeof window !== 'undefined' ? window.location.origin + '/#/install' : '';
+  const appBase = `${window.location.origin}${import.meta.env.BASE_URL}`;
+  const appUrl = `${appBase}#/install`;
   const qrUrl180 = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(appUrl)}&bgcolor=ffffff&color=1e293b&margin=2`;
 
   useEffect(() => {
