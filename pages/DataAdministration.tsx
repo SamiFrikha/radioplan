@@ -1,20 +1,32 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, Upload, FileJson, AlertTriangle, QrCode, Smartphone, MonitorSmartphone } from 'lucide-react';
 import { Card } from '../src/components/ui';
 import { Button } from '../src/components/ui/Button';
 import { backupService } from '../services/backupService';
-import { triggerInstallPrompt } from '../index';
+import { triggerInstallPrompt, isInstallAvailable } from '../services/installService';
 
 type Tab = 'data' | 'install';
+
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 const DataAdministration: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('data');
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [installAvailable, setInstallAvailable] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   const appUrl = typeof window !== 'undefined' ? window.location.origin + '?install=true' : '';
   const qrUrl180 = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(appUrl)}&bgcolor=ffffff&color=1e293b&margin=2`;
+
+  useEffect(() => {
+    // Poll for prompt availability (fires once browser signals readiness)
+    const check = () => setInstallAvailable(isInstallAvailable());
+    check();
+    window.addEventListener('beforeinstallprompt', check);
+    return () => window.removeEventListener('beforeinstallprompt', check);
+  }, []);
 
   // --- EXPORT / IMPORT HANDLERS ---
   const handleExport = async () => {
@@ -145,6 +157,8 @@ const DataAdministration: React.FC = () => {
         {/* --- INSTALLATION TAB --- */}
         {activeTab === 'install' && (
             <div className="max-w-2xl space-y-4">
+
+                {/* QR code card */}
                 <Card className="p-6">
                     <div className="flex flex-col items-center gap-4 text-center">
                         <div className="p-3 bg-primary/10 rounded-full">
@@ -153,7 +167,7 @@ const DataAdministration: React.FC = () => {
                         <div>
                             <h3 className="font-bold text-xl text-text-base">Installer RadioPlan AI</h3>
                             <p className="text-sm text-text-muted mt-1">
-                                Scannez le QR code depuis un téléphone — le navigateur proposera directement d'installer l'application sur l'écran d'accueil.
+                                Scannez ce QR code avec la caméra de votre téléphone pour ouvrir l'application et l'installer.
                             </p>
                         </div>
 
@@ -163,33 +177,70 @@ const DataAdministration: React.FC = () => {
                             className="rounded-xl border-2 border-border shadow-md w-[200px] h-[200px]"
                         />
 
-                        <p className="text-xs text-text-muted font-mono bg-muted px-3 py-1.5 rounded-btn border border-border break-all">
+                        <p className="text-xs text-text-muted font-mono bg-muted px-3 py-1.5 rounded-btn border border-border break-all select-all">
                             {appUrl}
-                        </p>
-
-                        <div className="w-full border-t border-border pt-4 flex flex-col sm:flex-row gap-3">
-                            <div className="flex-1 bg-muted rounded-card p-3 text-left border border-border">
-                                <p className="text-xs font-semibold text-text-base mb-1">📱 iOS (iPhone / iPad)</p>
-                                <p className="text-xs text-text-muted">Safari → Partager → "Sur l'écran d'accueil"</p>
-                            </div>
-                            <div className="flex-1 bg-muted rounded-card p-3 text-left border border-border">
-                                <p className="text-xs font-semibold text-text-base mb-1">🤖 Android</p>
-                                <p className="text-xs text-text-muted">Chrome → Menu ⋮ → "Installer l'application" ou bannière automatique</p>
-                            </div>
-                        </div>
-
-                        {/* Install button for current device */}
-                        <button
-                            onClick={triggerInstallPrompt}
-                            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-btn text-sm font-semibold hover:bg-primary/90 transition-colors"
-                        >
-                            <Smartphone size={16} /> Installer sur cet appareil
-                        </button>
-                        <p className="text-xs text-text-muted -mt-2">
-                            (Disponible uniquement si l'app n'est pas déjà installée)
                         </p>
                     </div>
                 </Card>
+
+                {/* Instructions par plateforme */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Card className="p-4">
+                        <p className="text-sm font-semibold text-text-base mb-2">📱 iPhone / iPad (iOS)</p>
+                        <ol className="text-xs text-text-muted space-y-1 list-decimal list-inside leading-relaxed">
+                            <li>Scannez le QR code avec la caméra</li>
+                            <li>Ouvrez le lien dans <strong>Safari</strong></li>
+                            <li>Appuyez sur <strong>Partager</strong> (icône ↑)</li>
+                            <li>Choisissez <strong>"Sur l'écran d'accueil"</strong></li>
+                            <li>Confirmez avec <strong>Ajouter</strong></li>
+                        </ol>
+                        <div className="mt-3 bg-amber-500/10 border border-amber-500/20 rounded p-2 text-xs text-amber-700">
+                            ⚠️ Doit être ouvert avec Safari (pas Chrome ni Firefox)
+                        </div>
+                    </Card>
+
+                    <Card className="p-4">
+                        <p className="text-sm font-semibold text-text-base mb-2">🤖 Android</p>
+                        <ol className="text-xs text-text-muted space-y-1 list-decimal list-inside leading-relaxed">
+                            <li>Scannez le QR code avec la caméra</li>
+                            <li>Ouvrez dans <strong>Chrome</strong></li>
+                            <li>Une bannière d'installation apparaît automatiquement</li>
+                            <li>Ou : menu <strong>⋮ → "Installer l'application"</strong></li>
+                        </ol>
+                        <div className="mt-3 bg-success/10 border border-success/20 rounded p-2 text-xs text-success">
+                            ✓ Chrome affiche la bannière d'installation automatiquement
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Bouton install pour l'appareil courant (Android seulement) */}
+                {!isIOS() && (
+                    <Card className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <p className="text-sm font-semibold text-text-base">Installer sur cet appareil</p>
+                                <p className="text-xs text-text-muted mt-0.5">
+                                    {installAvailable
+                                        ? 'Cliquez pour installer l\'application directement.'
+                                        : 'L\'application est déjà installée ou la bannière n\'est pas encore disponible.'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    setInstalling(true);
+                                    await triggerInstallPrompt();
+                                    setInstalling(false);
+                                    setInstallAvailable(isInstallAvailable());
+                                }}
+                                disabled={!installAvailable || installing}
+                                className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-btn text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0"
+                            >
+                                <Smartphone size={15} />
+                                {installing ? 'Installation...' : 'Installer'}
+                            </button>
+                        </div>
+                    </Card>
+                )}
             </div>
         )}
     </div>

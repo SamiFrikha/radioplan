@@ -3,23 +3,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
+import { setupInstallListener } from './services/installService';
 
-// Capture beforeinstallprompt early so it can be triggered later (e.g. from QR code scan with ?install=true)
-let deferredInstallPrompt: any = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  // If the page was opened with ?install=true (e.g. from QR code), trigger immediately
-  if (window.location.search.includes('install=true') || window.location.href.includes('install=true')) {
-    (e as any).prompt();
-  }
-});
-export const triggerInstallPrompt = () => {
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    deferredInstallPrompt = null;
-  }
-};
+// Register PWA install prompt listener as early as possible
+setupInstallListener();
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
