@@ -756,7 +756,7 @@ const Planning: React.FC = () => {
                         </button>
 
                         {showSettings && (
-                            <div className="absolute top-full mt-2 right-0 w-64 bg-surface rounded-card shadow-modal border border-border p-4 z-[50] animate-in fade-in zoom-in-95 duration-150">
+                            <div className="absolute top-full mt-2 right-0 left-0 sm:left-auto w-auto sm:w-64 max-w-[calc(100vw-1rem)] bg-surface rounded-card shadow-modal border border-border p-4 z-[50] animate-in fade-in zoom-in-95 duration-150">
                                 <div className="mb-4">
                                     <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
                                         <LayoutGrid className="w-3 h-3 mr-1" /> Mode de Vue
