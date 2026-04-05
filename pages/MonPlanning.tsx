@@ -3,6 +3,7 @@ import { AppContext } from '../App';
 import PersonalAgendaWeek from '../components/PersonalAgendaWeek';
 import PersonalAgendaMonth from '../components/PersonalAgendaMonth';
 import ConflictResolverModal from '../components/ConflictResolverModal';
+import RcpAttendanceModal from '../components/RcpAttendanceModal';
 import { ScheduleSlot } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -75,7 +76,13 @@ const MonPlanning: React.FC = () => {
         />
       )}
 
-      {/* RcpAttendanceModal — added in T9 */}
+      {selectedRcpSlot && profile?.doctor_id && (
+        <RcpAttendanceModal
+          slot={selectedRcpSlot}
+          doctorId={profile.doctor_id}
+          onClose={() => setSelectedRcpSlot(null)}
+        />
+      )}
     </div>
   );
 };
