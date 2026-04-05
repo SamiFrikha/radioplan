@@ -11,6 +11,8 @@ import { getDoctorHexColor } from './DoctorBadge';
 interface Props {
   weekOffset: number;
   onOffsetChange: (offset: number) => void;
+  onConsultClick?: (slot: any) => void;
+  onRcpClick?: (slot: any) => void;
 }
 
 const DAY_ORDER = [DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY];
@@ -80,7 +82,7 @@ const RCP_CARD_STYLE = {
   },
 };
 
-const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => {
+const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onConsultClick, onRcpClick }) => {
   const {
     doctors, template, unavailabilities,
     activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
@@ -327,7 +329,9 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                       {/* Color dot on the timeline */}
                       <div className="w-2.5 h-2.5 rounded-full -ml-[22px] mt-3 flex-shrink-0 absolute border-2 border-surface"
                         style={{ backgroundColor: slotColor }} aria-hidden="true" />
-                      <div className="flex items-center gap-3 py-2 px-3 rounded-btn-sm">
+                      <div
+                        className={`flex items-center gap-3 py-2 px-3 rounded-btn-sm${slot.type === SlotType.CONSULTATION ? ' cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                        onClick={slot.type === SlotType.CONSULTATION ? () => onConsultClick?.(slot) : undefined}>
                         <span className="text-xs font-semibold text-text-muted tabular-nums w-10 flex-shrink-0">
                           {slot.period === Period.MORNING ? '08h00' : '14h00'}
                         </span>
@@ -494,9 +498,10 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange }) => 
                         if (slot.type === SlotType.CONSULTATION) {
                           return (
                             <div key={slot.id}
-                              className="rounded-btn-sm border px-1.5 py-1 mb-0.5 text-white"
+                              className="rounded-btn-sm border px-1.5 py-1 mb-0.5 text-white cursor-pointer hover:opacity-80 transition-opacity"
                               style={{ backgroundColor: SLOT_COLORS.CONSULT, borderColor: SLOT_COLORS.CONSULT }}
-                              title={slot.subType || slot.location || 'Consultation'}>
+                              title={slot.subType || slot.location || 'Consultation'}
+                              onClick={() => onConsultClick?.(slot)}>
                               <div className="flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-white/70" />
                                 <span className="text-[10px] font-semibold truncate flex-1">
