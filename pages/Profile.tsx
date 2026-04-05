@@ -14,7 +14,7 @@ import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
 import { createNotification } from '../services/notificationService';
 import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException } from '../types';
-import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
+import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts, getWeekNumber, getNthDayOfMonth } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -467,6 +467,7 @@ const Profile: React.FC = () => {
 
         const targetMonday = new Date(currentMonday);
         targetMonday.setDate(targetMonday.getDate() + (notifWeekOffset * 7));
+        const currentWeekNum = getWeekNumber(targetMonday);
 
         const relevantTemplates = template.filter(t =>
             t.type === SlotType.RCP && (
@@ -477,9 +478,29 @@ const Profile: React.FC = () => {
             )
         );
 
-        const standardRcps = relevantTemplates.map(t => {
+        const standardRcps = relevantTemplates.flatMap(t => {
             const slotDate = getDateForDayOfWeek(targetMonday, t.day);
             const exception = rcpExceptions.find(ex => ex.rcpTemplateId === t.id && ex.originalDate === slotDate);
+
+            // Frequency checks — replicate scheduleService.ts lines ~694-710
+            const rcpDef = rcpTypes.find(r => r.name === t.location);
+            if (rcpDef) {
+                if (rcpDef.frequency === 'BIWEEKLY') {
+                    if (rcpDef.weekParity === 'ODD'  && currentWeekNum % 2 === 0) return [];
+                    if (rcpDef.weekParity === 'EVEN' && currentWeekNum % 2 !== 0) return [];
+                    if (!rcpDef.weekParity && currentWeekNum % 2 === 0) return [];
+                } else if (rcpDef.frequency === 'MONTHLY') {
+                    const nth = getNthDayOfMonth(new Date(slotDate));
+                    if (nth !== (rcpDef.monthlyWeekNumber || 1)) return [];
+                } else if (rcpDef.frequency === 'MANUAL') {
+                    return []; // handled by manualRcps branch
+                }
+            } else if (t.frequency === 'BIWEEKLY') {
+                if (currentWeekNum % 2 === 0) return [];
+            }
+
+            // isCancelled check
+            if (exception?.isCancelled) return [];
 
             const displayDate = exception?.newDate || slotDate;
             const displayTime = exception?.newTime || t.time || 'N/A';
@@ -507,7 +528,7 @@ const Profile: React.FC = () => {
                 };
             });
 
-            return {
+            return [{
                 template: t,
                 date: displayDate,
                 time: displayTime,
@@ -521,7 +542,7 @@ const Profile: React.FC = () => {
                 isCancelled: exception?.isCancelled,
                 isManual: false,
                 isExceptional: false
-            };
+            }];
         });
 
         // Manual RCPs
