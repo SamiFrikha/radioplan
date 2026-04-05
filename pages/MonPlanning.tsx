@@ -75,10 +75,7 @@ const MonPlanning: React.FC = () => {
         />
       )}
 
-      {selectedRcpSlot && profile?.doctor_id && (
-        // RcpAttendanceModal will be added in T9
-        <div style={{ display: 'none' }} />
-      )}
+      {/* RcpAttendanceModal — added in T9 */}
     </div>
   );
 };
