@@ -1678,6 +1678,13 @@ const Profile: React.FC = () => {
                                         const slot = conflictsWeekSchedule.find(s => s.id === conflict.slotId);
                                         if (!slot) return null;
 
+                                        // Resolution detection
+                                        const rawOverride = manualOverrides[conflict.slotId] ?? '';
+                                        const isResolved = rawOverride !== '' && rawOverride !== '__CLOSED__';
+                                        const isClosed = rawOverride === '__CLOSED__';
+                                        const resolvedDoctorId = rawOverride.startsWith('auto:') ? rawOverride.substring(5) : rawOverride;
+                                        const resolvedDoctor = isResolved ? doctors.find(d => d.id === resolvedDoctorId) : null;
+
                                         return (
                                             <div
                                                 key={conflict.id}
@@ -1685,7 +1692,11 @@ const Profile: React.FC = () => {
                                                     setConflictModalSlot(slot);
                                                     setConflictModalConflict(conflict);
                                                 }}
-                                                className="p-3 bg-surface border border-red-100 rounded-card shadow-sm hover:border-red-300 hover:shadow-md transition-all cursor-pointer relative group"
+                                                className={`p-3 rounded-card shadow-sm transition-all cursor-pointer relative group ${
+                                                    isResolved ? 'bg-green-50 border border-green-200 hover:border-green-400'
+                                                    : isClosed  ? 'bg-muted border border-border'
+                                                    : 'bg-surface border border-red-100 hover:border-red-300 hover:shadow-md'
+                                                }`}
                                             >
                                                 <div className="flex justify-between items-start mb-1">
                                                     <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100 uppercase">
@@ -1701,6 +1712,18 @@ const Profile: React.FC = () => {
                                                 </div>
                                                 <p className="text-sm font-medium text-text-base mt-2">{slot.location || slot.subType}</p>
                                                 <p className="text-xs text-text-muted mt-1">{conflict.description}</p>
+                                                {isResolved && resolvedDoctor && (
+                                                    <div className="flex items-center gap-1.5 mt-2 text-xs text-green-700 font-semibold">
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                                                        Résolu — remplacé par {resolvedDoctor.name}
+                                                    </div>
+                                                )}
+                                                {isClosed && (
+                                                    <div className="flex items-center gap-1.5 mt-2 text-xs text-text-muted font-semibold">
+                                                        <XCircle className="w-3.5 h-3.5" />
+                                                        Créneau fermé
+                                                    </div>
+                                                )}
                                                 <div className="absolute right-2 bottom-2 text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                                                     Résoudre →
                                                 </div>
