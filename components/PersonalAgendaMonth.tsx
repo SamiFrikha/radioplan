@@ -350,68 +350,83 @@ const PersonalAgendaMonth: React.FC = () => {
         <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: SLOT_COLORS.LEAVE }} />Congé</div>
       </div>
 
-      {/* Selected day detail panel */}
       {selectedDate && (
-        <div className="mt-3 p-4 bg-muted rounded-xl border border-border text-sm">
-          <p className="font-semibold text-text-base mb-3 capitalize">
-            {new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-FR', {
-              weekday: 'long', day: '2-digit', month: 'long'
-            })}
-          </p>
-          {(() => {
-            const daySlots = scheduleByDate[selectedDate] ?? [];
-            const onLeave = unavailabilities.some(u =>
-              u.doctorId === doctorId && selectedDate >= u.startDate && selectedDate <= u.endDate
-            );
-            if (onLeave) return <p className="text-text-muted italic text-sm">Congé / Indisponibilité</p>;
-            if (daySlots.length === 0) return <p className="text-text-muted italic text-sm">Aucune activité planifiée</p>;
+        <div
+          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedDate(null)}
+        >
+          <div
+            className="bg-surface rounded-xl shadow-modal max-w-sm w-full p-5 max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="font-semibold text-text-base capitalize">
+                {new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-FR', {
+                  weekday: 'long', day: '2-digit', month: 'long'
+                })}
+              </p>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="p-1 hover:bg-muted rounded-btn-sm text-text-muted"
+              >
+                <span className="text-lg leading-none">✕</span>
+              </button>
+            </div>
+            {(() => {
+              const daySlots = scheduleByDate[selectedDate] ?? [];
+              const onLeave = unavailabilities.some(u =>
+                u.doctorId === doctorId && selectedDate >= u.startDate && selectedDate <= u.endDate
+              );
+              if (onLeave) return <p className="text-text-muted italic text-sm">Congé / Indisponibilité</p>;
+              if (daySlots.length === 0) return <p className="text-text-muted italic text-sm">Aucune activité planifiée</p>;
 
-            const morningSlots = daySlots.filter((s: any) => s.period === Period.MORNING);
-            const afternoonSlots = daySlots.filter((s: any) => s.period === Period.AFTERNOON);
+              const morningSlots = daySlots.filter((s: any) => s.period === Period.MORNING);
+              const afternoonSlots = daySlots.filter((s: any) => s.period === Period.AFTERNOON);
 
-            const renderDetailSlot = (s: any) => {
-              const rcpStatus = getRcpStatus(s, doctorId, rcpAttendance);
-              const dotColor = s.type === SlotType.RCP
-                ? (rcpStatus === 'PRESENT' ? 'bg-green-500' : rcpStatus === 'UNCONFIRMED' ? 'bg-amber-500' : 'bg-violet-500')
-                : (SLOT_DOT[s.type] ?? 'bg-muted');
+              const renderDetailSlot = (s: any) => {
+                const rcpStatus = getRcpStatus(s, doctorId, rcpAttendance);
+                const dotColor = s.type === SlotType.RCP
+                  ? (rcpStatus === 'PRESENT' ? 'bg-green-500' : rcpStatus === 'UNCONFIRMED' ? 'bg-amber-500' : 'bg-violet-500')
+                  : (SLOT_DOT[s.type] ?? 'bg-muted');
+                return (
+                  <div key={s.id} className="flex items-center gap-2 py-1">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
+                    <span className="text-text-base font-medium text-sm">{getLabel(s)}</span>
+                    {s.type === SlotType.RCP && rcpStatus === 'UNCONFIRMED' && (
+                      <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">
+                        <AlertTriangle size={10} />À confirmer
+                      </span>
+                    )}
+                    {s.type === SlotType.RCP && rcpStatus === 'PRESENT' && (
+                      <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
+                        <CheckCircle2 size={10} />Confirmé
+                      </span>
+                    )}
+                    {s.location && s.location !== s.subType && (
+                      <span className="text-text-muted text-xs">— {s.location}</span>
+                    )}
+                  </div>
+                );
+              };
+
               return (
-                <div key={s.id} className="flex items-center gap-2 py-1">
-                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
-                  <span className="text-text-base font-medium">{getLabel(s)}</span>
-                  {s.type === SlotType.RCP && rcpStatus === 'UNCONFIRMED' && (
-                    <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">
-                      <AlertTriangle size={10} />À confirmer
-                    </span>
+                <div className="space-y-3">
+                  {morningSlots.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">🌅 Matin</p>
+                      {morningSlots.map(renderDetailSlot)}
+                    </div>
                   )}
-                  {s.type === SlotType.RCP && rcpStatus === 'PRESENT' && (
-                    <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
-                      <CheckCircle2 size={10} />Confirmé
-                    </span>
-                  )}
-                  {s.location && s.location !== s.subType && (
-                    <span className="text-text-muted text-xs">— {s.location}</span>
+                  {afternoonSlots.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">🌇 Après-midi</p>
+                      {afternoonSlots.map(renderDetailSlot)}
+                    </div>
                   )}
                 </div>
               );
-            };
-
-            return (
-              <div className="space-y-3">
-                {morningSlots.length > 0 && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">🌅 Matin</p>
-                    {morningSlots.map(renderDetailSlot)}
-                  </div>
-                )}
-                {afternoonSlots.length > 0 && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">🌇 Après-midi</p>
-                    {afternoonSlots.map(renderDetailSlot)}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+            })()}
+          </div>
         </div>
       )}
     </div>
