@@ -385,12 +385,26 @@ const PersonalAgendaMonth: React.FC = () => {
 
               const renderDetailSlot = (s: any) => {
                 const rcpStatus = getRcpStatus(s, doctorId, rcpAttendance);
-                const dotColor = s.type === SlotType.RCP
-                  ? (rcpStatus === 'PRESENT' ? 'bg-green-500' : rcpStatus === 'UNCONFIRMED' ? 'bg-amber-500' : 'bg-violet-500')
-                  : (SLOT_DOT[s.type] ?? 'bg-muted');
+                const dotHex = (() => {
+                  if (s.type === SlotType.RCP) {
+                    if (rcpStatus === 'PRESENT') return SLOT_COLORS.RCP_DONE;
+                    if (rcpStatus === 'UNCONFIRMED') return SLOT_COLORS.RCP_PENDING;
+                    return SLOT_COLORS.RCP_NONE;
+                  }
+                  if (s.type === SlotType.CONSULTATION) return SLOT_COLORS.CONSULT;
+                  if (s.type === 'LEAVE') return SLOT_COLORS.LEAVE;
+                  if (s.type === SlotType.ACTIVITY) {
+                    const name = (s.subType || s.location || '').toLowerCase();
+                    if (name.includes('astreinte')) return SLOT_COLORS.ACT_ASTREINTE;
+                    if (name.includes('workflow')) return SLOT_COLORS.ACT_WORKFLOW;
+                    if (name.includes('unity')) return SLOT_COLORS.ACT_UNITY;
+                    return '#F59E0B';
+                  }
+                  return SLOT_COLORS.LEAVE;
+                })();
                 return (
                   <div key={s.id} className="flex items-center gap-2 py-1">
-                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: dotHex }} />
                     <span className="text-text-base font-medium text-sm">{getLabel(s)}</span>
                     {s.type === SlotType.RCP && rcpStatus === 'UNCONFIRMED' && (
                       <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">

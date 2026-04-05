@@ -38,3 +38,32 @@ export const triggerAutoAssignNow = async (weekStartDate: string): Promise<void>
   });
   if (error) throw error;
 };
+
+const toDateStr = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+export const cancelWeekAutoAssign = async (
+  weekStartDate: string,
+  rcpTemplateIds: string[]
+): Promise<void> => {
+  const weekStart = new Date(weekStartDate + 'T12:00:00');
+  const dates = [0, 1, 2, 3, 4].map(i => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return toDateStr(d);
+  });
+  const slotIds = rcpTemplateIds.flatMap(id => dates.map(date => `${id}-${date}`));
+  if (slotIds.length > 0) {
+    const { error } = await supabase
+      .from('rcp_attendance')
+      .delete()
+      .in('slot_id', slotIds)
+      .eq('status', 'PRESENT');
+    if (error) throw error;
+  }
+  const { error: err2 } = await supabase
+    .from('rcp_auto_config')
+    .update({ executed_at: null })
+    .eq('week_start_date', weekStartDate);
+  if (err2) throw err2;
+};

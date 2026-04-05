@@ -1,5 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -13,10 +19,15 @@ const toDateStr = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   const body = await req.json();
 
-  // --- checkPending mode: called by pg_cron every hour ---
-  if (body.checkPending) {
+  // --- checkPending mode: called by pg_cron every 5 min ---
+  if (body.checkPending || body.action === 'checkPending') {
     const { data: pending } = await supabase
       .from('rcp_auto_config')
       .select('week_start_date')
@@ -33,7 +44,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ weekStartDate: cfg.week_start_date }),
       });
     }
-    return new Response(JSON.stringify({ checked: pending?.length ?? 0 }));
+    return new Response(JSON.stringify({ checked: pending?.length ?? 0 }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   // --- Main mode: process a specific week ---
@@ -45,8 +56,8 @@ Deno.serve(async (req) => {
     .eq('week_start_date', weekStartDate)
     .single();
 
-  if (!config) return new Response('No config for this week', { status: 404 });
-  if (config.executed_at && !force) return new Response('Already executed', { status: 200 });
+  if (!config) return new Response('No config for this week', { status: 404, headers: corsHeaders });
+  if (config.executed_at && !force) return new Response('Already executed', { status: 200, headers: corsHeaders });
 
   // Load data from dedicated tables
   const [
@@ -150,6 +161,6 @@ Deno.serve(async (req) => {
     .eq('week_start_date', weekStartDate);
 
   return new Response(JSON.stringify({ ok: true, results }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });

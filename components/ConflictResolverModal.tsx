@@ -37,10 +37,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     // Consultation conflict mode — mirrors rcpMode for the 3-card layout
     const [consultMode, setConsultMode] = useState<'CHOICE' | 'REQUEST' | 'DIRECT' | null>(null);
 
-    // Is this an RCP conflict? (doctor is absent/double-booked on an RCP slot)
-    const isRcpConflict = slot.type === SlotType.RCP && !!conflict;
-    // Is this a simple consultation/activity conflict (not RCP, not double-booking)?
-    const isSimpleConsultConflict = !isRcpConflict && !!conflict && conflict.type !== 'DOUBLE_BOOKING';
+    // Is this an RCP slot? (show 3-card layout regardless of whether there's a conflict)
+    const isRcpConflict = slot.type === SlotType.RCP;
+    // Is this a consultation slot? (show 3-card layout regardless of whether there's a conflict)
+    const isSimpleConsultConflict = slot.type === SlotType.CONSULTATION && conflict?.type !== 'DOUBLE_BOOKING';
 
     // Compute referent doctor IDs from the template slot (the source of truth for who should attend this RCP)
     const referentDoctorIds = useMemo(() => {
@@ -81,11 +81,11 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const currentDoctorId = profile?.doctor_id;
 
     // Check if this conflict concerns the current user (doctor)
-    // A conflict concerns a doctor if they are the assigned doctor or the conflict's doctorId matches
     const concernsCurrentDoctor = currentDoctorId && (
         slot.assignedDoctorId === currentDoctorId ||
         (slot.secondaryDoctorIds && slot.secondaryDoctorIds.includes(currentDoctorId)) ||
-        (conflict && conflict.doctorId === currentDoctorId)
+        (conflict && conflict.doctorId === currentDoctorId) ||
+        (slot.type === SlotType.RCP && referentDoctorIds.has(currentDoctorId))
     );
 
     // Admin can always resolve, doctors can only resolve if it concerns them
@@ -393,11 +393,15 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                             <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-4 mb-5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <UserCheck className="w-5 h-5 text-secondary" />
-                                    <span className="font-bold text-secondary">Conflit sur une RCP</span>
+                                    <span className="font-bold text-secondary">
+                                        {conflict ? 'Conflit sur une RCP' : 'Gérer la RCP'}
+                                    </span>
                                 </div>
                                 <p className="text-sm text-secondary">
-                                    Ce médecin est indisponible ou en double réservation sur une RCP confirmée.
-                                    La RCP bloque la demi-journée entière. Choisissez comment résoudre ce conflit.
+                                    {conflict
+                                        ? 'Ce médecin est indisponible ou en double réservation sur une RCP confirmée. La RCP bloque la demi-journée entière. Choisissez comment résoudre ce conflit.'
+                                        : 'Indiquez votre absence, demandez un remplacement, ou assignez directement un médecin pour cette RCP.'
+                                    }
                                 </p>
                             </div>
 
@@ -611,12 +615,14 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                 <div className="flex items-center gap-2 mb-1">
                                     <Calendar className="w-5 h-5" style={{ color: '#3B6FD4' }} />
                                     <span className="font-bold" style={{ color: '#3B6FD4' }}>
-                                        Conflit sur une consultation
+                                        {conflict ? 'Conflit sur une consultation' : 'Gérer le créneau'}
                                     </span>
                                 </div>
                                 <p className="text-sm" style={{ color: '#3B6FD4' }}>
-                                    Ce médecin est indisponible ou en double réservation sur ce créneau.
-                                    Choisissez comment résoudre ce conflit.
+                                    {conflict
+                                        ? 'Ce médecin est indisponible ou en double réservation sur ce créneau. Choisissez comment résoudre ce conflit.'
+                                        : 'Fermez ce créneau, demandez un remplacement ou assignez directement un médecin.'
+                                    }
                                 </p>
                             </div>
 

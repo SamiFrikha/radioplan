@@ -142,7 +142,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
 
       const periods = PERIODS.map(period => {
         if (onLeave) {
-          return { period, slots: [{ id: 'leave-'+dateStr+period, type: 'LEAVE', location: 'Congé', date: dateStr }] };
+          return { period, slots: [{ id: 'leave-'+dateStr+period, type: 'LEAVE', location: 'Congé', date: dateStr, period }] };
         }
         return {
           period,

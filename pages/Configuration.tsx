@@ -5,7 +5,7 @@ import { Save, RefreshCw, LayoutTemplate, PlusCircle, Clock, Trash2, Check, X, M
 import { generateScheduleForWeek, getDateForDayOfWeek, isFrenchHoliday } from '../services/scheduleService';
 import RcpExceptionModal from '../components/RcpExceptionModal';
 import { DoctorBadge, getDoctorHexColor } from '../components/DoctorBadge';
-import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow } from '../services/rcpAutoConfigService';
+import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow, cancelWeekAutoAssign } from '../services/rcpAutoConfigService';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 
@@ -121,6 +121,8 @@ const Configuration: React.FC = () => {
     const [autoConfigDay, setAutoConfigDay] = useState('Vendredi');
     const [autoConfigTime, setAutoConfigTime] = useState('14:00');
     const [savingAutoConfig, setSavingAutoConfig] = useState(false);
+    const [launchWeekDate, setLaunchWeekDate] = useState<string>('');
+    const [cancellingWeek, setCancellingWeek] = useState<string | null>(null);
 
     const days = Object.values(DayOfWeek);
 
@@ -348,7 +350,7 @@ const Configuration: React.FC = () => {
                 const deadlineDay = new Date(monday);
                 deadlineDay.setDate(monday.getDate() + (DAY_OFFSET[autoConfigDay] ?? 4));
                 deadlineDay.setHours(h, m, 0, 0);
-                const weekStr = monday.toISOString().split('T')[0];
+                const weekStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
                 await upsertRcpAutoConfig(weekStr, deadlineDay.toISOString(), profile.id);
             }
             const updated = await getRcpAutoConfigs();
@@ -360,24 +362,47 @@ const Configuration: React.FC = () => {
         }
     };
 
-    const handleCancelAllRcpAutoAssignments = () => {
+    const getRcpTemplateIds = () => template.filter(t => t.type === SlotType.RCP).map(t => t.id);
+
+    const handleCancelWeek = async (weekStartDate: string) => {
+        const weekLabel = new Date(weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        if (!window.confirm(`Réinitialiser les auto-affectations RCP pour la semaine du ${weekLabel} ?\n\nLes assignations automatiques (PRÉSENT) de cette semaine seront supprimées. Les absences déclarées sont conservées.`)) return;
+        setCancellingWeek(weekStartDate);
+        try {
+            await cancelWeekAutoAssign(weekStartDate, getRcpTemplateIds());
+            const updated = await getRcpAutoConfigs();
+            setRcpAutoConfigs(updated);
+        } catch (e) {
+            console.error(e);
+            alert('Erreur lors de la réinitialisation.');
+        } finally {
+            setCancellingWeek(null);
+        }
+    };
+
+    const handleCancelAllRcpAutoAssignments = async () => {
+        const executedWeeks = rcpAutoConfigs.filter(c => c.executedAt);
+        if (executedWeeks.length === 0) {
+            alert('Aucune auto-affectation exécutée à annuler.');
+            return;
+        }
         if (!window.confirm(
-            'Annuler toutes les auto-affectations RCP ?\n\nLes affectations manuelles sont conservées. Seules les attributions automatiques (tirage au sort) seront supprimées.'
+            `Annuler toutes les auto-affectations RCP ?\n\n${executedWeeks.length} semaine(s) exécutée(s) seront réinitialisées. Les absences déclarées sont conservées.`
         )) return;
-
-        const rcpTemplateIds = template
-            .filter(t => t.type === SlotType.RCP)
-            .map(t => t.id);
-
-        const newOverrides = Object.fromEntries(
-            Object.entries(manualOverrides).filter(([key, value]) => {
-                if (!(value as string).startsWith('auto:')) return true;
-                const isRcpSlot = rcpTemplateIds.some(id => key.startsWith(id + '-'));
-                return !isRcpSlot;
-            })
-        );
-
-        setManualOverrides(newOverrides);
+        setCancellingWeek('all');
+        try {
+            const ids = getRcpTemplateIds();
+            for (const c of executedWeeks) {
+                await cancelWeekAutoAssign(c.weekStartDate, ids);
+            }
+            const updated = await getRcpAutoConfigs();
+            setRcpAutoConfigs(updated);
+        } catch (e) {
+            console.error(e);
+            alert('Erreur lors de l\'annulation.');
+        } finally {
+            setCancellingWeek(null);
+        }
     };
 
     // --- RENDER HELPERS ---
@@ -1158,22 +1183,54 @@ const Configuration: React.FC = () => {
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">Planning configuré</span>
                                 <button
-                                    onClick={async () => {
-                                        const upcoming = rcpAutoConfigs.find(c => !c.executedAt);
-                                        if (upcoming) await triggerAutoAssignNow(upcoming.weekStartDate);
-                                        const updated = await getRcpAutoConfigs();
-                                        setRcpAutoConfigs(updated);
-                                    }}
-                                    className="flex items-center gap-1.5 text-xs bg-warning text-white px-3 py-1.5 rounded-btn hover:bg-warning/90 font-medium">
-                                    <RefreshCw size={12} /> Lancer maintenant
-                                </button>
-                                <button
                                     onClick={handleCancelAllRcpAutoAssignments}
-                                    className="flex items-center gap-1.5 text-xs bg-danger/10 text-danger border border-danger/20 px-3 py-1.5 rounded-btn hover:bg-danger/20 font-medium transition-colors"
+                                    disabled={cancellingWeek !== null}
+                                    className="flex items-center gap-1.5 text-xs bg-danger/10 text-danger border border-danger/20 px-3 py-1.5 rounded-btn hover:bg-danger/20 font-medium transition-colors disabled:opacity-50"
                                 >
-                                    <RotateCcw size={12} /> Annuler les auto-affectations
+                                    <RotateCcw size={12} /> {cancellingWeek === 'all' ? 'Annulation...' : 'Annuler toutes'}
                                 </button>
                             </div>
+                            {rcpAutoConfigs.length > 0 && (
+                                <div className="flex items-center gap-2 mb-3 p-2 bg-warning/5 border border-warning/20 rounded-btn">
+                                    <select
+                                        value={launchWeekDate}
+                                        onChange={e => setLaunchWeekDate(e.target.value)}
+                                        className="flex-1 border border-border rounded px-2 py-1.5 text-xs bg-surface focus:border-warning focus:outline-none"
+                                    >
+                                        <option value="">— Choisir une semaine —</option>
+                                        {rcpAutoConfigs.map(c => (
+                                            <option key={c.id} value={c.weekStartDate}>
+                                                Semaine du {new Date(c.weekStartDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {c.executedAt ? ' ✓' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        disabled={!launchWeekDate}
+                                        onClick={async () => {
+                                            if (!launchWeekDate) return;
+                                            const weekLabel = new Date(launchWeekDate + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+                                            const confirmed = window.confirm(
+                                                `⚠️ Attribution automatique RCP\n\nVous allez lancer l'attribution automatique pour la semaine du ${weekLabel}.\n\nCette action assignera automatiquement les médecins aux créneaux RCP selon la configuration. Confirmez-vous ?`
+                                            );
+                                            if (!confirmed) return;
+                                            try {
+                                                await triggerAutoAssignNow(launchWeekDate);
+                                                const updated = await getRcpAutoConfigs();
+                                                setRcpAutoConfigs(updated);
+                                                setLaunchWeekDate('');
+                                                alert('✅ Attribution lancée avec succès.');
+                                            } catch (err: any) {
+                                                console.error('triggerAutoAssignNow error:', err);
+                                                alert(`❌ Erreur lors du lancement : ${err?.message ?? 'Vérifiez la console pour plus de détails.'}`);
+                                            }
+                                        }}
+                                        className="flex items-center gap-1.5 text-xs bg-warning text-white px-3 py-1.5 rounded-btn hover:bg-warning/90 font-medium disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                                        <RefreshCw size={12} /> Lancer maintenant
+                                    </button>
+                                </div>
+                            )}
+
                             <div className="space-y-1.5">
                                 {rcpAutoConfigs.length === 0 && (
                                     <p className="text-sm text-text-muted italic">Aucune configuration. Cliquez sur "Appliquer aux 8 prochaines semaines".</p>
@@ -1187,10 +1244,25 @@ const Configuration: React.FC = () => {
                                                 Tirage le {new Date(c.deadlineAt).toLocaleString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
-                                        {c.executedAt
-                                            ? <span className="text-success text-xs font-medium bg-success/10 px-2 py-0.5 rounded-full">✓ Exécuté</span>
-                                            : <span className="text-text-muted text-xs bg-muted px-2 py-0.5 rounded-full">En attente</span>
-                                        }
+                                        <div className="flex items-center gap-2">
+                                            {c.executedAt
+                                                ? <span className="text-success text-xs font-medium bg-success/10 px-2 py-0.5 rounded-full">✓ Exécuté</span>
+                                                : <span className="text-text-muted text-xs bg-muted px-2 py-0.5 rounded-full">En attente</span>
+                                            }
+                                            {c.executedAt && (
+                                                <button
+                                                    onClick={() => handleCancelWeek(c.weekStartDate)}
+                                                    disabled={cancellingWeek !== null}
+                                                    title="Réinitialiser cette semaine"
+                                                    className="text-danger/60 hover:text-danger disabled:opacity-40 transition-colors"
+                                                >
+                                                    {cancellingWeek === c.weekStartDate
+                                                        ? <RefreshCw size={13} className="animate-spin" />
+                                                        : <RotateCcw size={13} />
+                                                    }
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>

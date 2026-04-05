@@ -1,7 +1,8 @@
 import React, { useContext, useState, useRef, useMemo, useEffect } from 'react';
 import { AppContext } from '../App';
-import { DayOfWeek, Period, SlotType } from '../types';
+import { DayOfWeek, Period, SlotType, ScheduleSlot } from '../types';
 import SlotDetailsModal from '../components/SlotDetailsModal';
+import ConflictResolverModal from '../components/ConflictResolverModal';
 import { AlertCircle, ChevronLeft, ChevronRight, Calendar, UserCheck, Users, LayoutGrid, Printer, Loader2, ImageIcon, Lock, Ban, Settings, Palette, Eye, ShieldAlert } from 'lucide-react';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
 import html2canvas from 'html2canvas';
@@ -136,6 +137,7 @@ const Planning: React.FC = () => {
 
 
     const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+    const [selectedConflictSlot, setSelectedConflictSlot] = useState<ScheduleSlot | null>(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const tableContainerRef = useRef<HTMLDivElement>(null);
 
@@ -520,7 +522,11 @@ const Planning: React.FC = () => {
                     style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, var(--color-border) 10px, var(--color-border) 20px)' }}
                     onClick={() => {
                         if (canClick) {
-                            setSelectedSlotId(slot.id);
+                            if (isDoctor && !isAdmin) {
+                                setSelectedConflictSlot(slot as ScheduleSlot);
+                            } else {
+                                setSelectedSlotId(slot.id);
+                            }
                         } else if (!isAdmin) {
                             setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation.");
                             setTimeout(() => setAccessDeniedMessage(null), 3000);
@@ -606,7 +612,11 @@ const Planning: React.FC = () => {
         // Handle click based on access control
         const handleSlotClick = () => {
             if (canClick) {
-                setSelectedSlotId(slot.id);
+                if (isDoctor && !isAdmin) {
+                    setSelectedConflictSlot(slot as ScheduleSlot);
+                } else {
+                    setSelectedSlotId(slot.id);
+                }
             } else if (!isAdmin) {
                 setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation.");
                 setTimeout(() => setAccessDeniedMessage(null), 3000);
@@ -756,42 +766,48 @@ const Planning: React.FC = () => {
                         </button>
 
                         {showSettings && (
-                            <div className="absolute top-full mt-2 right-0 left-0 sm:left-auto w-auto sm:w-64 max-w-[calc(100vw-1rem)] bg-surface rounded-card shadow-modal border border-border p-4 z-[50] animate-in fade-in zoom-in-95 duration-150">
-                                <div className="mb-4">
-                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
+                          <>
+                            {/* Mobile: semi-transparent backdrop to close on outside tap */}
+                            <div
+                              className="fixed inset-0 z-[49] md:hidden"
+                              onClick={() => setShowSettings(false)}
+                            />
+                            <div className="fixed top-16 left-4 right-4 md:absolute md:top-full md:right-0 md:left-auto md:w-72 md:mt-2 bg-surface rounded-card shadow-modal border border-border p-5 z-[50] animate-in fade-in zoom-in-95 duration-150">
+                                <div className="mb-5">
+                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">
                                         <LayoutGrid className="w-3 h-3 mr-1" /> Mode de Vue
                                     </h4>
-                                    <div className="flex bg-muted p-1 rounded-btn">
+                                    <div className="flex bg-muted p-1 rounded-btn gap-1">
                                         <button
                                             onClick={() => setViewMode('ROOM')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'ROOM' ? 'bg-surface shadow text-primary' : 'text-text-muted'}`}
+                                            className={`flex-1 py-2 text-xs font-bold rounded ${viewMode === 'ROOM' ? 'bg-surface shadow text-primary' : 'text-text-muted'}`}
                                         >
                                             Par Poste
                                         </button>
                                         <button
                                             onClick={() => setViewMode('DOCTOR')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${viewMode === 'DOCTOR' ? 'bg-surface shadow text-primary' : 'text-text-muted'}`}
+                                            className={`flex-1 py-2 text-xs font-bold rounded ${viewMode === 'DOCTOR' ? 'bg-surface shadow text-primary' : 'text-text-muted'}`}
                                         >
                                             Par Médecin
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="mb-4">
-                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
+                                <div className="mb-5">
+                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">
                                         <Palette className="w-3 h-3 mr-1" /> Couleurs
                                     </h4>
                                     <div className="space-y-2">
                                         <button
                                             onClick={() => setColorMode('DOCTOR')}
-                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                                            className={`w-full flex items-center px-3 py-2.5 rounded text-xs font-bold border ${colorMode === 'DOCTOR' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
                                         >
                                             <div className="w-3 h-3 rounded-full bg-primary mr-2"></div>
                                             Par Médecin
                                         </button>
                                         <button
                                             onClick={() => setColorMode('ACTIVITY')}
-                                            className={`w-full flex items-center p-2 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                                            className={`w-full flex items-center px-3 py-2.5 rounded text-xs font-bold border ${colorMode === 'ACTIVITY' ? 'bg-primary/10 border-primary/20 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
                                         >
                                             <div className="w-3 h-3 rounded-full bg-warning mr-2"></div>
                                             Par Activité
@@ -800,25 +816,26 @@ const Planning: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-2 flex items-center">
+                                    <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">
                                         <Eye className="w-3 h-3 mr-1" /> Densité
                                     </h4>
-                                    <div className="flex bg-muted p-1 rounded-btn">
+                                    <div className="flex bg-muted p-1 rounded-btn gap-1">
                                         <button
                                             onClick={() => handleDensityChange('COMPACT')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMPACT' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
+                                            className={`flex-1 py-2 text-xs font-bold rounded ${density === 'COMPACT' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
                                         >
                                             Compact
                                         </button>
                                         <button
                                             onClick={() => handleDensityChange('COMFORTABLE')}
-                                            className={`flex-1 py-1.5 text-xs font-bold rounded ${density === 'COMFORTABLE' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
+                                            className={`flex-1 py-2 text-xs font-bold rounded ${density === 'COMFORTABLE' ? 'bg-surface shadow text-text-base' : 'text-text-muted'}`}
                                         >
                                             Aéré
                                         </button>
                                     </div>
                                 </div>
                             </div>
+                          </>
                         )}
                     </div>
 
@@ -978,6 +995,25 @@ const Planning: React.FC = () => {
                     onClose={() => setSelectedSlotId(null)}
                     onResolve={handleResolve}
                     onCloseSlot={handleCloseSlot}
+                />
+            )}
+
+            {selectedConflictSlot && (
+                <ConflictResolverModal
+                    slot={selectedConflictSlot}
+                    conflict={conflicts.find(c => c.slotId === selectedConflictSlot.id)}
+                    doctors={doctors}
+                    slots={schedule}
+                    unavailabilities={unavailabilities}
+                    onClose={() => setSelectedConflictSlot(null)}
+                    onResolve={(slotId, newDoctorId) => {
+                        handleResolve(slotId, newDoctorId);
+                        setSelectedConflictSlot(null);
+                    }}
+                    onCloseSlot={(slotId) => {
+                        handleCloseSlot(slotId);
+                        setSelectedConflictSlot(null);
+                    }}
                 />
             )}
         </div>

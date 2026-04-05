@@ -34,13 +34,15 @@ const RcpAttendanceModal: React.FC<Props> = ({ slot, doctorId, onClose }) => {
       } else {
         const { error } = await supabase
           .from('rcp_attendance')
-          .delete()
-          .eq('slot_id', slot.id)
-          .eq('doctor_id', doctorId);
+          .upsert(
+            { slot_id: slot.id, doctor_id: doctorId, status: 'ABSENT' },
+            { onConflict: 'slot_id, doctor_id' }
+          );
         if (error) throw error;
-        const updatedSlot = { ...(rcpAttendance[slot.id] ?? {}) };
-        delete updatedSlot[doctorId];
-        setRcpAttendance({ ...rcpAttendance, [slot.id]: updatedSlot });
+        setRcpAttendance({
+          ...rcpAttendance,
+          [slot.id]: { ...(rcpAttendance[slot.id] ?? {}), [doctorId]: 'ABSENT' },
+        });
       }
     } catch (err) {
       console.error('RcpAttendanceModal error:', err);

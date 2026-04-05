@@ -801,7 +801,7 @@ const Profile: React.FC = () => {
         if (!currentDoctor) return;
 
         // Confirmation dialog
-        const confirmMessage = `⚠️ ATTENTION\n\nVous êtes sur le point de déclarer une absence du ${startDate} au ${endDate}.\n\nCette action est définitive et ne peut pas être annulée par vous-même. Seul un administrateur peut modifier ou supprimer cette indisponibilité.\n\nÊtes-vous sûr de vouloir continuer ?`;
+        const confirmMessage = `⚠️ ATTENTION\n\nVous êtes sur le point de déclarer une absence du ${startDate} au ${endDate}.\n\nVous pourrez supprimer cette absence vous-même jusqu'à 30 jours avant la date de début (règle J-30). Au-delà de ce délai, seul un administrateur pourra la modifier.\n\nÊtes-vous sûr de vouloir continuer ?`;
 
         if (!window.confirm(confirmMessage)) {
             return;

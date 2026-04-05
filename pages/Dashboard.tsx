@@ -558,15 +558,15 @@ const Dashboard: React.FC = () => {
                                     )}
 
                                     {astreinte?.assignedDoctorId && docAstreinte && (
-                                        <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(220,78,58,0.10)', borderColor: 'rgba(220,78,58,0.25)', borderLeftColor: '#DC4E3A' }}>
-                                            <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#DC4E3A' }}>Astr.</span>
-                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[56px] sm:max-w-[80px] md:max-w-[60px]" title={docAstreinte.name}>{shortName(docAstreinte.name)}</span>
+                                        <div className="p-1 md:p-1.5 rounded-btn-sm border-l-2 overflow-hidden min-w-0" style={{ backgroundColor: 'rgba(220,78,58,0.10)', borderColor: 'rgba(220,78,58,0.25)', borderLeftColor: '#DC4E3A' }}>
+                                            <div className="text-[7px] font-bold leading-none" style={{ color: '#DC4E3A' }}>Astr.</div>
+                                            <div className="text-[8px] text-text-base truncate w-full" title={docAstreinte.name}>{shortName(docAstreinte.name)}</div>
                                         </div>
                                     )}
                                     {unity?.assignedDoctorId && docUnity && (
-                                        <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(109,40,217,0.10)', borderColor: 'rgba(109,40,217,0.25)', borderLeftColor: '#6D28D9' }}>
-                                            <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#6D28D9' }}>UNITY</span>
-                                            <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[56px] sm:max-w-[80px] md:max-w-[60px]" title={docUnity.name}>{shortName(docUnity.name)}</span>
+                                        <div className="p-1 md:p-1.5 rounded-btn-sm border-l-2 overflow-hidden min-w-0" style={{ backgroundColor: 'rgba(109,40,217,0.10)', borderColor: 'rgba(109,40,217,0.25)', borderLeftColor: '#6D28D9' }}>
+                                            <div className="text-[7px] font-bold leading-none" style={{ color: '#6D28D9' }}>UNITY</div>
+                                            <div className="text-[8px] text-text-base truncate w-full" title={docUnity.name}>{shortName(docUnity.name)}</div>
                                         </div>
                                     )}
 
@@ -582,9 +582,9 @@ const Dashboard: React.FC = () => {
                                         const docWorkflow = doctors.find(d => d.id === workflow?.assignedDoctorId);
                                         return workflow?.assignedDoctorId && docWorkflow ? (
                                             <>
-                                                <div className="flex items-center justify-between p-1 md:p-1.5 rounded-btn-sm border-l-2" style={{ backgroundColor: 'rgba(15,118,110,0.10)', borderColor: 'rgba(15,118,110,0.25)', borderLeftColor: '#0F766E' }}>
-                                                    <span className="text-[8px] md:text-[9px] font-bold" style={{ color: '#0F766E' }}>Wrkflw</span>
-                                                    <span className="text-[8px] md:text-[9px] text-text-base truncate max-w-[56px] sm:max-w-[80px] md:max-w-[60px]" title={docWorkflow.name}>{shortName(docWorkflow.name)}</span>
+                                                <div className="p-1 md:p-1.5 rounded-btn-sm border-l-2 overflow-hidden min-w-0" style={{ backgroundColor: 'rgba(15,118,110,0.10)', borderColor: 'rgba(15,118,110,0.25)', borderLeftColor: '#0F766E' }}>
+                                                    <div className="text-[7px] font-bold leading-none" style={{ color: '#0F766E' }}>Wrkflw</div>
+                                                    <div className="text-[8px] text-text-base truncate w-full" title={docWorkflow.name}>{shortName(docWorkflow.name)}</div>
                                                 </div>
                                                 <div className="h-px bg-border my-1 md:my-2"></div>
                                             </>
@@ -598,23 +598,27 @@ const Dashboard: React.FC = () => {
                                             {rcps.map(rcp => {
                                                 if (rcp.isUnconfirmed) {
                                                     // RCP non confirmée - afficher les référents par défaut (pas comme participants)
-                                                    const referentNames = [rcp.assignedDoctorId, ...(rcp.secondaryDoctorIds || [])]
-                                                        .map(id => doctors.find(d => d.id === id)?.name)
+                                                    const referentDocs = [rcp.assignedDoctorId, ...(rcp.secondaryDoctorIds || [])]
+                                                        .map(id => doctors.find(d => d.id === id))
                                                         .filter(Boolean);
 
                                                     return (
-                                                        <div key={rcp.id} className="flex flex-col bg-warning/10 p-1 rounded-btn-sm border border-warning/20 border-l-2 border-l-warning">
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-[8px] text-secondary font-bold truncate max-w-[50px]">{rcp.location}</span>
-                                                                <Badge variant="amber" className="text-[7px] px-1 py-0">A confirmer</Badge>
+                                                        <div key={rcp.id} className="overflow-hidden min-w-0 rounded-btn-sm border-l-2 border border-warning/30" style={{ backgroundColor: 'rgba(245,158,11,0.08)', borderLeftColor: '#F59E0B' }}>
+                                                            {/* Header row */}
+                                                            <div className="flex items-center gap-1 px-1 pt-1 min-w-0">
+                                                                <span className="text-[8px] font-bold text-text-base truncate flex-1 min-w-0" title={rcp.location ?? ''}>{rcp.location}</span>
+                                                                <span className="shrink-0 text-[6px] font-bold uppercase tracking-wide px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(245,158,11,0.18)', color: '#B45309' }}>? conf.</span>
                                                             </div>
-                                                            <div className="text-[6px] text-text-muted uppercase font-bold mb-0.5">Référents :</div>
-                                                            <div className="flex flex-wrap gap-0.5">
-                                                                {referentNames.map(name => (
-                                                                    <span key={name} className="text-[7px] bg-surface border border-border px-1 rounded-btn-sm text-text-muted italic">
-                                                                        {name}
-                                                                    </span>
-                                                                ))}
+                                                            {/* Referent pills */}
+                                                            <div className="px-1 pb-1 pt-0.5">
+                                                                <div className="text-[6px] text-text-muted uppercase font-bold leading-none mb-0.5">Réf.</div>
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    {referentDocs.map(doc => (
+                                                                        <span key={doc?.id} className="text-[7px] text-text-muted italic truncate block min-w-0" title={doc?.name}>
+                                                                            {shortName(doc?.name ?? '')}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     )
@@ -627,18 +631,22 @@ const Dashboard: React.FC = () => {
                                                     .filter(Boolean);
 
                                                 return (
-                                                    <div key={rcp.id} className="flex flex-col bg-success/10 p-1 rounded-btn-sm border border-success/20 border-l-2 border-l-success">
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <span className="text-[8px] text-secondary font-bold truncate max-w-[50px]">{rcp.location}</span>
-                                                            <Badge variant="green" className="text-[7px] px-1 py-0">Confirmee</Badge>
+                                                    <div key={rcp.id} className="overflow-hidden min-w-0 rounded-btn-sm border-l-2 border border-success/30" style={{ backgroundColor: 'rgba(16,185,129,0.08)', borderLeftColor: '#10B981' }}>
+                                                        {/* Header row */}
+                                                        <div className="flex items-center gap-1 px-1 pt-1 min-w-0">
+                                                            <span className="text-[8px] font-bold text-text-base truncate flex-1 min-w-0" title={rcp.location ?? ''}>{rcp.location}</span>
+                                                            <span className="shrink-0 text-[6px] font-bold uppercase tracking-wide px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(16,185,129,0.18)', color: '#059669' }}>Conf.</span>
                                                         </div>
-                                                        <div className="text-[6px] text-success uppercase font-bold mb-0.5">Present(s) :</div>
-                                                        <div className="flex flex-wrap gap-0.5">
-                                                            {confirmedDocs.map((doc) => (
-                                                                <span key={doc?.id} className="text-[7px] bg-surface border border-border px-1 rounded-btn-sm text-text-base font-bold">
-                                                                    {doc?.name}
-                                                                </span>
-                                                            ))}
+                                                        {/* Present pills */}
+                                                        <div className="px-1 pb-1 pt-0.5">
+                                                            <div className="text-[6px] uppercase font-bold leading-none mb-0.5" style={{ color: '#059669' }}>Présent(s)</div>
+                                                            <div className="flex flex-col gap-0.5">
+                                                                {confirmedDocs.map((doc) => (
+                                                                    <span key={doc?.id} className="text-[7px] font-semibold truncate block min-w-0" style={{ color: '#065F46' }} title={doc?.name}>
+                                                                        {shortName(doc?.name ?? '')}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )
@@ -649,11 +657,11 @@ const Dashboard: React.FC = () => {
                                     <div className="h-px bg-border my-2"></div>
 
                                     {/* Consult Activity Count */}
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] text-text-muted">Consultations</span>
-                                        <Badge variant="blue" className="text-[9px] px-1.5 py-0">
+                                    <div className="flex items-center justify-between gap-1 min-w-0">
+                                        <span className="text-[8px] md:text-[10px] font-bold text-text-muted uppercase tracking-wider truncate">Consult.</span>
+                                        <span className="shrink-0 text-[8px] md:text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded-full min-w-[20px] text-center" style={{ backgroundColor: 'rgba(59,130,246,0.12)', color: '#2563EB' }}>
                                             {daySlots.filter(s => s.type === SlotType.CONSULTATION).length}
-                                        </Badge>
+                                        </span>
                                     </div>
 
                                 </div>
