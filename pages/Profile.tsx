@@ -1316,19 +1316,43 @@ const Profile: React.FC = () => {
                                             )}
                                         </div>
                                     </div>
-                                    {/* No delete button - only admin can delete */}
-                                    <div className="text-text-muted p-2" title="Contactez un administrateur pour modifier">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                        </svg>
-                                    </div>
+                                    {(() => {
+                                        const daysUntilStart = (new Date(abs.startDate).getTime() - Date.now()) / 86_400_000;
+                                        const canDelete = isAdmin || daysUntilStart > 30;
+                                        if (canDelete) {
+                                            return (
+                                                <button
+                                                    onClick={() => {
+                                                        if (window.confirm(`Supprimer l'absence du ${abs.startDate} au ${abs.endDate} ?`)) {
+                                                            removeUnavailability(abs.id);
+                                                        }
+                                                    }}
+                                                    className="p-2 text-danger hover:bg-danger/10 rounded transition-colors"
+                                                    title="Supprimer cette absence"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            );
+                                        }
+                                        return (
+                                            <div className="p-2 text-text-muted" title="Suppression impossible — moins de 30 jours avant le début">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                </svg>
+                                            </div>
+                                        );
+                                    })()}
                                 </li>
                             ))
                         )}
                     </ul>
-                    <p className="text-[10px] text-text-muted mt-2 pl-1 italic">
-                        Pour modifier ou supprimer une absence, contactez un administrateur.
-                    </p>
+                    {myAbsences.length > 0 && myAbsences.every(abs =>
+                        (new Date(abs.startDate).getTime() - Date.now()) / 86_400_000 <= 30
+                    ) && !isAdmin && (
+                        <p className="text-[10px] text-text-muted mt-2 pl-1 italic">
+                            Toutes vos absences sont verrouillées (départ dans moins de 30 jours). Contactez un administrateur si nécessaire.
+                        </p>
+                    )}
                 </div>
 
             </div>
