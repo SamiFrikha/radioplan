@@ -71,9 +71,14 @@ export const deleteAllRcpAutoConfigs = async (
         .eq('status', 'PRESENT');
     }
   }
-  // Delete all config rows
-  const { error } = await supabase.from('rcp_auto_config').delete().neq('id', 0);
-  if (error) throw error;
+  // Delete all config rows by their week_start_date
+  if (weekStartDates.length > 0) {
+    const { error } = await supabase
+      .from('rcp_auto_config')
+      .delete()
+      .in('week_start_date', weekStartDates);
+    if (error) throw error;
+  }
 };
 
 export const cancelWeekAutoAssign = async (
