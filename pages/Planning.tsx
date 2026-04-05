@@ -709,11 +709,13 @@ const Planning: React.FC = () => {
       setDensity(newDensity);
       if (!user?.id) return;
       try {
-        const { data } = await supabase.from('profiles').select('ui_prefs').eq('id', user.id).single();
+        const { data, error: fetchError } = await supabase.from('profiles').select('ui_prefs').eq('id', user.id).single();
+        if (fetchError) throw fetchError;
         const existing = data?.ui_prefs ?? {};
-        await supabase.from('profiles')
+        const { error: updateError } = await supabase.from('profiles')
           .update({ ui_prefs: { ...existing, planning_density: newDensity } })
           .eq('id', user.id);
+        if (updateError) throw updateError;
       } catch (err) {
         console.error('Failed to persist density preference:', err);
       }
