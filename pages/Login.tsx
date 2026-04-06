@@ -39,6 +39,20 @@ const Login: React.FC = () => {
         setResetLoading(true);
         setError(null);
         try {
+            // Vérifier que l'email correspond à un compte existant avant d'envoyer
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('email', email.toLowerCase().trim())
+                .maybeSingle();
+
+            if (profileError) throw profileError;
+
+            if (!profile) {
+                setError('Aucun compte RadioPlan n\'est associé à cette adresse e-mail.');
+                return;
+            }
+
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: 'https://samifrikha.github.io/radioplan/#/reset-password',
             });
