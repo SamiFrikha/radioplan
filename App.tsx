@@ -16,6 +16,7 @@ import { detectConflicts, generateScheduleForWeek, computeHistoryFromDate, getDa
 import { useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import RoleManagement from './pages/admin/RoleManagement';
 import TeamManagement from './pages/admin/TeamManagement';
 import Install from './pages/Install';
@@ -698,6 +699,7 @@ const App: React.FC = () => {
             <Router>
                 <Routes>
                     <Route path="/login" element={<Login />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/install" element={<Install />} />
 
                     {/* Protected layout shell */}
