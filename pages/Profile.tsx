@@ -1569,19 +1569,19 @@ const Profile: React.FC = () => {
                                                                         setConflictModalConflict(null);
                                                                     };
                                                                     return (
-                                                                        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+                                                                        <div className="flex flex-col sm:flex-row gap-2 mt-3 pt-3 border-t border-border">
                                                                             <button
                                                                                 onClick={openModal}
-                                                                                className="flex-1 py-2 rounded-btn text-xs font-semibold border border-border text-text-muted hover:bg-muted transition-all flex items-center justify-center gap-1.5"
+                                                                                className="w-full sm:flex-1 py-2.5 rounded-btn text-xs font-semibold border border-border text-text-muted hover:bg-muted transition-all flex items-center justify-center gap-1.5"
                                                                             >
-                                                                                <UserCheck className="w-3.5 h-3.5" />
+                                                                                <UserCheck className="w-3.5 h-3.5 shrink-0" />
                                                                                 Demander remplacement
                                                                             </button>
                                                                             <button
                                                                                 onClick={openModal}
-                                                                                className="flex-1 py-2 rounded-btn text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
+                                                                                className="w-full sm:flex-1 py-2.5 rounded-btn text-xs font-semibold border border-primary/30 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-1.5"
                                                                             >
-                                                                                <UserCheck className="w-3.5 h-3.5" />
+                                                                                <UserCheck className="w-3.5 h-3.5 shrink-0" />
                                                                                 Assigner directement
                                                                             </button>
                                                                         </div>
