@@ -6,10 +6,11 @@ import {
     Calendar, Save, Trash2, UserCheck,
     Briefcase, Edit, Bell, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
-    Plus, Tag, Users, Shield, Database, ChevronDown, LogOut
+    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 import { markReplacementResolved } from '../services/replacementService';
+import { createNotification } from '../services/notificationService';
 import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
 import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException } from '../types';
