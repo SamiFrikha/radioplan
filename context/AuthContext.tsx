@@ -21,6 +21,8 @@ interface AuthContextType {
     loading: boolean;
     isAdmin: boolean;
     isDoctor: boolean;
+    passwordRecovery: boolean;
+    clearPasswordRecovery: () => void;
     signInWithPassword: (email: string, password: string) => Promise<{ error: any }>;
     signOut: () => Promise<void>;
     hasPermission: (permission: string) => boolean;
@@ -34,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
+    const [passwordRecovery, setPasswordRecovery] = useState(false);
 
     useEffect(() => {
         // Get initial session
@@ -51,10 +54,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((event, newSession) => {
+            // Detect password recovery flow → signal the router to redirect
+            if (event === 'PASSWORD_RECOVERY') {
+                setPasswordRecovery(true);
+                setSession(newSession);
+                setUser(newSession?.user ?? null);
+                setLoading(false);
+                return;
+            }
+
             // Only update state if session actually changed (not just refreshed)
-            // TOKEN_REFRESHED events shouldn't trigger full re-renders
             if (event === 'TOKEN_REFRESHED') {
-                // Just update the session object without triggering profile refetch
                 setSession(newSession);
                 setUser(newSession?.user ?? null);
                 return;
@@ -168,6 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return profile.permissions.includes(permission);
     };
 
+    const clearPasswordRecovery = () => setPasswordRecovery(false);
+
     const value = {
         session,
         user,
@@ -175,6 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         isAdmin: profile?.role === 'admin' || profile?.role_name === 'Admin',
         isDoctor: profile?.role === 'doctor' || profile?.role_name === 'Docteur',
+        passwordRecovery,
+        clearPasswordRecovery,
         signInWithPassword,
         signOut,
         hasPermission,

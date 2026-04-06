@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Planning from './pages/Planning';
 import Profile from './pages/Profile';
@@ -30,10 +30,24 @@ import { scheduleApiService } from './services/scheduleApiService';
 import { backupService } from './services/backupService';
 import { settingsService } from './services/settingsService';
 
+// Handles automatic redirect when Supabase fires PASSWORD_RECOVERY event
+const RecoveryRedirect: React.FC = () => {
+    const { passwordRecovery, clearPasswordRecovery } = useAuth();
+    const navigate = useNavigate();
+    useEffect(() => {
+        if (passwordRecovery) {
+            clearPasswordRecovery();
+            navigate('/reset-password', { replace: true });
+        }
+    }, [passwordRecovery]);
+    return null;
+};
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    const { session, loading } = useAuth();
+    const { session, loading, passwordRecovery } = useAuth();
     if (loading) return <div className="flex items-center justify-center h-dvh">Chargement...</div>;
-    if (!session) return <Navigate to="/login" replace />;
+    // Don't redirect to login during password recovery flow
+    if (!session && !passwordRecovery) return <Navigate to="/login" replace />;
     return <>{children}</>;
 };
 
@@ -697,6 +711,7 @@ const App: React.FC = () => {
         }}>
             <NotificationProvider>
             <Router>
+                <RecoveryRedirect />
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/reset-password" element={<ResetPassword />} />

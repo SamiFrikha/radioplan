@@ -54,7 +54,7 @@ const Login: React.FC = () => {
             }
 
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: 'https://samifrikha.github.io/radioplan/#/reset-password',
+                redirectTo: 'https://samifrikha.github.io/radioplan/',
             });
             if (error) throw error;
             setResetSent(true);
