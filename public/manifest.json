@@ -10,6 +10,21 @@
   "theme_color": "#0f172a",
   "icons": [
     {
+      "src": "/radioplan/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/radioplan/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/radioplan/ms-icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
       "src": "/radioplan/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
@@ -19,13 +34,7 @@
       "src": "/radioplan/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/radioplan/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }

@@ -6,14 +6,13 @@ import {
     Calendar, Save, Trash2, UserCheck,
     Briefcase, Edit, Bell, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
-    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut
+    Plus, Tag, Users, Shield, Database, ChevronDown, LogOut
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 import { markReplacementResolved } from '../services/replacementService';
 import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
-import { createNotification } from '../services/notificationService';
-import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException, NotificationType } from '../types';
+import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts, getWeekNumber, getNthDayOfMonth } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
@@ -44,45 +43,10 @@ const NotificationSection: React.FC<{
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [clearing, setClearing] = useState(false);
-    const [testingType, setTestingType] = useState<string | null>(null);
-    const [testedType, setTestedType] = useState<string | null>(null);
-    const [previewType, setPreviewType] = useState<string | null>(null);
+    const [pushPrefsOpen, setPushPrefsOpen] = useState(false);
     const { permission, isStandalone, subscribe, loading: pushLoading, error: pushError } = usePushNotifications(userId);
     const { isEnabled, toggle, loading: prefsLoading } = useNotificationPreferences(userId);
 
-    const NOTIFICATION_CONTENT: Record<string, { title: string; body: string }> = {
-      RCP_AUTO_ASSIGNED:    { title: 'Vous avez été assigné à un RCP', body: 'Vous avez été sélectionné pour le RCP du 2026-05-07 (Lymphomes)' },
-      RCP_REMINDER_24H:    { title: 'Rappel RCP — Lymphomes — 24h avant tirage', body: 'Rappel : vous êtes assigné au RCP "Lymphomes" du 2026-05-07. Confirmez votre présence ou déclarez une absence avant le tirage automatique dans 24h.' },
-      RCP_REMINDER_12H:    { title: 'Rappel RCP — Lymphomes — 12h avant tirage', body: 'Rappel : vous êtes assigné au RCP "Lymphomes" du 2026-05-07. Confirmez votre présence ou déclarez une absence avant le tirage automatique dans 12h.' },
-      RCP_UNASSIGNED_ALERT: { title: 'RCP sans médecin disponible', body: 'Aucun médecin disponible pour le RCP du 2026-05-07 (Lymphomes)' },
-      RCP_SLOT_FILLED:     { title: 'RCP créneau pourvu', body: 'Le créneau RCP du 2026-05-07 a été pourvu.' },
-      REPLACEMENT_REQUEST: { title: 'Demande de remplacement 🔄', body: 'Dr. Martin vous demande de le remplacer le 2026-05-07 (après-midi).' },
-      REPLACEMENT_ACCEPTED: { title: 'Remplacement accepté ✅', body: 'Dr. Dupont a accepté votre demande de remplacement pour le 2026-05-07.' },
-      REPLACEMENT_REJECTED: { title: 'Remplacement refusé ❌', body: 'Dr. Dupont a refusé votre demande de remplacement pour le 2026-05-07.' },
-    };
-
-    const handleTestNotification = async (notifType: string) => {
-      if (!userId || testingType) return;
-      const content = NOTIFICATION_CONTENT[notifType];
-      if (!content) return;
-      setTestingType(notifType);
-      try {
-        await createNotification({
-          user_id: userId,
-          type: notifType as NotificationType,
-          title: content.title,
-          body: content.body,
-          data: {},
-          read: false,
-        });
-        setTestedType(notifType);
-        setTimeout(() => setTestedType(null), 2000);
-      } catch (err) {
-        console.error('Test notification error:', err);
-      } finally {
-        setTestingType(null);
-      }
-    };
 
     const handleReplacement = async (n: any, status: 'ACCEPTED' | 'REJECTED') => {
         const requestId = n.data?.requestId as string | undefined;
@@ -158,15 +122,23 @@ const NotificationSection: React.FC<{
 
     return (
         <div className="space-y-3">
-            {/* Push notification subscription */}
-            <div className="bg-muted border border-border rounded-card p-3 flex items-center justify-between gap-3">
+            {/* Push notification row — clickable to open prefs */}
+            <button
+              onClick={() => permission === 'granted' ? setPushPrefsOpen(true) : undefined}
+              className={`w-full bg-muted border border-border rounded-card p-3 flex items-center justify-between gap-3 text-left ${permission === 'granted' ? 'cursor-pointer hover:bg-muted/80 active:scale-[0.99] transition-all' : 'cursor-default'}`}
+            >
               <div className="flex items-center gap-2 text-sm text-text-muted min-w-0">
                 <span className="text-base flex-shrink-0">
                   {permission === 'granted' ? '🔔' : '🔕'}
                 </span>
-                <span className="truncate">Notifications push</span>
+                <div className="min-w-0">
+                  <span className="truncate block font-medium text-text-base">Notifications push</span>
+                  {permission === 'granted' && (
+                    <span className="text-xs text-text-muted">Appuyez pour configurer les types</span>
+                  )}
+                </div>
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-2">
                 {permission === 'not-standalone' && (
                   <span className="text-xs text-amber-600 text-right block max-w-[160px]">
                     Installez l'app sur votre écran d'accueil pour activer
@@ -177,7 +149,7 @@ const NotificationSection: React.FC<{
                 )}
                 {permission === 'default' && (
                   <button
-                    onClick={subscribe}
+                    onClick={e => { e.stopPropagation(); subscribe(); }}
                     disabled={pushLoading}
                     className="text-xs bg-primary text-white px-3 py-1.5 rounded-btn-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
                   >
@@ -185,52 +157,56 @@ const NotificationSection: React.FC<{
                   </button>
                 )}
                 {permission === 'granted' && (
-                  <span className="text-xs text-green-600 font-medium">Activées ✓</span>
+                  <span className="text-xs text-success font-medium flex items-center gap-1">Activées ✓ <ChevronRight className="w-3 h-3" /></span>
                 )}
                 {permission === 'denied' && (
-                  <span className="text-xs text-red-500 text-right block max-w-[160px]">
-                    Bloquées — vérifiez les paramètres du navigateur
+                  <span className="text-xs text-danger text-right block max-w-[160px]">
+                    Bloquées — vérifiez les paramètres
                   </span>
                 )}
               </div>
-            </div>
-            {pushError && (
-              <p className="text-xs text-red-500">{pushError}</p>
-            )}
+            </button>
+            {pushError && <p className="text-xs text-danger">{pushError}</p>}
 
-            {/* Per-type notification preferences — only visible when push is granted */}
-            {permission === 'granted' && (
-              <div className="bg-muted border border-border rounded-card p-3 space-y-2.5">
-                <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">
-                  Types de notifications push
-                </p>
-                {ALL_NOTIFICATION_TYPES.map(type => (
-                  <div key={type} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => setPreviewType(type)}
-                        disabled={!isEnabled(type) || !!testingType || prefsLoading}
-                        className="w-7 h-7 flex items-center justify-center rounded border border-border text-text-muted hover:bg-muted disabled:opacity-40 transition-colors text-[10px] font-bold"
-                        title="Aperçu et envoi de test"
-                      >
-                        {testingType === type ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : testedType === type ? '✓' : '▶'}
-                      </button>
-                      <button
-                        disabled={prefsLoading}
-                        onClick={() => toggle(type)}
-                        aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
-                        className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50
-                          ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
-                      >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform
-                          ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </button>
-                    </div>
+            {/* Floating push prefs panel */}
+            {pushPrefsOpen && (
+              <div
+                className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+                style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                onClick={() => setPushPrefsOpen(false)}
+              >
+                <div
+                  className="w-full max-w-sm bg-surface rounded-card border border-border shadow-modal"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <p className="text-sm font-semibold text-text-base">Types de notifications push</p>
+                    <button onClick={() => setPushPrefsOpen(false)} className="text-text-muted hover:text-text-base text-xl leading-none w-7 h-7 flex items-center justify-center">×</button>
                   </div>
-                ))}
+                  <div className="p-4 space-y-3">
+                    {ALL_NOTIFICATION_TYPES.map(type => (
+                      <div key={type} className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
+                        <button
+                          disabled={prefsLoading}
+                          onClick={() => toggle(type)}
+                          aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
+                          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-surface shadow transition-transform ${isEnabled(type) ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-4 pb-4">
+                    <button
+                      onClick={() => setPushPrefsOpen(false)}
+                      className="w-full py-2.5 bg-primary text-white rounded-btn text-sm font-semibold hover:bg-primary/90 transition-colors"
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -307,50 +283,6 @@ const NotificationSection: React.FC<{
                 })}
             </div>
 
-            {/* Floating notification preview */}
-            {previewType && (() => {
-              const content = NOTIFICATION_CONTENT[previewType];
-              if (!content) return null;
-              return (
-                <div
-                  className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-                  onClick={() => setPreviewType(null)}
-                >
-                  <div
-                    className="w-full max-w-sm bg-surface rounded-card border border-border shadow-modal p-4 space-y-3"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Aperçu de la notification</p>
-                      <button onClick={() => setPreviewType(null)} className="text-text-muted hover:text-text-base text-lg leading-none">×</button>
-                    </div>
-                    <div className="bg-muted rounded-btn p-3 space-y-1">
-                      <p className="text-sm font-bold text-text-base">{content.title}</p>
-                      <p className="text-xs text-text-muted leading-relaxed">{content.body}</p>
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => setPreviewType(null)}
-                        className="flex-1 py-2 rounded-btn text-sm border border-border text-text-muted hover:bg-muted transition-colors"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const t = previewType;
-                          setPreviewType(null);
-                          await handleTestNotification(t);
-                        }}
-                        className="flex-1 py-2 rounded-btn text-sm bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
-                      >
-                        Envoyer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
         </div>
     );
 };
