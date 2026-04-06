@@ -333,7 +333,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                         className={`flex items-center gap-3 py-2 px-3 rounded-btn-sm${(slot.type === SlotType.CONSULTATION || slot.type === SlotType.RCP) ? ' cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
                         onClick={slot.type === SlotType.CONSULTATION ? () => onConsultClick?.(slot) : slot.type === SlotType.RCP ? () => onRcpClick?.(slot) : undefined}>
                         <span className="text-xs font-semibold text-text-muted tabular-nums w-10 flex-shrink-0">
-                          {slot.period === Period.MORNING ? '08h00' : '14h00'}
+                          {slot.time ? slot.time.substring(0, 5).replace(':', 'h') : slot.period === Period.MORNING ? '08h00' : '14h00'}
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="text-sm font-medium text-text-base truncate block">{label}</span>

@@ -46,6 +46,7 @@ const NotificationSection: React.FC<{
     const [clearing, setClearing] = useState(false);
     const [testingType, setTestingType] = useState<string | null>(null);
     const [testedType, setTestedType] = useState<string | null>(null);
+    const [previewType, setPreviewType] = useState<string | null>(null);
     const { permission, isStandalone, subscribe, loading: pushLoading, error: pushError } = usePushNotifications(userId);
     const { isEnabled, toggle, loading: prefsLoading } = useNotificationPreferences(userId);
 
@@ -208,15 +209,14 @@ const NotificationSection: React.FC<{
                     <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
-                        onClick={() => handleTestNotification(type)}
+                        onClick={() => setPreviewType(type)}
                         disabled={!isEnabled(type) || !!testingType || prefsLoading}
-                        className="px-2 py-1 text-[10px] font-bold rounded border border-border text-text-muted hover:bg-muted disabled:opacity-40 transition-colors flex items-center gap-1"
-                        title="Envoyer une notification de test"
+                        className="w-7 h-7 flex items-center justify-center rounded border border-border text-text-muted hover:bg-muted disabled:opacity-40 transition-colors text-[10px] font-bold"
+                        title="Aperçu et envoi de test"
                       >
                         {testingType === type ? (
                           <Loader2 size={10} className="animate-spin" />
                         ) : testedType === type ? '✓' : '▶'}
-                        {testingType === type ? '' : testedType === type ? 'Envoyé' : 'Test'}
                       </button>
                       <button
                         disabled={prefsLoading}
@@ -306,6 +306,51 @@ const NotificationSection: React.FC<{
                     );
                 })}
             </div>
+
+            {/* Floating notification preview */}
+            {previewType && (() => {
+              const content = NOTIFICATION_CONTENT[previewType];
+              if (!content) return null;
+              return (
+                <div
+                  className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                  onClick={() => setPreviewType(null)}
+                >
+                  <div
+                    className="w-full max-w-sm bg-surface rounded-card border border-border shadow-modal p-4 space-y-3"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Aperçu de la notification</p>
+                      <button onClick={() => setPreviewType(null)} className="text-text-muted hover:text-text-base text-lg leading-none">×</button>
+                    </div>
+                    <div className="bg-muted rounded-btn p-3 space-y-1">
+                      <p className="text-sm font-bold text-text-base">{content.title}</p>
+                      <p className="text-xs text-text-muted leading-relaxed">{content.body}</p>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => setPreviewType(null)}
+                        className="flex-1 py-2 rounded-btn text-sm border border-border text-text-muted hover:bg-muted transition-colors"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const t = previewType;
+                          setPreviewType(null);
+                          await handleTestNotification(t);
+                        }}
+                        className="flex-1 py-2 rounded-btn text-sm bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
+                      >
+                        Envoyer
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
         </div>
     );
 };

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '../src/components/ui';
+import { supabase } from '../services/supabaseClient';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -10,6 +11,9 @@ const Login: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [resetMode, setResetMode] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
+    const [resetLoading, setResetLoading] = useState(false);
     const navigate = useNavigate();
     const { signInWithPassword } = useAuth();
 
@@ -30,6 +34,23 @@ const Login: React.FC = () => {
         }
     };
 
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setResetLoading(true);
+        setError(null);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}#/reset-password`,
+            });
+            if (error) throw error;
+            setResetSent(true);
+        } catch (err: any) {
+            setError(err.message || 'Erreur lors de l\'envoi du lien de réinitialisation');
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
     return (
         <div
             className="min-h-dvh bg-app-bg flex items-center justify-center p-4"
@@ -47,7 +68,57 @@ const Login: React.FC = () => {
                         <p className="text-sm text-text-muted mt-1">Planification oncologie — Connexion</p>
                     </div>
 
-                    {/* Form */}
+                    {/* Reset password form */}
+                    {resetMode ? (
+                        <div>
+                            {resetSent ? (
+                                <div className="space-y-4">
+                                    <div className="px-4 py-3 rounded-btn-sm bg-success/10 border border-success/20 text-sm text-success font-medium text-center">
+                                        ✉️ Lien de réinitialisation envoyé ! Vérifiez votre boîte mail.
+                                    </div>
+                                    <button
+                                        onClick={() => { setResetMode(false); setResetSent(false); setError(null); }}
+                                        className="w-full text-sm text-primary hover:underline text-center mt-2"
+                                    >
+                                        ← Retour à la connexion
+                                    </button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleResetPassword} className="space-y-4">
+                                    <p className="text-sm text-text-muted">Entrez votre adresse e-mail. Vous recevrez un lien pour réinitialiser votre mot de passe.</p>
+                                    <div className="float-label-wrapper">
+                                        <input
+                                            type="email"
+                                            id="reset-email"
+                                            placeholder=" "
+                                            className="float-label-input"
+                                            value={email}
+                                            onChange={e => setEmail(e.target.value)}
+                                            autoComplete="email"
+                                            required
+                                        />
+                                        <label htmlFor="reset-email" className="float-label-text">Adresse e-mail</label>
+                                    </div>
+                                    {error && (
+                                        <div className="px-4 py-3 rounded-btn-sm bg-danger/5 border border-danger/20 text-sm text-danger font-medium" role="alert">
+                                            {error}
+                                        </div>
+                                    )}
+                                    <Button variant="primary" size="lg" loading={resetLoading} className="w-full" type="submit">
+                                        Envoyer le lien
+                                    </Button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setResetMode(false); setError(null); }}
+                                        className="w-full text-sm text-text-muted hover:text-text-base text-center"
+                                    >
+                                        ← Retour à la connexion
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    ) : (
+                    /* Login form */
                     <form onSubmit={handleLogin}>
                         <div className="space-y-4">
                             {/* Email — floating label */}
@@ -104,11 +175,23 @@ const Login: React.FC = () => {
                             Se connecter
                         </Button>
 
+                        {/* Forgot password */}
+                        <div className="text-center mt-3">
+                            <button
+                                type="button"
+                                onClick={() => { setResetMode(true); setError(null); }}
+                                className="text-xs text-text-muted hover:text-primary transition-colors"
+                            >
+                                Mot de passe oublié ?
+                            </button>
+                        </div>
+
                         {/* Footer note */}
-                        <p className="text-center text-xs text-text-muted mt-6">
+                        <p className="text-center text-xs text-text-muted mt-4">
                             Accès réservé au personnel autorisé
                         </p>
                     </form>
+                    )}
                 </div>
             </div>
         </div>
