@@ -8,6 +8,14 @@ import { setupInstallListener } from './services/installService';
 // Register PWA install prompt listener as early as possible
 setupInstallListener();
 
+// Fix: Supabase appends recovery tokens as hash (#access_token=...&type=recovery)
+// which conflicts with HashRouter (treats it as an unknown route → redirect to login).
+// supabase-js has already parsed the tokens during module init (createClient import),
+// so we can safely rewrite the hash to the correct route before React mounts.
+if (window.location.hash.includes('type=recovery')) {
+  window.history.replaceState(null, '', window.location.pathname + window.location.search + '#/reset-password');
+}
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error('Could not find root element to mount to');
