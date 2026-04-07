@@ -270,6 +270,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
       const st = getRcpStatus(slot);
       if (st === 'UNCONFIRMED') return SLOT_COLORS.RCP_PENDING;
       if (st === 'PRESENT') return SLOT_COLORS.RCP_DONE;
+      if (st === 'ABSENT') return '#DC4E3A';
       return SLOT_COLORS.RCP_NONE;
     }
     if (slot.type === SlotType.ACTIVITY) {
@@ -368,11 +369,34 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="text-sm font-medium text-text-base truncate block">{label}</span>
-                          {slot.type === SlotType.RCP && (
-                            <span className="text-[10px] font-semibold" style={{ color: slotColor }}>
-                              {getRcpStatus(slot) === 'UNCONFIRMED' ? '⚠ À confirmer' : getRcpStatus(slot) === 'PRESENT' ? '✓ Confirmé' : 'RCP programmé'}
-                            </span>
-                          )}
+                          {slot.type === SlotType.RCP && (() => {
+                            const st = getRcpStatus(slot);
+                            const statusLabel = st === 'UNCONFIRMED' ? '⚠ À confirmer' : st === 'PRESENT' ? '✓ Confirmé' : st === 'ABSENT' ? '✗ Absent' : 'RCP programmé';
+                            const others = Object.entries(rcpAttendance[slot.id] || {}).filter(([id]) => id !== doctorId);
+                            return (
+                              <span className="block">
+                                <span className="text-[10px] font-semibold" style={{ color: slotColor }}>{statusLabel}</span>
+                                {others.length > 0 && (
+                                  <span className="flex flex-wrap gap-0.5 mt-0.5">
+                                    {others.map(([id, status]) => {
+                                      const doc = doctors.find((d: any) => d.id === id);
+                                      if (!doc) return null;
+                                      const displayName = doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name;
+                                      return (
+                                        <span key={id} className="text-[9px] px-1 py-0.5 rounded-full border leading-tight"
+                                          style={status === 'PRESENT'
+                                            ? { backgroundColor: 'rgba(5,150,105,0.12)', color: '#059669', borderColor: 'rgba(5,150,105,0.3)' }
+                                            : { backgroundColor: 'rgba(220,78,58,0.12)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.3)' }
+                                          }>
+                                          {status === 'PRESENT' ? '✓' : '✗'} {displayName}
+                                        </span>
+                                      );
+                                    })}
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </span>
                         {/* Colored type pill */}
                         <span className="rounded-full text-[9px] font-bold px-2 py-0.5 text-white flex-shrink-0"
