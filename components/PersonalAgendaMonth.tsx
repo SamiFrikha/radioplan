@@ -1,5 +1,5 @@
 // components/PersonalAgendaMonth.tsx
-import React, { useMemo, useContext, useState } from 'react';
+import React, { useMemo, useContext, useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
@@ -145,7 +145,11 @@ const getLabel = (slot: any): string => {
 const toKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-const PersonalAgendaMonth: React.FC = () => {
+interface Props {
+  onRcpClick?: (slot: any) => void;
+}
+
+const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
   const {
     doctors, template, unavailabilities,
     activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
@@ -161,6 +165,20 @@ const PersonalAgendaMonth: React.FC = () => {
 
   const prevMonth = () => { if (month === 0) { setYear(y => y-1); setMonth(11); } else setMonth(m => m-1); };
   const nextMonth = () => { if (month === 11) { setYear(y => y+1); setMonth(0); } else setMonth(m => m+1); };
+
+  const touchStartX = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) nextMonth();
+      else prevMonth();
+    }
+  };
 
   const weeks: Date[][] = useMemo(() => {
     const firstDay = new Date(year, month, 1);
@@ -211,7 +229,7 @@ const PersonalAgendaMonth: React.FC = () => {
   const monthLabel = new Date(year, month).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
   return (
-    <div>
+    <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* Navigation */}
       <div className="flex items-center justify-between mb-4">
         <button onClick={prevMonth} className="p-1 hover:bg-muted rounded-lg"><ChevronLeft size={18} /></button>
@@ -403,21 +421,31 @@ const PersonalAgendaMonth: React.FC = () => {
                   return SLOT_COLORS.LEAVE;
                 })();
                 return (
-                  <div key={s.id} className="flex items-center gap-2 py-1">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: dotHex }} />
-                    <span className="text-text-base font-medium text-sm">{getLabel(s)}</span>
-                    {s.type === SlotType.RCP && rcpStatus === 'UNCONFIRMED' && (
-                      <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">
-                        <AlertTriangle size={10} />À confirmer
-                      </span>
-                    )}
-                    {s.type === SlotType.RCP && rcpStatus === 'PRESENT' && (
-                      <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
-                        <CheckCircle2 size={10} />Confirmé
-                      </span>
-                    )}
-                    {s.location && s.location !== s.subType && (
-                      <span className="text-text-muted text-xs">— {s.location}</span>
+                  <div key={s.id} className="py-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: dotHex }} />
+                      <span className="text-text-base font-medium text-sm">{getLabel(s)}</span>
+                      {s.type === SlotType.RCP && rcpStatus === 'UNCONFIRMED' && (
+                        <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">
+                          <AlertTriangle size={10} />À confirmer
+                        </span>
+                      )}
+                      {s.type === SlotType.RCP && rcpStatus === 'PRESENT' && (
+                        <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
+                          <CheckCircle2 size={10} />Confirmé
+                        </span>
+                      )}
+                      {s.location && s.location !== s.subType && (
+                        <span className="text-text-muted text-xs">— {s.location}</span>
+                      )}
+                    </div>
+                    {onRcpClick && s.type === SlotType.RCP && (
+                      <button
+                        onClick={() => { onRcpClick(s); setSelectedDate(null); }}
+                        className="mt-1 w-full text-xs font-semibold py-1.5 rounded-btn-sm bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                      >
+                        Confirmer ma présence
+                      </button>
                     )}
                   </div>
                 );

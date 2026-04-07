@@ -71,7 +71,9 @@ const Planning: React.FC = () => {
     // --- VISUAL SETTINGS STATE ---
     const [viewMode, setViewMode] = useState<'ROOM' | 'DOCTOR'>('ROOM');
     const [colorMode, setColorMode] = useState<'DOCTOR' | 'ACTIVITY'>('ACTIVITY');
-    const [density, setDensity] = useState<'COMPACT' | 'COMFORTABLE'>('COMFORTABLE');
+    const [density, setDensity] = useState<'COMPACT' | 'COMFORTABLE'>(
+        () => window.innerWidth < 768 ? 'COMPACT' : 'COMFORTABLE'
+    );
     useEffect(() => {
       if (!user?.id) return;
       const loadDensity = async () => {

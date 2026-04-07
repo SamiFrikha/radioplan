@@ -6,7 +6,7 @@ import {
     Calendar, Save, Trash2, UserCheck,
     Briefcase, Edit, Bell, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
-    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut
+    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut, Camera
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 import { markReplacementResolved } from '../services/replacementService';
@@ -355,6 +355,10 @@ const Profile: React.FC = () => {
     const [editSpecialties, setEditSpecialties] = useState<string[]>([]);
     const [availableSpecialties, setAvailableSpecialties] = useState<Specialty[]>([]);
 
+    // Avatar state
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [avatarUploading, setAvatarUploading] = useState(false);
+
     // RCP Week navigation - use context to survive re-renders
     const notifWeekOffset = profileRcpWeekOffset;
     const setNotifWeekOffset = setProfileRcpWeekOffset;
@@ -428,6 +432,19 @@ const Profile: React.FC = () => {
             }
         }
     }, [doctors, profile?.doctor_id]);
+
+    // Load avatar from profiles table
+    useEffect(() => {
+        if (!profile?.id) return;
+        supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', profile.id)
+            .single()
+            .then(({ data }) => {
+                if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+            });
+    }, [profile?.id]);
 
     // Conflicts tab: generate schedule and detect conflicts for the current doctor's week
     const conflictsWeekSchedule = useMemo(() => {
@@ -770,6 +787,29 @@ const Profile: React.FC = () => {
         }
     };
 
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !profile?.id) return;
+        setAvatarUploading(true);
+        try {
+            const ext = file.name.split('.').pop();
+            const path = `avatars/${profile.id}.${ext}`;
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(path, file, { upsert: true });
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(path);
+            await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id);
+            setAvatarUrl(publicUrl);
+        } catch (err) {
+            console.error('Avatar upload failed:', err);
+        } finally {
+            setAvatarUploading(false);
+        }
+    };
+
     const handleSaveProfile = async () => {
         if (currentDoctor && editName.trim()) {
             const updatedDoc = {
@@ -1008,12 +1048,33 @@ const Profile: React.FC = () => {
                     <Card>
                         <div className="gradient-primary p-4 text-white rounded-t-card">
                             <div className="flex items-start gap-3">
-                                <div
-                                    className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shadow-lg border-4 border-white/20 flex-shrink-0"
-                                    style={{ background: currentDoctor.color || 'var(--color-primary)' }}
-                                >
-                                    {currentDoctor.name.substring(0, 2)}
-                                </div>
+                                <label className="relative cursor-pointer group flex-shrink-0" title="Changer la photo">
+                                    <div
+                                        className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shadow-lg border-4 border-white/20 overflow-hidden"
+                                        style={{ background: avatarUrl ? 'transparent' : (currentDoctor.color || 'var(--color-primary)') }}
+                                    >
+                                        {avatarUrl ? (
+                                            <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            currentDoctor.name.substring(0, 2)
+                                        )}
+                                    </div>
+                                    {/* Overlay upload icon */}
+                                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        {avatarUploading ? (
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <Camera className="w-4 h-4 text-white" />
+                                        )}
+                                    </div>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleAvatarUpload}
+                                        disabled={avatarUploading}
+                                    />
+                                </label>
                                 <div className="min-w-0 flex-1">
                                     {isEditingProfile ? (
                                             <div className="space-y-3 bg-white/10 p-3 rounded-card backdrop-blur-sm">

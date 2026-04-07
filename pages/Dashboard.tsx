@@ -460,7 +460,7 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     ) : s.type === SlotType.RCP ? (
                                         <div className="flex flex-col gap-0.5">
-                                            <Badge variant="green">Confirmee</Badge>
+                                            <Badge variant="green">Confirmée</Badge>
                                             <div className="text-[9px] text-success uppercase font-bold mt-1">Present(s) :</div>
                                             <div className="flex flex-wrap gap-1">
                                                 {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].filter(Boolean).map(id => {
@@ -754,14 +754,14 @@ const Dashboard: React.FC = () => {
                             className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-btn-sm transition-all ${viewMode === 'DAY' ? 'bg-surface shadow-card text-primary' : 'text-text-muted hover:bg-border/60'}`}
                         >
                             <LayoutList className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">Vue Jour</span>
+                            <span className="text-[10px] md:text-xs ml-1">Jour</span>
                         </button>
                         <button
                             onClick={() => setViewMode('WEEK')}
                             className={`px-2 md:px-3 py-1.5 md:py-2 flex items-center text-xs font-bold rounded-btn-sm transition-all ${viewMode === 'WEEK' ? 'bg-surface shadow-card text-primary' : 'text-text-muted hover:bg-border/60'}`}
                         >
                             <LayoutGrid className="w-4 h-4 md:mr-2" />
-                            <span className="hidden md:inline">Vue Semaine</span>
+                            <span className="text-[10px] md:text-xs ml-1">Sem.</span>
                         </button>
                     </div>
 
@@ -785,33 +785,58 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Dynamic Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                <StatCard
-                    label={viewMode === 'DAY' ? "Médecins Présents" : "Effectif Dispo (Semaine)"}
-                    value={stats.presentDoctorsCount}
-                    icon={Users}
-                    color="blue"
-                />
-                <StatCard
-                    label={viewMode === 'DAY' ? "Conflits (Jour)" : "Conflits (Semaine)"}
-                    value={stats.conflictCount}
-                    icon={AlertTriangle}
-                    color={stats.conflictCount > 0 ? "red" : "green"}
-                />
-                <StatCard
-                    label={viewMode === 'DAY' ? "Activités Prévues" : "Total Créneaux"}
-                    value={stats.totalActivities}
-                    icon={Activity}
-                    color="violet"
-                />
-                <StatCard
-                    label="Taux de Remplissage"
-                    value={`${stats.occupancy}%`}
-                    icon={Clock}
-                    color="amber"
-                />
-            </div>
+            {/* Welcome Banner */}
+            {(() => {
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+                const currentDoctor = profile?.doctor_id ? doctors.find(d => d.id === profile.doctor_id) : null;
+                const doctorName = currentDoctor ? currentDoctor.name.replace(/^Dr\.?\s*/i, '') : null;
+                const dayNames = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+                const monthNames = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+                const dateLabel = `${dayNames[today.getDay()]} ${today.getDate()} ${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+                const todaySlots = currentDoctor ? schedule.filter(s =>
+                    s.date === todayStr && !s.isCancelled &&
+                    (s.assignedDoctorId === profile!.doctor_id ||
+                     (s.secondaryDoctorIds ?? []).includes(profile!.doctor_id!))
+                ) : [];
+                const formatSlotTime = (s: ScheduleSlot) => {
+                    if (s.time) return s.time.substring(0, 5).replace(':', 'h');
+                    return s.period === Period.MORNING ? '08h00' : '14h00';
+                };
+                const getSlotLabel = (s: ScheduleSlot) => {
+                    if (s.type === SlotType.RCP) return s.subType ?? 'RCP';
+                    if (s.type === SlotType.ACTIVITY) {
+                        const act = activityDefinitions.find(a => a.id === s.subType);
+                        return act?.name ?? s.subType ?? 'Activité';
+                    }
+                    return s.subType ?? s.type;
+                };
+                return (
+                    <div className="bg-surface rounded-card border border-border/60 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-lg font-extrabold text-text-base leading-tight">
+                                {doctorName ? `Bonjour, Dr ${doctorName} 👋` : 'Bonjour 👋'}
+                            </p>
+                            <p className="text-sm text-text-muted mt-0.5">{dateLabel}</p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            {todaySlots.length === 0 ? (
+                                <p className="text-sm text-text-muted italic">Aucune activité prévue aujourd'hui.</p>
+                            ) : (
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wide mb-1">Aujourd'hui</p>
+                                    {todaySlots.map(s => (
+                                        <div key={s.id} className="flex items-center gap-2">
+                                            <span className="text-xs font-mono text-text-muted w-10 shrink-0">{formatSlotTime(s)}</span>
+                                            <span className="text-sm font-medium text-text-base truncate">{getSlotLabel(s)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
                 {/* Left: Alerts, Absences & UNASSIGNED */}
@@ -919,7 +944,7 @@ const Dashboard: React.FC = () => {
                                                     <div className="flex justify-between items-start gap-2 mb-1">
                                                         <Badge variant="amber">{holiday.name}</Badge>
                                                         {isConfirmed ? (
-                                                            <Badge variant="green">Confirmee</Badge>
+                                                            <Badge variant="green">Confirmée</Badge>
                                                         ) : (
                                                             <Badge variant="amber">A confirmer</Badge>
                                                         )}

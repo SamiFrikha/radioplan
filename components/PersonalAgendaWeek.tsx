@@ -1,6 +1,6 @@
 // components/PersonalAgendaWeek.tsx
 import React, { useMemo, useContext } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, EyeOff } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
@@ -124,6 +124,24 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
       return { ...slot, assignedDoctorId: assignedId };
     });
   }, [weekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides, doctorId]);
+
+  // RCPs that occurred this week but the connected doctor was unavailable for
+  const missedRcps = useMemo(() => {
+    if (!doctorId) return [];
+    return schedule.filter(s => {
+      if (s.type !== SlotType.RCP || s.isCancelled) return false;
+      // The doctor is not assigned to this RCP
+      const isAssigned = s.assignedDoctorId === doctorId ||
+        (s.secondaryDoctorIds ?? []).includes(doctorId);
+      if (isAssigned) return false;
+      // The doctor has an unavailability covering that date
+      const isUnavailable = unavailabilities.some((u: any) =>
+        u.doctorId === doctorId &&
+        s.date >= u.startDate && s.date <= u.endDate
+      );
+      return isUnavailable && !!s.assignedDoctorId;
+    });
+  }, [schedule, doctorId, unavailabilities]);
 
   // Build per-day, per-period data including dates
   const days = useMemo(() => {
@@ -405,7 +423,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
 
       {(hasAnyActivity || weeklyActivities.length > 0) && (
         <div className="grid grid-cols-5 gap-2">
-          {days.map(({ day, date, isToday, periods }) => (
+          {days.map(({ day, date, dateStr, isToday, periods }) => (
             <div key={day} className="flex flex-col gap-1">
               {/* Day header */}
               <div className={`text-center rounded-card py-1.5 px-1 ${isToday ? 'bg-gradient-primary' : 'bg-muted'}`}>
@@ -535,6 +553,30 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                   </div>
                 );
               })}
+
+              {/* RCPs manquées ce jour — médecin indisponible, quelqu'un d'autre était assigné */}
+              {(() => {
+                const dayMissed = missedRcps.filter(s => s.date === dateStr);
+                if (dayMissed.length === 0) return null;
+                return dayMissed.map(s => {
+                  const assignedDoc = doctors.find((d: any) => d.id === s.assignedDoctorId);
+                  return (
+                    <div key={`missed-${s.id}`}
+                      className="mx-1 mb-1 rounded-btn-sm border border-dashed border-text-muted/30 bg-muted/40 px-2 py-1.5 opacity-70"
+                    >
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <EyeOff className="w-3 h-3 text-text-muted shrink-0" />
+                        <span className="text-[10px] font-bold text-text-muted truncate uppercase">
+                          {s.subType ?? 'RCP'}
+                        </span>
+                      </div>
+                      <div className="text-[9px] text-text-muted">
+                        Indisponible · {assignedDoc ? assignedDoc.name : 'Non assigné'}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           ))}
         </div>

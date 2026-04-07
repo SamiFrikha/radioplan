@@ -60,7 +60,7 @@ const MonPlanning: React.FC = () => {
             onRcpClick={setSelectedRcpSlot}
           />
         ) : (
-          <PersonalAgendaMonth />
+          <PersonalAgendaMonth onRcpClick={setSelectedRcpSlot} />
         )}
       </div>
 
