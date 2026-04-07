@@ -546,17 +546,16 @@ const Dashboard: React.FC = () => {
                         const daySlots = schedule.filter(s => s.date === date);
 
                         // Summary logic - search by activity name (subType) instead of hardcoded IDs
-                        const astreinte = daySlots.find(s =>
+                        const astreintes = daySlots.filter(s =>
                             s.type === SlotType.ACTIVITY &&
                             (s.subType?.toLowerCase().includes('astreinte') || s.location?.toLowerCase().includes('astreinte'))
                         );
-                        const unity = daySlots.find(s =>
+                        const unitys = daySlots.filter(s =>
                             s.type === SlotType.ACTIVITY &&
                             (s.subType?.toLowerCase().includes('unity') || s.location?.toLowerCase().includes('unity'))
                         );
-
-                        const docAstreinte = doctors.find(d => d.id === astreinte?.assignedDoctorId);
-                        const docUnity = doctors.find(d => d.id === unity?.assignedDoctorId);
+                        const hasAstreinte = astreintes.some(s => s.assignedDoctorId);
+                        const hasUnity = unitys.some(s => s.assignedDoctorId);
 
                         // RCPs List
                         const rcps = daySlots.filter(s => s.type === SlotType.RCP);
@@ -568,24 +567,36 @@ const Dashboard: React.FC = () => {
                                 </div>
                                 <div className="p-1 md:p-2 space-y-1 md:space-y-2 flex-1 bg-surface">
                                     {/* Key Roles Summary - Only show activities that have assignments */}
-                                    {(docAstreinte || docUnity) && (
+                                    {(hasAstreinte || hasUnity) && (
                                         <div className="text-[8px] md:text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5 md:mb-1">Clés</div>
                                     )}
 
-                                    {astreinte?.assignedDoctorId && docAstreinte && (
-                                        <div className="p-1 md:p-1.5 rounded-btn-sm border-l-2 overflow-hidden min-w-0" style={{ backgroundColor: 'rgba(220,78,58,0.10)', borderColor: 'rgba(220,78,58,0.25)', borderLeftColor: '#DC4E3A' }}>
-                                            <div className="text-[7px] font-bold leading-none" style={{ color: '#DC4E3A' }}>Astr.</div>
-                                            <div className="text-[8px] text-text-base truncate w-full" title={docAstreinte.name}>{shortName(docAstreinte.name)}</div>
-                                        </div>
-                                    )}
-                                    {unity?.assignedDoctorId && docUnity && (
-                                        <div className="p-1 md:p-1.5 rounded-btn-sm border-l-2 overflow-hidden min-w-0" style={{ backgroundColor: 'rgba(109,40,217,0.10)', borderColor: 'rgba(109,40,217,0.25)', borderLeftColor: '#6D28D9' }}>
-                                            <div className="text-[7px] font-bold leading-none" style={{ color: '#6D28D9' }}>UNITY</div>
-                                            <div className="text-[8px] text-text-base truncate w-full" title={docUnity.name}>{shortName(docUnity.name)}</div>
-                                        </div>
-                                    )}
+                                    {astreintes.filter(s => s.assignedDoctorId).map(s => {
+                                        const doc = doctors.find(d => d.id === s.assignedDoctorId);
+                                        if (!doc) return null;
+                                        return (
+                                            <div key={s.id} className="p-1 md:p-1.5 rounded-btn-sm border-l-2 overflow-hidden min-w-0" style={{ backgroundColor: 'rgba(220,78,58,0.10)', borderColor: 'rgba(220,78,58,0.25)', borderLeftColor: '#DC4E3A' }}>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-[7px] font-bold leading-none" style={{ color: '#DC4E3A' }}>Astr.{s.period === 'Matin' ? ' 🌅' : ' 🌆'}</div>
+                                                </div>
+                                                <div className="text-[8px] text-text-base truncate w-full" title={doc.name}>{shortName(doc.name)}</div>
+                                            </div>
+                                        );
+                                    })}
+                                    {unitys.filter(s => s.assignedDoctorId).map(s => {
+                                        const doc = doctors.find(d => d.id === s.assignedDoctorId);
+                                        if (!doc) return null;
+                                        return (
+                                            <div key={s.id} className="p-1 md:p-1.5 rounded-btn-sm border-l-2 overflow-hidden min-w-0" style={{ backgroundColor: 'rgba(109,40,217,0.10)', borderColor: 'rgba(109,40,217,0.25)', borderLeftColor: '#6D28D9' }}>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-[7px] font-bold leading-none" style={{ color: '#6D28D9' }}>UNITY{s.period === 'Matin' ? ' 🌅' : ' 🌆'}</div>
+                                                </div>
+                                                <div className="text-[8px] text-text-base truncate w-full" title={doc.name}>{shortName(doc.name)}</div>
+                                            </div>
+                                        );
+                                    })}
 
-                                    {(docAstreinte || docUnity) && <div className="h-px bg-border my-1 md:my-2"></div>}
+                                    {(hasAstreinte || hasUnity) && <div className="h-px bg-border my-1 md:my-2"></div>}
 
                                     {/* Workflow if applicable */}
                                     {(() => {
@@ -812,27 +823,34 @@ const Dashboard: React.FC = () => {
                     return s.subType ?? s.type;
                 };
                 return (
-                    <div className="bg-surface rounded-card border border-border/60 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex-1 min-w-0">
-                            <p className="text-lg font-extrabold text-text-base leading-tight">
-                                {doctorName ? `Bonjour, Dr ${doctorName} 👋` : 'Bonjour 👋'}
-                            </p>
-                            <p className="text-sm text-text-muted mt-0.5">{dateLabel}</p>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            {todaySlots.length === 0 ? (
-                                <p className="text-sm text-text-muted italic">Aucune activité prévue aujourd'hui.</p>
-                            ) : (
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wide mb-1">Aujourd'hui</p>
-                                    {todaySlots.map(s => (
-                                        <div key={s.id} className="flex items-center gap-2">
-                                            <span className="text-xs font-mono text-text-muted w-10 shrink-0">{formatSlotTime(s)}</span>
-                                            <span className="text-sm font-medium text-text-base truncate">{getSlotLabel(s)}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                    <div className="rounded-card overflow-hidden bg-gradient-to-br from-primary/90 to-primary shadow-modal">
+                        <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                            {/* Left: greeting */}
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xl font-extrabold text-white leading-tight tracking-tight">
+                                    {doctorName ? `Bonjour, Dr ${doctorName} 👋` : 'Bonjour 👋'}
+                                </p>
+                                <p className="text-sm text-white/70 mt-0.5 font-medium">{dateLabel}</p>
+                            </div>
+                            {/* Right: today's schedule */}
+                            <div className="flex-1 min-w-0 sm:border-l sm:border-white/20 sm:pl-4">
+                                {todaySlots.length === 0 ? (
+                                    <p className="text-sm text-white/60 italic">Aucune activité prévue aujourd'hui.</p>
+                                ) : (
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Aujourd'hui</p>
+                                        {todaySlots.slice(0, 4).map(s => (
+                                            <div key={s.id} className="flex items-center gap-2">
+                                                <span className="text-[11px] font-mono text-white/60 w-10 shrink-0">{formatSlotTime(s)}</span>
+                                                <span className="text-sm font-semibold text-white truncate">{getSlotLabel(s)}</span>
+                                            </div>
+                                        ))}
+                                        {todaySlots.length > 4 && (
+                                            <p className="text-[10px] text-white/50">+{todaySlots.length - 4} autres</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 );

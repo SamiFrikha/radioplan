@@ -1,6 +1,6 @@
 // components/PersonalAgendaMonth.tsx
 import React, { useMemo, useContext, useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays, XCircle } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
@@ -12,10 +12,11 @@ const getRcpStatus = (
   slot: any,
   doctorId: string | undefined,
   rcpAttendance: Record<string, Record<string, string>>
-): 'UNCONFIRMED' | 'PRESENT' | 'NONE' => {
+): 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'NONE' => {
   if (slot.type !== SlotType.RCP) return 'NONE';
   if (slot.isUnconfirmed) return 'UNCONFIRMED';
   if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT') return 'PRESENT';
+  if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'ABSENT') return 'ABSENT';
   return 'NONE';
 };
 
@@ -216,7 +217,10 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
         const isVisible =
           slot.assignedDoctorId === doctorId ||
           slot.secondaryDoctorIds?.includes(doctorId) ||
-          (slot.type === SlotType.RCP && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT');
+          (slot.type === SlotType.RCP && (
+            rcpAttendance[slot.id]?.[doctorId] === 'PRESENT' ||
+            rcpAttendance[slot.id]?.[doctorId] === 'ABSENT'
+          ));
         if (!isVisible) continue;
         const key = slot.date;
         if (!result[key]) result[key] = [];
@@ -232,15 +236,15 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
     <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       {/* Navigation */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="p-1 hover:bg-muted rounded-lg"><ChevronLeft size={18} /></button>
-        <span className="text-sm font-semibold text-text-base capitalize">{monthLabel}</span>
-        <button onClick={nextMonth} className="p-1 hover:bg-muted rounded-lg"><ChevronRight size={18} /></button>
+        <button onClick={prevMonth} className="p-2 hover:bg-muted rounded-lg transition-colors"><ChevronLeft size={22} /></button>
+        <span className="text-xl font-bold text-text-base capitalize">{monthLabel}</span>
+        <button onClick={nextMonth} className="p-2 hover:bg-muted rounded-lg transition-colors"><ChevronRight size={22} /></button>
       </div>
 
       {/* Day headers */}
-      <div className="grid grid-cols-7 mb-1">
+      <div className="grid grid-cols-7 mb-1 bg-muted/60 rounded-lg overflow-hidden">
         {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map((d, i) => (
-          <div key={i} className="text-xs text-center text-text-muted font-medium py-1">{d}</div>
+          <div key={i} className="text-xs text-center text-text-base font-bold py-1.5 tracking-wide">{d}</div>
         ))}
       </div>
 
@@ -307,34 +311,73 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
                 const morningSlots = slots.filter((s: any) => s.period === Period.MORNING);
                 const afternoonSlots = slots.filter((s: any) => s.period === Period.AFTERNOON);
 
+                // Compute display color for a slot (for the bigger inline pills)
+                const getSlotDisplayColor = (s: any): string => {
+                  if (s.type === SlotType.RCP) {
+                    const status = getRcpStatus(s, doctorId, rcpAttendance);
+                    if (status === 'PRESENT') return SLOT_COLORS.RCP_DONE;
+                    if (status === 'UNCONFIRMED') return SLOT_COLORS.RCP_PENDING;
+                    if (status === 'ABSENT') return '#94a3b8';
+                    return SLOT_COLORS.RCP_NONE;
+                  }
+                  if (s.type === SlotType.CONSULTATION) return SLOT_COLORS.CONSULT;
+                  if (s.type === SlotType.ACTIVITY) {
+                    const def = activityDefinitions.find((a: any) => a.id === s.activityId);
+                    return getActivityColor(s, def);
+                  }
+                  return SLOT_COLORS.LEAVE;
+                };
+
+                const getSlotLabel = (s: any): string => {
+                  if (s.type === SlotType.CONSULTATION) return 'Consult.';
+                  if (s.type === SlotType.RCP) return s.subType || 'RCP';
+                  if (s.type === SlotType.ACTIVITY) return s.subType || s.location || 'Activité';
+                  return '?';
+                };
+
                 return (
                   <div key={di}
                     onClick={() => isCurrentMonth && !isWeekend && setSelectedDate(isSelected ? null : key)}
-                    className={`min-h-[72px] rounded-lg p-1 transition-colors flex flex-col
+                    className={`min-h-[80px] sm:min-h-[100px] rounded-lg p-1 transition-colors flex flex-col
                       ${isCurrentMonth && !isWeekend ? 'cursor-pointer hover:bg-muted' : 'cursor-default'}
                       ${isWeekend || !isCurrentMonth ? 'opacity-30 bg-muted' : 'bg-surface'}
                       ${isToday ? 'ring-2 ring-primary' : ''}
                       ${isSelected ? 'ring-2 ring-primary bg-primary/10' : ''}
                     `}>
                     {/* Day number */}
-                    <div className={`text-xs text-center font-medium mb-0.5 ${isToday ? 'text-primary font-bold' : 'text-text-base'}`}>
+                    <div className={`text-xs sm:text-sm text-center font-medium mb-0.5 ${isToday ? 'text-primary font-bold' : 'text-text-base'}`}>
                       {date.getDate()}
                     </div>
 
                     {onLeave && isCurrentMonth && !isWeekend ? (
                       <div
-                        className="text-[8px] rounded px-1 py-0.5 text-center font-semibold leading-tight text-white"
+                        className="text-[9px] sm:text-[10px] rounded px-1 py-0.5 text-center font-semibold leading-tight text-white mt-0.5"
                         style={{ backgroundColor: SLOT_COLORS.LEAVE }}
                       >
                         Congé
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-0.5 flex-1">
+                      <div className="flex flex-col flex-1">
                         {morningSlots.length > 0 && (
                           <div className="space-y-0.5">
-                            {morningSlots.map((s: any) => (
-                              <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
-                            ))}
+                            {morningSlots.map((s: any) => {
+                              const color = getSlotDisplayColor(s);
+                              const label = getSlotLabel(s);
+                              const isAbsent = s.type === SlotType.RCP && getRcpStatus(s, doctorId, rcpAttendance) === 'ABSENT';
+                              return isCurrentMonth ? (
+                                <div
+                                  key={s.id}
+                                  className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' opacity-50 line-through' : ''}`}
+                                  style={{ backgroundColor: color + '22', color }}
+                                  title={label}
+                                >
+                                  {isAbsent && <XCircle size={7} className="shrink-0" />}
+                                  {label}
+                                </div>
+                              ) : (
+                                <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
+                              );
+                            })}
                           </div>
                         )}
                         {morningSlots.length > 0 && afternoonSlots.length > 0 && (
@@ -342,9 +385,24 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
                         )}
                         {afternoonSlots.length > 0 && (
                           <div className="space-y-0.5">
-                            {afternoonSlots.map((s: any) => (
-                              <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
-                            ))}
+                            {afternoonSlots.map((s: any) => {
+                              const color = getSlotDisplayColor(s);
+                              const label = getSlotLabel(s);
+                              const isAbsent = s.type === SlotType.RCP && getRcpStatus(s, doctorId, rcpAttendance) === 'ABSENT';
+                              return isCurrentMonth ? (
+                                <div
+                                  key={s.id}
+                                  className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' opacity-50 line-through' : ''}`}
+                                  style={{ backgroundColor: color + '22', color }}
+                                  title={label}
+                                >
+                                  {isAbsent && <XCircle size={7} className="shrink-0" />}
+                                  {label}
+                                </div>
+                              ) : (
+                                <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -370,22 +428,23 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
 
       {selectedDate && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedDate(null)}
         >
           <div
-            className="bg-surface rounded-xl shadow-modal max-w-sm w-full p-5 max-h-[80vh] overflow-y-auto"
+            className="bg-surface rounded-2xl shadow-modal max-w-sm w-full p-5 max-h-[85vh] overflow-y-auto border border-border/60"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold text-text-base capitalize">
+            {/* Modal header */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+              <p className="font-bold text-base text-text-base capitalize">
                 {new Date(selectedDate + 'T12:00:00').toLocaleDateString('fr-FR', {
                   weekday: 'long', day: '2-digit', month: 'long'
                 })}
               </p>
               <button
                 onClick={() => setSelectedDate(null)}
-                className="p-1 hover:bg-muted rounded-btn-sm text-text-muted"
+                className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-lg text-text-muted transition-colors"
               >
                 <span className="text-lg leading-none">✕</span>
               </button>
@@ -395,8 +454,13 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
               const onLeave = unavailabilities.some(u =>
                 u.doctorId === doctorId && selectedDate >= u.startDate && selectedDate <= u.endDate
               );
-              if (onLeave) return <p className="text-text-muted italic text-sm">Congé / Indisponibilité</p>;
-              if (daySlots.length === 0) return <p className="text-text-muted italic text-sm">Aucune activité planifiée</p>;
+              if (onLeave) return (
+                <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-muted">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: SLOT_COLORS.LEAVE }} />
+                  <p className="text-text-muted italic text-sm">Congé / Indisponibilité</p>
+                </div>
+              );
+              if (daySlots.length === 0) return <p className="text-text-muted italic text-sm py-2">Aucune activité planifiée</p>;
 
               const morningSlots = daySlots.filter((s: any) => s.period === Period.MORNING);
               const afternoonSlots = daySlots.filter((s: any) => s.period === Period.AFTERNOON);
@@ -421,28 +485,32 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
                   return SLOT_COLORS.LEAVE;
                 })();
                 return (
-                  <div key={s.id} className="py-1">
-                    <div className="flex items-center gap-2">
+                  <div
+                    key={s.id}
+                    className="rounded-lg p-3 mb-2 border"
+                    style={{ backgroundColor: dotHex + '11', borderColor: dotHex + '33' }}
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: dotHex }} />
-                      <span className="text-text-base font-medium text-sm">{getLabel(s)}</span>
+                      <span className="text-text-base font-semibold text-sm">{getLabel(s)}</span>
                       {s.type === SlotType.RCP && rcpStatus === 'UNCONFIRMED' && (
-                        <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">
-                          <AlertTriangle size={10} />À confirmer
+                        <span className="text-xs font-medium flex items-center gap-0.5 ml-auto" style={{ color: SLOT_COLORS.RCP_PENDING }}>
+                          <AlertTriangle size={11} />À confirmer
                         </span>
                       )}
                       {s.type === SlotType.RCP && rcpStatus === 'PRESENT' && (
-                        <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
-                          <CheckCircle2 size={10} />Confirmé
+                        <span className="text-xs font-medium flex items-center gap-0.5 ml-auto" style={{ color: SLOT_COLORS.RCP_DONE }}>
+                          <CheckCircle2 size={11} />Confirmé
                         </span>
                       )}
-                      {s.location && s.location !== s.subType && (
-                        <span className="text-text-muted text-xs">— {s.location}</span>
-                      )}
                     </div>
+                    {s.location && s.location !== s.subType && (
+                      <p className="text-text-muted text-xs mt-1 ml-4">{s.location}</p>
+                    )}
                     {onRcpClick && s.type === SlotType.RCP && (
                       <button
                         onClick={() => { onRcpClick(s); setSelectedDate(null); }}
-                        className="mt-1 w-full text-xs font-semibold py-1.5 rounded-btn-sm bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                        className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
                       >
                         Confirmer ma présence
                       </button>
@@ -452,16 +520,16 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
               };
 
               return (
-                <div className="space-y-3">
+                <div>
                   {morningSlots.length > 0 && (
-                    <div>
-                      <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">🌅 Matin</p>
+                    <div className="mb-3">
+                      <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Matin</p>
                       {morningSlots.map(renderDetailSlot)}
                     </div>
                   )}
                   {afternoonSlots.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">🌇 Après-midi</p>
+                      <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2">Après-midi</p>
                       {afternoonSlots.map(renderDetailSlot)}
                     </div>
                   )}
