@@ -3,7 +3,7 @@ import { AppContext } from '../App';
 import { DayOfWeek, Period, SlotType, ScheduleSlot } from '../types';
 import SlotDetailsModal from '../components/SlotDetailsModal';
 import ConflictResolverModal from '../components/ConflictResolverModal';
-import { AlertCircle, ChevronLeft, ChevronRight, Calendar, UserCheck, Users, LayoutGrid, Printer, Loader2, ImageIcon, Lock, Ban, Settings, Palette, Eye, ShieldAlert } from 'lucide-react';
+import { AlertCircle, ChevronLeft, ChevronRight, Calendar, UserCheck, Users, LayoutGrid, Printer, Loader2, ImageIcon, Lock, Ban, Settings, Palette, Eye, ShieldAlert, X } from 'lucide-react';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -42,7 +42,7 @@ const Planning: React.FC = () => {
         // Admin has full access
         if (isAdmin) return true;
 
-        // For doctors, only allow interaction with their own consultation slots
+        // For doctors, only allow interaction with their own consultation or activity slots
         if (isDoctor && currentDoctorId) {
             // Check if slot type is consultation and location is a "Box" (consultation rooms)
             const isConsultationBox = slot.type === SlotType.CONSULTATION && slot.location.toLowerCase().startsWith('box');
@@ -51,7 +51,10 @@ const Planning: React.FC = () => {
             const isAssigned = slot.assignedDoctorId === currentDoctorId ||
                 (slot.secondaryDoctorIds && slot.secondaryDoctorIds.includes(currentDoctorId));
 
-            return isConsultationBox && isAssigned;
+            // Allow activity slots (unity/astreinte) assigned to the current doctor
+            const isOwnActivity = slot.type === SlotType.ACTIVITY && isAssigned;
+
+            return (isConsultationBox && isAssigned) || isOwnActivity;
         }
 
         // By default, no interaction allowed for other roles
@@ -541,7 +544,7 @@ const Planning: React.FC = () => {
                             }
                         } else if (!isAdmin) {
                             setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation.");
-                            setTimeout(() => setAccessDeniedMessage(null), 3000);
+                            setTimeout(() => setAccessDeniedMessage(null), 4000);
                         }
                     }}
                 >
@@ -625,13 +628,14 @@ const Planning: React.FC = () => {
         const handleSlotClick = () => {
             if (canClick) {
                 if (isDoctor && !isAdmin) {
+                    // Activity slots open the ConflictResolverModal directly (same as consult)
                     setSelectedConflictSlot(slot as ScheduleSlot);
                 } else {
                     setSelectedSlotId(slot.id);
                 }
             } else if (!isAdmin) {
-                setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation.");
-                setTimeout(() => setAccessDeniedMessage(null), 3000);
+                setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation ou d'activité.");
+                setTimeout(() => setAccessDeniedMessage(null), 4000);
             }
         };
 
@@ -749,12 +753,51 @@ const Planning: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col gap-4">
-            {/* Access Denied Toast */}
+            {/* Access Denied Modal */}
             {accessDeniedMessage && (
-                <div className="fixed top-4 right-4 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="bg-warning/10 border border-warning/30 text-warning-text px-4 py-3 rounded-lg shadow-lg flex items-center">
-                        <ShieldAlert className="w-5 h-5 mr-2 text-warning-text" />
-                        <span className="font-medium text-sm">{accessDeniedMessage}</span>
+                <div
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-modal flex items-end md:items-center justify-center p-0 md:p-4"
+                    onClick={() => setAccessDeniedMessage(null)}
+                >
+                    <div
+                        className="bg-surface rounded-t-modal md:rounded-modal shadow-modal border border-border/40 overflow-hidden w-full md:max-w-[420px] mx-auto"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Mobile drag handle */}
+                        <div className="w-10 h-1 rounded-full bg-border mx-auto mt-3 mb-1 md:hidden" aria-hidden="true" />
+
+                        {/* Header */}
+                        <div className="gradient-primary px-5 py-4 flex items-center justify-between">
+                            <h2 className="text-base font-bold text-white flex items-center gap-2">
+                                <ShieldAlert className="w-5 h-5" />
+                                Accès restreint
+                            </h2>
+                            <button
+                                onClick={() => setAccessDeniedMessage(null)}
+                                aria-label="Fermer"
+                                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="px-5 py-5 text-center">
+                            <div className="w-14 h-14 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-warning/20">
+                                <ShieldAlert className="w-7 h-7 text-warning" />
+                            </div>
+                            <p className="text-sm text-text-base font-medium">{accessDeniedMessage}</p>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-5 pb-5 flex justify-center">
+                            <button
+                                onClick={() => setAccessDeniedMessage(null)}
+                                className="px-6 py-2 bg-primary text-white rounded-btn text-sm font-semibold hover:bg-primary/90 transition-colors"
+                            >
+                                Compris
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

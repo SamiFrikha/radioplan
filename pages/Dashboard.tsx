@@ -823,30 +823,43 @@ const Dashboard: React.FC = () => {
                     return s.subType ?? s.type;
                 };
                 return (
-                    <div className="rounded-card overflow-hidden bg-gradient-to-br from-primary/90 to-primary shadow-modal">
-                        <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="rounded-card overflow-hidden bg-surface border border-border/50 shadow-card">
+                        {/* Thin top gradient accent stripe */}
+                        <div className="h-[3px] w-full bg-gradient-primary" aria-hidden="true" />
+
+                        <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-start gap-4 relative overflow-hidden">
+                            {/* Subtle background mesh — right side only, barely perceptible */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-primary/[0.04] pointer-events-none" aria-hidden="true" />
+
                             {/* Left: greeting */}
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xl font-extrabold text-white leading-tight tracking-tight">
-                                    {doctorName ? `Bonjour, Dr ${doctorName} 👋` : 'Bonjour 👋'}
+                            <div className="relative flex-none sm:w-[200px]">
+                                <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-text-muted mb-0.5">
+                                    Bonjour
                                 </p>
-                                <p className="text-sm text-white/70 mt-0.5 font-medium">{dateLabel}</p>
+                                <p className="text-xl font-extrabold text-text-base leading-tight tracking-tight">
+                                    {doctorName ? `Dr ${doctorName} 👋` : 'Bienvenue 👋'}
+                                </p>
+                                <p className="text-xs text-text-muted mt-1 font-medium capitalize">{dateLabel}</p>
                             </div>
+
+                            {/* Vertical divider */}
+                            <div className="hidden sm:block w-px bg-border/60 self-stretch" aria-hidden="true" />
+
                             {/* Right: today's schedule */}
-                            <div className="flex-1 min-w-0 sm:border-l sm:border-white/20 sm:pl-4">
+                            <div className="relative flex-1 min-w-0">
                                 {todaySlots.length === 0 ? (
-                                    <p className="text-sm text-white/60 italic">Aucune activité prévue aujourd'hui.</p>
+                                    <p className="text-sm text-text-muted italic">Aucune activité prévue aujourd'hui.</p>
                                 ) : (
                                     <div className="space-y-1.5">
-                                        <p className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Aujourd'hui</p>
+                                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Aujourd'hui</p>
                                         {todaySlots.slice(0, 4).map(s => (
                                             <div key={s.id} className="flex items-center gap-2">
-                                                <span className="text-[11px] font-mono text-white/60 w-10 shrink-0">{formatSlotTime(s)}</span>
-                                                <span className="text-sm font-semibold text-white truncate">{getSlotLabel(s)}</span>
+                                                <span className="text-[11px] font-mono text-text-muted w-10 shrink-0">{formatSlotTime(s)}</span>
+                                                <span className="text-sm font-semibold text-text-base truncate">{getSlotLabel(s)}</span>
                                             </div>
                                         ))}
                                         {todaySlots.length > 4 && (
-                                            <p className="text-[10px] text-white/50">+{todaySlots.length - 4} autres</p>
+                                            <p className="text-[10px] text-text-muted">+{todaySlots.length - 4} autres</p>
                                         )}
                                     </div>
                                 )}

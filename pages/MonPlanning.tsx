@@ -12,6 +12,7 @@ const MonPlanning: React.FC = () => {
   const [agendaWeekOffset, setAgendaWeekOffset] = useState(0);
   const [selectedConsultSlot, setSelectedConsultSlot] = useState<ScheduleSlot | null>(null);
   const [selectedRcpSlot, setSelectedRcpSlot] = useState<ScheduleSlot | null>(null);
+  const [selectedActivitySlot, setSelectedActivitySlot] = useState<ScheduleSlot | null>(null);
 
   const {
     doctors, unavailabilities, manualOverrides, setManualOverrides,
@@ -27,6 +28,16 @@ const MonPlanning: React.FC = () => {
   const handleConsultCloseSlot = (slotId: string) => {
     setManualOverrides({ ...manualOverrides, [slotId]: '__CLOSED__' });
     setSelectedConsultSlot(null);
+  };
+
+  const handleActivityResolve = (slotId: string, newDoctorId: string) => {
+    setManualOverrides({ ...manualOverrides, [slotId]: newDoctorId });
+    setSelectedActivitySlot(null);
+  };
+
+  const handleActivityCloseSlot = (slotId: string) => {
+    setManualOverrides({ ...manualOverrides, [slotId]: '__CLOSED__' });
+    setSelectedActivitySlot(null);
   };
 
   const weekSlots: ScheduleSlot[] = [];
@@ -58,9 +69,14 @@ const MonPlanning: React.FC = () => {
             onOffsetChange={setAgendaWeekOffset}
             onConsultClick={setSelectedConsultSlot}
             onRcpClick={setSelectedRcpSlot}
+            onActivityClick={setSelectedActivitySlot}
           />
         ) : (
-          <PersonalAgendaMonth onRcpClick={setSelectedRcpSlot} />
+          <PersonalAgendaMonth
+            onRcpClick={setSelectedRcpSlot}
+            onActivityClick={setSelectedActivitySlot}
+            onConsultClick={setSelectedConsultSlot}
+          />
         )}
       </div>
 
@@ -73,6 +89,18 @@ const MonPlanning: React.FC = () => {
           onClose={() => setSelectedConsultSlot(null)}
           onResolve={handleConsultResolve}
           onCloseSlot={handleConsultCloseSlot}
+        />
+      )}
+
+      {selectedActivitySlot && (
+        <ConflictResolverModal
+          slot={selectedActivitySlot}
+          doctors={doctors}
+          slots={weekSlots}
+          unavailabilities={unavailabilities}
+          onClose={() => setSelectedActivitySlot(null)}
+          onResolve={handleActivityResolve}
+          onCloseSlot={handleActivityCloseSlot}
         />
       )}
 

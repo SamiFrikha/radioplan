@@ -14,9 +14,10 @@ const getRcpStatus = (
   rcpAttendance: Record<string, Record<string, string>>
 ): 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'NONE' => {
   if (slot.type !== SlotType.RCP) return 'NONE';
-  if (slot.isUnconfirmed) return 'UNCONFIRMED';
+  // Check explicit attendance first — takes priority over isUnconfirmed flag
   if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT') return 'PRESENT';
   if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'ABSENT') return 'ABSENT';
+  if (slot.isUnconfirmed) return 'UNCONFIRMED';
   return 'NONE';
 };
 
@@ -53,36 +54,79 @@ const SlotPill: React.FC<{
   doctorId: string | undefined;
   rcpAttendance: Record<string, Record<string, string>>;
   activityDefinitions: any[];
-}> = ({ slot, doctorId, rcpAttendance, activityDefinitions }) => {
+  doctors?: any[];
+}> = ({ slot, doctorId, rcpAttendance, activityDefinitions, doctors = [] }) => {
   const base = "text-[8px] rounded px-1 py-0.5 font-semibold leading-tight truncate w-full";
 
   if (slot.type === SlotType.RCP) {
     const status = getRcpStatus(slot, doctorId, rcpAttendance);
+
+    // Other attendees sub-indicator (shown for UNCONFIRMED, PRESENT, ABSENT)
+    const AttendeesRow = () => {
+      const others = Object.entries(rcpAttendance[slot.id] || {}).filter(([id]) => id !== doctorId);
+      if (others.length === 0) return null;
+      return (
+        <div className="mt-0.5 flex flex-wrap gap-0.5">
+          {others.map(([id, st]) => {
+            const doc = doctors.find((d: any) => d.id === id);
+            if (!doc) return null;
+            return (
+              <span key={id} className="text-[7px] px-0.5 rounded-sm leading-tight"
+                style={st === 'PRESENT'
+                  ? { backgroundColor: 'rgba(5,150,105,0.18)', color: '#059669' }
+                  : { backgroundColor: 'rgba(220,78,58,0.18)', color: '#DC4E3A' }
+                }>
+                {st === 'PRESENT' ? '✓' : '✗'} {doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name}
+              </span>
+            );
+          })}
+        </div>
+      );
+    };
+
     if (status === 'UNCONFIRMED') {
       return (
         <div
-          className={`${base} border border-dashed flex items-center gap-0.5`}
+          className={`${base} border border-dashed flex flex-col`}
           style={{ backgroundColor: 'rgba(217,119,6,0.12)', borderColor: 'rgba(217,119,6,0.5)', color: SLOT_COLORS.RCP_PENDING }}
           title={slot.subType || 'RCP — À confirmer'}
         >
-          <AlertTriangle size={7} className="shrink-0" />
-          <span className="truncate">{slot.subType || 'RCP'}</span>
+          <div className="flex items-center gap-0.5">
+            <AlertTriangle size={7} className="shrink-0" />
+            <span className="truncate">{slot.subType || 'RCP'}</span>
+          </div>
         </div>
       );
     }
     if (status === 'PRESENT') {
       return (
         <div
-          className={`${base} flex items-center gap-0.5 text-white`}
+          className={`${base} flex flex-col text-white`}
           style={{ backgroundColor: SLOT_COLORS.RCP_DONE }}
           title={slot.subType || 'RCP — Confirmé'}
         >
-          <CheckCircle2 size={7} className="shrink-0" />
-          <span className="truncate">{slot.subType || 'RCP'}</span>
+          <div className="flex items-center gap-0.5">
+            <CheckCircle2 size={7} className="shrink-0" />
+            <span className="truncate">{slot.subType || 'RCP'}</span>
+          </div>
         </div>
       );
     }
-    // Default RCP
+    if (status === 'ABSENT') {
+      return (
+        <div
+          className={`${base} border border-dashed flex flex-col`}
+          style={{ backgroundColor: 'rgba(220,78,58,0.07)', borderColor: 'rgba(220,78,58,0.4)', color: '#DC4E3A' }}
+          title={slot.subType || 'RCP — Absent'}
+        >
+          <div className="flex items-center gap-0.5">
+            <XCircle size={7} className="shrink-0" />
+            <span className="truncate">{slot.subType || 'RCP'}</span>
+          </div>
+        </div>
+      );
+    }
+    // Default RCP (NONE)
     return (
       <div
         className={`${base} text-white`}
@@ -148,9 +192,11 @@ const toKey = (d: Date) =>
 
 interface Props {
   onRcpClick?: (slot: any) => void;
+  onActivityClick?: (slot: any) => void;
+  onConsultClick?: (slot: any) => void;
 }
 
-const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
+const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onConsultClick }) => {
   const {
     doctors, template, unavailabilities,
     activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
@@ -361,21 +407,58 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
                         {morningSlots.length > 0 && (
                           <div className="space-y-0.5">
                             {morningSlots.map((s: any) => {
-                              const color = getSlotDisplayColor(s);
+                              const rcpStatus = s.type === SlotType.RCP ? getRcpStatus(s, doctorId, rcpAttendance) : null;
+                              const isAbsent = rcpStatus === 'ABSENT';
+                              const color = isAbsent ? '#DC4E3A' : getSlotDisplayColor(s);
                               const label = getSlotLabel(s);
-                              const isAbsent = s.type === SlotType.RCP && getRcpStatus(s, doctorId, rcpAttendance) === 'ABSENT';
+                              const isClickable =
+                                (s.type === SlotType.ACTIVITY && s.assignedDoctorId === doctorId && onActivityClick) ||
+                                (s.type === SlotType.CONSULTATION && s.assignedDoctorId === doctorId && onConsultClick) ||
+                                (s.type === SlotType.RCP && onRcpClick);
+                              const handleClick = (e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                if (s.type === SlotType.ACTIVITY && onActivityClick) onActivityClick(s);
+                                else if (s.type === SlotType.CONSULTATION && onConsultClick) onConsultClick(s);
+                                else if (s.type === SlotType.RCP && onRcpClick) onRcpClick(s);
+                              };
+                              // Other attendees for RCP
+                              const othersEntries = s.type === SlotType.RCP && rcpStatus && rcpStatus !== 'NONE'
+                                ? Object.entries(rcpAttendance[s.id] || {}).filter(([id]) => id !== doctorId)
+                                : [];
                               return isCurrentMonth ? (
-                                <div
-                                  key={s.id}
-                                  className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' opacity-50 line-through' : ''}`}
-                                  style={{ backgroundColor: color + '22', color }}
-                                  title={label}
-                                >
-                                  {isAbsent && <XCircle size={7} className="shrink-0" />}
-                                  {label}
+                                <div key={s.id}>
+                                  <div
+                                    className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' border border-dashed' : ''}${isClickable ? ' cursor-pointer hover:opacity-80 active:scale-95 transition-all' : ''}`}
+                                    style={isAbsent
+                                      ? { backgroundColor: 'rgba(220,78,58,0.1)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.4)' }
+                                      : { backgroundColor: color + '22', color }
+                                    }
+                                    title={label}
+                                    onClick={isClickable ? handleClick : undefined}
+                                  >
+                                    {isAbsent && <XCircle size={7} className="shrink-0" />}
+                                    {label}
+                                  </div>
+                                  {othersEntries.length > 0 && (
+                                    <div className="flex flex-wrap gap-0.5 mt-0.5 ml-1">
+                                      {othersEntries.map(([id, st]) => {
+                                        const doc = doctors.find((d: any) => d.id === id);
+                                        if (!doc) return null;
+                                        return (
+                                          <span key={id} className="text-[7px] px-0.5 rounded-sm leading-tight"
+                                            style={st === 'PRESENT'
+                                              ? { backgroundColor: 'rgba(5,150,105,0.18)', color: '#059669' }
+                                              : { backgroundColor: 'rgba(220,78,58,0.18)', color: '#DC4E3A' }
+                                            }>
+                                            {st === 'PRESENT' ? '✓' : '✗'} {doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
-                                <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
+                                <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} doctors={doctors} />
                               );
                             })}
                           </div>
@@ -386,21 +469,57 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
                         {afternoonSlots.length > 0 && (
                           <div className="space-y-0.5">
                             {afternoonSlots.map((s: any) => {
-                              const color = getSlotDisplayColor(s);
+                              const rcpStatus = s.type === SlotType.RCP ? getRcpStatus(s, doctorId, rcpAttendance) : null;
+                              const isAbsent = rcpStatus === 'ABSENT';
+                              const color = isAbsent ? '#DC4E3A' : getSlotDisplayColor(s);
                               const label = getSlotLabel(s);
-                              const isAbsent = s.type === SlotType.RCP && getRcpStatus(s, doctorId, rcpAttendance) === 'ABSENT';
+                              const isClickable =
+                                (s.type === SlotType.ACTIVITY && s.assignedDoctorId === doctorId && onActivityClick) ||
+                                (s.type === SlotType.CONSULTATION && s.assignedDoctorId === doctorId && onConsultClick) ||
+                                (s.type === SlotType.RCP && onRcpClick);
+                              const handleClick = (e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                if (s.type === SlotType.ACTIVITY && onActivityClick) onActivityClick(s);
+                                else if (s.type === SlotType.CONSULTATION && onConsultClick) onConsultClick(s);
+                                else if (s.type === SlotType.RCP && onRcpClick) onRcpClick(s);
+                              };
+                              const othersEntries = s.type === SlotType.RCP && rcpStatus && rcpStatus !== 'NONE'
+                                ? Object.entries(rcpAttendance[s.id] || {}).filter(([id]) => id !== doctorId)
+                                : [];
                               return isCurrentMonth ? (
-                                <div
-                                  key={s.id}
-                                  className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' opacity-50 line-through' : ''}`}
-                                  style={{ backgroundColor: color + '22', color }}
-                                  title={label}
-                                >
-                                  {isAbsent && <XCircle size={7} className="shrink-0" />}
-                                  {label}
+                                <div key={s.id}>
+                                  <div
+                                    className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' border border-dashed' : ''}${isClickable ? ' cursor-pointer hover:opacity-80 active:scale-95 transition-all' : ''}`}
+                                    style={isAbsent
+                                      ? { backgroundColor: 'rgba(220,78,58,0.1)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.4)' }
+                                      : { backgroundColor: color + '22', color }
+                                    }
+                                    title={label}
+                                    onClick={isClickable ? handleClick : undefined}
+                                  >
+                                    {isAbsent && <XCircle size={7} className="shrink-0" />}
+                                    {label}
+                                  </div>
+                                  {othersEntries.length > 0 && (
+                                    <div className="flex flex-wrap gap-0.5 mt-0.5 ml-1">
+                                      {othersEntries.map(([id, st]) => {
+                                        const doc = doctors.find((d: any) => d.id === id);
+                                        if (!doc) return null;
+                                        return (
+                                          <span key={id} className="text-[7px] px-0.5 rounded-sm leading-tight"
+                                            style={st === 'PRESENT'
+                                              ? { backgroundColor: 'rgba(5,150,105,0.18)', color: '#059669' }
+                                              : { backgroundColor: 'rgba(220,78,58,0.18)', color: '#DC4E3A' }
+                                            }>
+                                            {st === 'PRESENT' ? '✓' : '✗'} {doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               ) : (
-                                <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} />
+                                <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} doctors={doctors} />
                               );
                             })}
                           </div>
@@ -507,12 +626,50 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick }) => {
                     {s.location && s.location !== s.subType && (
                       <p className="text-text-muted text-xs mt-1 ml-4">{s.location}</p>
                     )}
+                    {/* Other attendees for RCP */}
+                    {s.type === SlotType.RCP && rcpStatus !== 'NONE' && (() => {
+                      const others = Object.entries(rcpAttendance[s.id] || {}).filter(([id]) => id !== doctorId);
+                      if (others.length === 0) return null;
+                      return (
+                        <div className="mt-2 flex flex-wrap gap-1.5 ml-4">
+                          {others.map(([id, st]) => {
+                            const doc = doctors.find((d: any) => d.id === id);
+                            if (!doc) return null;
+                            return (
+                              <span key={id} className="text-xs px-2 py-0.5 rounded-full border font-medium"
+                                style={st === 'PRESENT'
+                                  ? { backgroundColor: 'rgba(5,150,105,0.12)', color: '#059669', borderColor: 'rgba(5,150,105,0.3)' }
+                                  : { backgroundColor: 'rgba(220,78,58,0.12)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.3)' }
+                                }>
+                                {st === 'PRESENT' ? '✓' : '✗'} {doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                     {onRcpClick && s.type === SlotType.RCP && (
                       <button
                         onClick={() => { onRcpClick(s); setSelectedDate(null); }}
                         className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
                       >
                         Confirmer ma présence
+                      </button>
+                    )}
+                    {onActivityClick && s.type === SlotType.ACTIVITY && s.assignedDoctorId === doctorId && (
+                      <button
+                        onClick={() => { onActivityClick(s); setSelectedDate(null); }}
+                        className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
+                      >
+                        Voir les détails
+                      </button>
+                    )}
+                    {onConsultClick && s.type === SlotType.CONSULTATION && s.assignedDoctorId === doctorId && (
+                      <button
+                        onClick={() => { onConsultClick(s); setSelectedDate(null); }}
+                        className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
+                      >
+                        Voir les détails
                       </button>
                     )}
                   </div>

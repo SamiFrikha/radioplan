@@ -36,11 +36,15 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const [rcpActionLoading, setRcpActionLoading] = useState(false);
     // Consultation conflict mode — mirrors rcpMode for the 3-card layout
     const [consultMode, setConsultMode] = useState<'CHOICE' | 'REQUEST' | 'DIRECT' | null>(null);
+    // Activity conflict mode — two-step: null = show card, 'REQUEST' = show doctor list
+    const [activityMode, setActivityMode] = useState<'REQUEST' | null>(null);
 
     // Is this an RCP slot? (show 3-card layout regardless of whether there's a conflict)
     const isRcpConflict = slot.type === SlotType.RCP;
     // Is this a consultation slot? (show 3-card layout regardless of whether there's a conflict)
     const isSimpleConsultConflict = slot.type === SlotType.CONSULTATION && conflict?.type !== 'DOUBLE_BOOKING';
+    // Is this an Activity slot? (show request/direct replacement layout)
+    const isActivityConflict = slot.type === SlotType.ACTIVITY;
 
     // Compute referent doctor IDs from the template slot (the source of truth for who should attend this RCP)
     const referentDoctorIds = useMemo(() => {
@@ -88,8 +92,14 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
         (slot.type === SlotType.RCP && referentDoctorIds.has(currentDoctorId))
     );
 
+    // For activity/consult slots opened without a conflict (proactive management from Mon Planning),
+    // the doctor who owns the slot can always access it.
+    const isOwnSlotManagement = !conflict && currentDoctorId &&
+        (slot.type === SlotType.ACTIVITY || slot.type === SlotType.CONSULTATION) &&
+        slot.assignedDoctorId === currentDoctorId;
+
     // Admin can always resolve, doctors can only resolve if it concerns them
-    const canResolve = isAdmin || (isDoctor && concernsCurrentDoctor);
+    const canResolve = isAdmin || isOwnSlotManagement || (isDoctor && concernsCurrentDoctor);
     const otherSlot = useMemo(() => {
         if (conflict?.type === 'DOUBLE_BOOKING' && assignedDoctor) {
             return findConflictingSlot(slot, slots, assignedDoctor.id);
@@ -757,8 +767,90 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                         </div>
                     )}
 
+                    {/* ══════════════════════════════════════════════════
+                        ACTIVITY CONFLICT — Request/Direct replacement
+                        Shown for Unity, Astreinte and other activity slots.
+                    ════════════════════════════════════════════════════ */}
+                    {isActivityConflict && (
+                        <div className="mb-6">
+                            {/* Intro banner */}
+                            <div className="border rounded-xl p-4 mb-4 bg-warning/10 border-warning/25">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Activity className="w-5 h-5 text-warning" />
+                                    <span className="font-bold text-warning">
+                                        {conflict ? 'Conflit sur une activité' : 'Gérer l\'activité'}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-warning-text">
+                                    {conflict
+                                        ? 'Ce médecin est indisponible sur ce créneau d\'activité.'
+                                        : `Activité : ${slot.subType || slot.location}`}
+                                </p>
+                            </div>
+
+                            {/* STEP 1 — single action card */}
+                            {activityMode === null && (
+                                <button
+                                    onClick={() => setActivityMode('REQUEST')}
+                                    className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-border bg-muted hover:border-primary hover:bg-surface transition-all group text-left"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-surface group-hover:bg-muted flex items-center justify-center border border-border shrink-0">
+                                        <Send className="w-5 h-5 text-primary" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-text-base">Demander un remplacement</p>
+                                        <p className="text-[11px] text-text-muted mt-0.5">
+                                            Envoyer une demande à un médecin — il sera assigné s'il accepte
+                                        </p>
+                                    </div>
+                                </button>
+                            )}
+
+                            {/* STEP 2 — doctor list */}
+                            {activityMode === 'REQUEST' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-200">
+                                    <button
+                                        onClick={() => setActivityMode(null)}
+                                        className="text-xs text-text-muted hover:text-text-base mb-3 flex items-center gap-1"
+                                    >
+                                        ← Retour
+                                    </button>
+                                    <h4 className="font-bold text-sm text-text-base mb-3 flex items-center gap-2">
+                                        <Send className="w-4 h-4 text-primary" /> Choisir un médecin à qui demander
+                                    </h4>
+                                    {requestSent ? (
+                                        <div className="bg-success/10 border border-success/20 rounded-lg p-3 text-sm text-success-text font-medium">
+                                            ✓ Demande envoyée — le médecin recevra une notification
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                                            {doctors.filter(d => d.id !== assignedDoctor?.id).map(doc => (
+                                                <div key={doc.id} className="flex items-center justify-between p-2.5 bg-surface border border-border rounded-lg hover:border-primary/30 transition mb-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-medium text-text-base">{doc.name}</span>
+                                                        {availableDoctorIds.has(doc.id)
+                                                            ? <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full border border-success/20">Disponible</span>
+                                                            : <span className="text-[10px] bg-danger/10 text-danger px-2 py-0.5 rounded-full border border-danger/20">Indispo</span>
+                                                        }
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRequestReplacement(doc.id)}
+                                                        disabled={sendingRequestTo === doc.id}
+                                                        className="text-xs bg-muted text-primary px-3 py-1.5 rounded-btn border border-border hover:bg-muted/80 disabled:opacity-50 font-medium transition-colors"
+                                                    >
+                                                        {sendingRequestTo === doc.id ? 'Envoi…' : 'Demander'}
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* --- DOUBLE BOOKING DECISION UI (non-RCP) --- */}
-                    {!isRcpConflict && conflict?.type === 'DOUBLE_BOOKING' && otherSlot && assignedDoctor && (
+                    {!isRcpConflict && !isActivityConflict && conflict?.type === 'DOUBLE_BOOKING' && otherSlot && assignedDoctor && (
                         <div className="mb-8">
                             <h3 className="text-md font-bold text-text-base mb-4 text-center">
                                 {assignedDoctor.name} est assigné à deux activités simultanément. Que souhaitez-vous faire ?
@@ -828,7 +920,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                     )}
 
                     {/* --- REPLACEMENT SUGGESTIONS (double-booking only — simple conflicts use 3-card UI above) --- */}
-                    {!isRcpConflict && !isSimpleConsultConflict && resolutionStrategy && targetSlotForReplacement && (
+                    {!isRcpConflict && !isSimpleConsultConflict && !isActivityConflict && resolutionStrategy && targetSlotForReplacement && (
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-md font-bold text-text-base flex items-center">
@@ -988,7 +1080,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                         </div>
                     )}
 
-                    {!conflict && !slot.isClosed && (
+                    {!conflict && !slot.isClosed && !isActivityConflict && (
                         // Simple Management View (No Conflict) — show close slot option matching RCP card style
                         <div className="mt-4">
                             <p className="text-sm text-text-muted mb-4">Gérez ce créneau normalement. Utilisez les suggestions ci-dessus ou fermez le créneau.</p>

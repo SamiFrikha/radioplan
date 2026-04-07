@@ -1,6 +1,6 @@
 // components/PersonalAgendaWeek.tsx
 import React, { useMemo, useContext } from 'react';
-import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, EyeOff, XCircle } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek } from '../services/scheduleService';
@@ -13,6 +13,7 @@ interface Props {
   onOffsetChange: (offset: number) => void;
   onConsultClick?: (slot: any) => void;
   onRcpClick?: (slot: any) => void;
+  onActivityClick?: (slot: any) => void;
 }
 
 const DAY_ORDER = [DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY];
@@ -80,9 +81,16 @@ const RCP_CARD_STYLE = {
     text:    { color: '#ffffff' },
     dotBg:   { backgroundColor: 'rgba(255,255,255,0.7)' },
   },
+  ABSENT: {
+    bg:      { backgroundColor: 'rgba(220,78,58,0.07)' },
+    border:  'border border-dashed',
+    borderC: { borderColor: 'rgba(220,78,58,0.4)' },
+    text:    { color: '#DC4E3A' },
+    dotBg:   { backgroundColor: 'rgba(220,78,58,0.5)' },
+  },
 };
 
-const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onConsultClick, onRcpClick }) => {
+const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onConsultClick, onRcpClick, onActivityClick }) => {
   const {
     doctors, template, unavailabilities,
     activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
@@ -92,10 +100,12 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
   const doctorId = profile?.doctor_id;
 
   // Returns RCP confirmation status for the current doctor on a given slot
-  const getRcpStatus = (slot: any): 'UNCONFIRMED' | 'PRESENT' | 'NONE' => {
+  const getRcpStatus = (slot: any): 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'NONE' => {
     if (slot.type !== SlotType.RCP) return 'NONE';
-    if (slot.isUnconfirmed) return 'UNCONFIRMED';
+    // Check explicit attendance first — takes priority over isUnconfirmed flag
     if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT') return 'PRESENT';
+    if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'ABSENT') return 'ABSENT';
+    if (slot.isUnconfirmed) return 'UNCONFIRMED';
     return 'NONE';
   };
 
@@ -169,8 +179,11 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
             (
               s.assignedDoctorId === doctorId ||
               s.secondaryDoctorIds?.includes(doctorId!) ||
-              // Include RCP slots where the doctor was recorded as replacement (PRESENT)
-              (s.type === SlotType.RCP && rcpAttendance[s.id]?.[doctorId!] === 'PRESENT')
+              // Include RCP slots where the doctor was recorded as present or absent (show absent as greyed)
+              (s.type === SlotType.RCP && (
+                rcpAttendance[s.id]?.[doctorId!] === 'PRESENT' ||
+                rcpAttendance[s.id]?.[doctorId!] === 'ABSENT'
+              ))
             )
           ),
         };
@@ -348,8 +361,8 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                       <div className="w-2.5 h-2.5 rounded-full -ml-[22px] mt-3 flex-shrink-0 absolute border-2 border-surface"
                         style={{ backgroundColor: slotColor }} aria-hidden="true" />
                       <div
-                        className={`flex items-center gap-3 py-2 px-3 rounded-btn-sm${(slot.type === SlotType.CONSULTATION || slot.type === SlotType.RCP) ? ' cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
-                        onClick={slot.type === SlotType.CONSULTATION ? () => onConsultClick?.(slot) : slot.type === SlotType.RCP ? () => onRcpClick?.(slot) : undefined}>
+                        className={`flex items-center gap-3 py-2 px-3 rounded-btn-sm${(slot.type === SlotType.CONSULTATION || slot.type === SlotType.RCP || slot.type === SlotType.ACTIVITY) ? ' cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                        onClick={slot.type === SlotType.CONSULTATION ? () => onConsultClick?.(slot) : slot.type === SlotType.RCP ? () => onRcpClick?.(slot) : slot.type === SlotType.ACTIVITY ? () => onActivityClick?.(slot) : undefined}>
                         <span className="text-xs font-semibold text-text-muted tabular-nums w-10 flex-shrink-0">
                           {slot.time ? slot.time.substring(0, 5).replace(':', 'h') : slot.period === Period.MORNING ? '08h00' : '14h00'}
                         </span>
@@ -461,13 +474,18 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                               style={{ ...s.bg, ...s.borderC }}
                               title={slot.subType || slot.location}
                               onClick={() => onRcpClick?.(slot)}>
-                              {/* Status badge row — shown for UNCONFIRMED and PRESENT only */}
+                              {/* Status badge row — shown for UNCONFIRMED, PRESENT and ABSENT */}
                               {rcpStatus !== 'NONE' && (
                                 <div className="flex items-center gap-0.5 mb-0.5" style={s.text}>
                                   {rcpStatus === 'UNCONFIRMED' ? (
                                     <>
                                       <AlertTriangle size={8} className="shrink-0" />
                                       <span className="text-[8px] font-bold uppercase tracking-wide">À confirmer</span>
+                                    </>
+                                  ) : rcpStatus === 'ABSENT' ? (
+                                    <>
+                                      <XCircle size={8} className="shrink-0" />
+                                      <span className="text-[8px] font-bold uppercase tracking-wide">Absent</span>
                                     </>
                                   ) : (
                                     <>
@@ -487,6 +505,30 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                               {slot.subType && slot.location && slot.location !== slot.subType && (
                                 <p className="text-[9px] opacity-70 truncate ml-2.5" style={s.text}>{slot.location}</p>
                               )}
+                              {/* Other attendees indicator — shown for all statuses except NONE */}
+                              {rcpStatus !== 'NONE' && (() => {
+                                const others = Object.entries(rcpAttendance[slot.id] || {})
+                                  .filter(([id]) => id !== doctorId);
+                                if (others.length === 0) return null;
+                                return (
+                                  <div className="mt-1 flex flex-wrap gap-0.5">
+                                    {others.map(([id, status]) => {
+                                      const doc = doctors.find((d: any) => d.id === id);
+                                      if (!doc) return null;
+                                      const displayName = doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name;
+                                      return (
+                                        <span key={id} className="text-[8px] px-1 py-0.5 rounded-full border leading-tight"
+                                          style={status === 'PRESENT'
+                                            ? { backgroundColor: 'rgba(5,150,105,0.12)', color: '#059669', borderColor: 'rgba(5,150,105,0.3)' }
+                                            : { backgroundColor: 'rgba(220,78,58,0.12)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.3)' }
+                                          }>
+                                          {status === 'PRESENT' ? '✓' : '✗'} {displayName}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           );
                         }
@@ -497,9 +539,10 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                           const actColor = getActivityColor(slot, actDef);
                           return (
                             <div key={slot.id}
-                              className="rounded-btn-sm border px-1.5 py-1 mb-0.5 text-white"
+                              className="rounded-btn-sm border px-1.5 py-1 mb-0.5 text-white cursor-pointer hover:opacity-80 transition-opacity"
                               style={{ backgroundColor: actColor, borderColor: actColor }}
-                              title={slot.subType || slot.location}>
+                              title={slot.subType || slot.location}
+                              onClick={() => onActivityClick?.(slot)}>
                               <div className="flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-white/70" />
                                 <span className="text-[10px] font-semibold truncate flex-1">
