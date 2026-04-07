@@ -98,35 +98,65 @@
     </style>
 </head>
   <body class="antialiased">
-    <!-- App loading splash — hidden once React mounts -->
+    <!-- App loading splash — always shown for at least MIN_MS, then hidden once React mounts -->
+    <style>
+      @keyframes splash-pulse {
+        0%,100% { opacity:.35; transform:scale(1); }
+        50%      { opacity:1;   transform:scale(1.08); }
+      }
+      @keyframes splash-dot {
+        0%,80%,100% { opacity:.2; transform:translateY(0); }
+        40%          { opacity:1;  transform:translateY(-6px); }
+      }
+      #splash-dots span { display:inline-block; width:7px; height:7px; border-radius:50%; background:#1e3a5f; margin:0 3px; animation:splash-dot 1.2s infinite; }
+      #splash-dots span:nth-child(2) { animation-delay:.2s; }
+      #splash-dots span:nth-child(3) { animation-delay:.4s; }
+    </style>
     <div id="app-splash" style="
       position:fixed;inset:0;background:#ffffff;
       display:flex;flex-direction:column;align-items:center;justify-content:center;
-      z-index:99999;transition:opacity 0.35s ease;
+      z-index:99999;transition:opacity 0.4s ease;
     ">
-      <img src="/radioplan/icon-192.png" alt="RadioPlan" style="width:96px;height:96px;border-radius:22px;box-shadow:0 8px 32px rgba(30,58,95,0.15);" />
+      <img src="/radioplan/icon-192.png" alt="RadioPlan" style="width:96px;height:96px;border-radius:22px;box-shadow:0 8px 32px rgba(30,58,95,0.15);animation:splash-pulse 2s ease-in-out infinite;" />
       <p style="margin-top:20px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:1.4rem;font-weight:800;color:#1e3a5f;letter-spacing:0.04em;">RadioPlan</p>
       <p style="margin-top:4px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:0.75rem;font-weight:500;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">Radiothérapie</p>
+      <div id="splash-dots" style="margin-top:32px;"><span></span><span></span><span></span></div>
     </div>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
     <script>
-      /* Hide splash once React has rendered its first child, or after 6s max */
+      /* Show splash for AT LEAST 1800ms, even if React mounts from SW cache instantly */
       (function(){
         var splash = document.getElementById('app-splash');
         if (!splash) return;
+        var MIN_MS = 1800;
+        var startTime = Date.now();
+        var reactReady = false;
+
         function dismiss() {
           if (!splash || !splash.parentNode) return;
           splash.style.opacity = '0';
-          setTimeout(function(){ if (splash.parentNode) splash.parentNode.removeChild(splash); }, 380);
+          setTimeout(function(){ if (splash && splash.parentNode) splash.parentNode.removeChild(splash); }, 420);
         }
-        /* Poll every 80ms — reliable across all browsers */
+
+        function maybeDissmiss() {
+          var elapsed = Date.now() - startTime;
+          var wait = Math.max(0, MIN_MS - elapsed);
+          setTimeout(dismiss, wait);
+        }
+
+        /* Poll every 80ms for React mount */
         var timer = setInterval(function(){
           var root = document.getElementById('root');
-          if (root && root.firstChild) { clearInterval(timer); clearTimeout(fallback); dismiss(); }
+          if (root && root.firstChild) {
+            clearInterval(timer);
+            clearTimeout(fallback);
+            maybeDissmiss();
+          }
         }, 80);
-        /* Hard fallback after 6s */
-        var fallback = setTimeout(function(){ clearInterval(timer); dismiss(); }, 6000);
+
+        /* Hard fallback after 8s in case something goes wrong */
+        var fallback = setTimeout(function(){ clearInterval(timer); dismiss(); }, 8000);
       })();
     </script>
 </body>
