@@ -295,7 +295,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
       </div>
 
       {/* Calendar grid — weeks rendered individually to support per-week activity banners */}
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7 gap-px bg-border/20 rounded-lg overflow-hidden border border-border/30">
         {weeks.map((week, wi) => {
           // Detect WEEKLY activities for this week (from Monday's schedule, deduped)
           const mondayKey = toKey(week[0]);
@@ -384,14 +384,18 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                 return (
                   <div key={di}
                     onClick={() => isCurrentMonth && !isWeekend && setSelectedDate(isSelected ? null : key)}
-                    className={`min-h-[80px] sm:min-h-[100px] rounded-lg p-1 transition-colors flex flex-col
+                    className={`min-h-[72px] sm:min-h-[90px] rounded-none p-1 transition-colors flex flex-col
                       ${isCurrentMonth && !isWeekend ? 'cursor-pointer hover:bg-muted' : 'cursor-default'}
                       ${isWeekend || !isCurrentMonth ? 'opacity-30 bg-muted' : 'bg-surface'}
-                      ${isToday ? 'ring-2 ring-primary' : ''}
-                      ${isSelected ? 'ring-2 ring-primary bg-primary/10' : ''}
+                      ${isToday ? 'ring-2 ring-inset ring-primary' : ''}
+                      ${isSelected ? 'ring-2 ring-inset ring-primary bg-primary/10' : ''}
                     `}>
                     {/* Day number */}
-                    <div className={`text-xs sm:text-sm text-center font-medium mb-0.5 ${isToday ? 'text-primary font-bold' : 'text-text-base'}`}>
+                    <div className={`mb-0.5 ${
+                      isToday
+                        ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary text-white flex items-center justify-center mx-auto text-[10px] sm:text-xs font-bold'
+                        : 'text-xs sm:text-sm text-center font-medium text-text-base'
+                    }`}>
                       {date.getDate()}
                     </div>
 
@@ -406,61 +410,31 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                       <div className="flex flex-col flex-1">
                         {morningSlots.length > 0 && (
                           <div className="space-y-0.5">
-                            {morningSlots.map((s: any) => {
+                            {morningSlots.slice(0, 2).map((s: any) => {
                               const rcpStatus = s.type === SlotType.RCP ? getRcpStatus(s, doctorId, rcpAttendance) : null;
                               const isAbsent = rcpStatus === 'ABSENT';
                               const color = isAbsent ? '#DC4E3A' : getSlotDisplayColor(s);
                               const label = getSlotLabel(s);
-                              const isClickable =
-                                (s.type === SlotType.ACTIVITY && s.assignedDoctorId === doctorId && onActivityClick) ||
-                                (s.type === SlotType.CONSULTATION && s.assignedDoctorId === doctorId && onConsultClick) ||
-                                (s.type === SlotType.RCP && onRcpClick);
-                              const handleClick = (e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                if (s.type === SlotType.ACTIVITY && onActivityClick) onActivityClick(s);
-                                else if (s.type === SlotType.CONSULTATION && onConsultClick) onConsultClick(s);
-                                else if (s.type === SlotType.RCP && onRcpClick) onRcpClick(s);
-                              };
-                              // Other attendees for RCP
-                              const othersEntries = s.type === SlotType.RCP && rcpStatus && rcpStatus !== 'NONE'
-                                ? Object.entries(rcpAttendance[s.id] || {}).filter(([id]) => id !== doctorId)
-                                : [];
                               return isCurrentMonth ? (
-                                <div key={s.id}>
-                                  <div
-                                    className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' border border-dashed' : ''}${isClickable ? ' cursor-pointer hover:opacity-80 active:scale-95 transition-all' : ''}`}
-                                    style={isAbsent
-                                      ? { backgroundColor: 'rgba(220,78,58,0.1)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.4)' }
-                                      : { backgroundColor: color + '22', color }
-                                    }
-                                    title={label}
-                                    onClick={isClickable ? handleClick : undefined}
-                                  >
-                                    {isAbsent && <XCircle size={7} className="shrink-0" />}
-                                    {label}
-                                  </div>
-                                  {othersEntries.length > 0 && (
-                                    <div className="flex flex-wrap gap-0.5 mt-0.5 ml-1">
-                                      {othersEntries.map(([id, st]) => {
-                                        const doc = doctors.find((d: any) => d.id === id);
-                                        if (!doc) return null;
-                                        return (
-                                          <span key={id} className="text-[7px] px-0.5 rounded-sm leading-tight"
-                                            style={st === 'PRESENT'
-                                              ? { backgroundColor: 'rgba(5,150,105,0.18)', color: '#059669' }
-                                              : { backgroundColor: 'rgba(220,78,58,0.18)', color: '#DC4E3A' }
-                                            }>
-                                            {st === 'PRESENT' ? '✓' : '✗'} {doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name}
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                                <div
+                                  key={s.id}
+                                  className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate max-w-full overflow-hidden px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' border border-dashed' : ''}`}
+                                  style={isAbsent
+                                    ? { backgroundColor: 'rgba(220,78,58,0.1)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.4)' }
+                                    : { backgroundColor: color + '22', color }
+                                  }
+                                  title={label}
+                                >
+                                  {isAbsent && <XCircle size={7} className="shrink-0" />}
+                                  {label}
                                 </div>
                               ) : (
                                 <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} doctors={doctors} />
                               );
                             })}
+                            {morningSlots.length > 2 && (
+                              <div className="text-[8px] text-text-muted mt-0.5">+{morningSlots.length - 2}</div>
+                            )}
                           </div>
                         )}
                         {morningSlots.length > 0 && afternoonSlots.length > 0 && (
@@ -468,60 +442,31 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                         )}
                         {afternoonSlots.length > 0 && (
                           <div className="space-y-0.5">
-                            {afternoonSlots.map((s: any) => {
+                            {afternoonSlots.slice(0, 2).map((s: any) => {
                               const rcpStatus = s.type === SlotType.RCP ? getRcpStatus(s, doctorId, rcpAttendance) : null;
                               const isAbsent = rcpStatus === 'ABSENT';
                               const color = isAbsent ? '#DC4E3A' : getSlotDisplayColor(s);
                               const label = getSlotLabel(s);
-                              const isClickable =
-                                (s.type === SlotType.ACTIVITY && s.assignedDoctorId === doctorId && onActivityClick) ||
-                                (s.type === SlotType.CONSULTATION && s.assignedDoctorId === doctorId && onConsultClick) ||
-                                (s.type === SlotType.RCP && onRcpClick);
-                              const handleClick = (e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                if (s.type === SlotType.ACTIVITY && onActivityClick) onActivityClick(s);
-                                else if (s.type === SlotType.CONSULTATION && onConsultClick) onConsultClick(s);
-                                else if (s.type === SlotType.RCP && onRcpClick) onRcpClick(s);
-                              };
-                              const othersEntries = s.type === SlotType.RCP && rcpStatus && rcpStatus !== 'NONE'
-                                ? Object.entries(rcpAttendance[s.id] || {}).filter(([id]) => id !== doctorId)
-                                : [];
                               return isCurrentMonth ? (
-                                <div key={s.id}>
-                                  <div
-                                    className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' border border-dashed' : ''}${isClickable ? ' cursor-pointer hover:opacity-80 active:scale-95 transition-all' : ''}`}
-                                    style={isAbsent
-                                      ? { backgroundColor: 'rgba(220,78,58,0.1)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.4)' }
-                                      : { backgroundColor: color + '22', color }
-                                    }
-                                    title={label}
-                                    onClick={isClickable ? handleClick : undefined}
-                                  >
-                                    {isAbsent && <XCircle size={7} className="shrink-0" />}
-                                    {label}
-                                  </div>
-                                  {othersEntries.length > 0 && (
-                                    <div className="flex flex-wrap gap-0.5 mt-0.5 ml-1">
-                                      {othersEntries.map(([id, st]) => {
-                                        const doc = doctors.find((d: any) => d.id === id);
-                                        if (!doc) return null;
-                                        return (
-                                          <span key={id} className="text-[7px] px-0.5 rounded-sm leading-tight"
-                                            style={st === 'PRESENT'
-                                              ? { backgroundColor: 'rgba(5,150,105,0.18)', color: '#059669' }
-                                              : { backgroundColor: 'rgba(220,78,58,0.18)', color: '#DC4E3A' }
-                                            }>
-                                            {st === 'PRESENT' ? '✓' : '✗'} {doc.name.replace(/^Dr\.?\s*/i, '').split(' ')[0] || doc.name}
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                                <div
+                                  key={s.id}
+                                  className={`text-[9px] sm:text-[10px] font-medium leading-tight truncate max-w-full overflow-hidden px-1 py-0.5 rounded mt-0.5 flex items-center gap-0.5${isAbsent ? ' border border-dashed' : ''}`}
+                                  style={isAbsent
+                                    ? { backgroundColor: 'rgba(220,78,58,0.1)', color: '#DC4E3A', borderColor: 'rgba(220,78,58,0.4)' }
+                                    : { backgroundColor: color + '22', color }
+                                  }
+                                  title={label}
+                                >
+                                  {isAbsent && <XCircle size={7} className="shrink-0" />}
+                                  {label}
                                 </div>
                               ) : (
                                 <SlotPill key={s.id} slot={s} doctorId={doctorId} rcpAttendance={rcpAttendance} activityDefinitions={activityDefinitions} doctors={doctors} />
                               );
                             })}
+                            {afternoonSlots.length > 2 && (
+                              <div className="text-[8px] text-text-muted mt-0.5">+{afternoonSlots.length - 2}</div>
+                            )}
                           </div>
                         )}
                       </div>

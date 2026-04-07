@@ -14,9 +14,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/radioplan/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/radioplan/icon-192.png" />
     <meta name="msapplication-TileImage" content="/radioplan/ms-icon-144x144.png" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="RadioPlan" />
     <title>RadioPlan AI - Radiothérapie</title>
     <style>
@@ -93,7 +93,34 @@
     </style>
 </head>
   <body class="antialiased">
+    <!-- App loading splash — hidden once React mounts -->
+    <div id="app-splash" style="
+      position:fixed;inset:0;background:#ffffff;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      z-index:99999;transition:opacity 0.35s ease;
+    ">
+      <img src="/radioplan/icon-192.png" alt="RadioPlan" style="width:96px;height:96px;border-radius:22px;box-shadow:0 8px 32px rgba(30,58,95,0.15);" />
+      <p style="margin-top:20px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:1.4rem;font-weight:800;color:#1e3a5f;letter-spacing:0.04em;">RadioPlan</p>
+      <p style="margin-top:4px;font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-size:0.75rem;font-weight:500;color:#64748b;letter-spacing:0.06em;text-transform:uppercase;">Radiothérapie</p>
+    </div>
+    <script>
+      (function(){
+        var splash=document.getElementById('app-splash');
+        if(!splash)return;
+        var obs=new MutationObserver(function(){
+          var root=document.getElementById('root');
+          if(root&&root.firstChild){
+            splash.style.opacity='0';
+            setTimeout(function(){splash.remove();},380);
+            obs.disconnect();
+          }
+        });
+        obs.observe(document.getElementById('root'),{childList:true,subtree:false});
+        // Fallback: always remove after 4s
+        setTimeout(function(){if(splash&&splash.parentNode){splash.style.opacity='0';setTimeout(function(){splash.remove();},380);}},4000);
+      })();
+    </script>
     <div id="root"></div>
-  <script type="module" src="./index.tsx"></script>
+    <script type="module" src="./index.tsx"></script>
 </body>
 </html>

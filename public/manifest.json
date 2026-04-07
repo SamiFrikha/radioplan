@@ -6,8 +6,8 @@
   "display": "standalone",
   "start_url": "/radioplan/",
   "scope": "/radioplan/",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/radioplan/favicon-16x16.png",
