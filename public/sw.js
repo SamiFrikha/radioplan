@@ -1,7 +1,7 @@
 // This file is replaced at build time by vite-plugin-pwa (injectManifest).
 // It is only served as-is during `vite dev` (no Workbox precaching in dev).
 
-const CACHE_NAME = 'radioplan-v6';
+const CACHE_NAME = 'radioplan-v7';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
