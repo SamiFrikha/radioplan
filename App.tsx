@@ -20,6 +20,7 @@ import ResetPassword from './pages/ResetPassword';
 import RoleManagement from './pages/admin/RoleManagement';
 import TeamManagement from './pages/admin/TeamManagement';
 import Install from './pages/Install';
+import LogsPage from './pages/Logs';
 
 // Services
 import { doctorService } from './services/doctorService';
@@ -736,6 +737,11 @@ const App: React.FC = () => {
                         <Route path="/admin/team" element={
                             <RequirePermission permission="manage_users">
                                 <TeamManagement />
+                            </RequirePermission>
+                        } />
+                        <Route path="/logs" element={
+                            <RequirePermission permission="manage_settings">
+                                <LogsPage />
                             </RequirePermission>
                         } />
                     </Route>
