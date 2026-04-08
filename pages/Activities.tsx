@@ -113,14 +113,28 @@ const Activities: React.FC = () => {
     const loadLogs = useCallback(async () => {
         setIsLoadingLogs(true);
         try {
-            const entries = await activityLogService.getLogs({ limit: 200 });
+            let params: any = { limit: 200 };
+
+            // When logFilter === 'WEEK', filter to the current week's date range
+            if (logFilter === 'WEEK') {
+                // currentWeekStart is Monday at 00:00
+                const dateFrom = currentWeekStart.toISOString().split('T')[0];
+                // Sunday is 6 days after Monday at 23:59
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                const dateTo = weekEnd.toISOString().split('T')[0];
+                params.dateFrom = dateFrom;
+                params.dateTo = dateTo;
+            }
+
+            const entries = await activityLogService.getLogs(params);
             setLogEntries(entries);
         } catch (err) {
             console.error('Failed to load logs:', err);
         } finally {
             setIsLoadingLogs(false);
         }
-    }, [logFilter, currentWeekKey]);
+    }, [logFilter, currentWeekStart]);
 
     useEffect(() => {
         if (showLogPanel) {
