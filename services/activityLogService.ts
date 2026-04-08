@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 
+export type ActivityLogCategory = 'ACTIVITES' | 'RCP' | 'ABSENCE' | 'REMPLACEMENT' | 'PLANNING' | 'PROFIL' | 'CONFIG';
+
 export interface ActivityLogEntry {
     id: string;
     timestamp: string;          // ISO date string
@@ -12,7 +14,7 @@ export interface ActivityLogEntry {
     activityName?: string;      // Name of the activity involved
     doctorName?: string;        // Name of the doctor involved
     details?: string;           // Additional JSON details
-    category?: string;          // 'ACTIVITES' | 'RCP' | 'ABSENCE' | 'REMPLACEMENT' | 'PLANNING' | 'PROFIL' | 'CONFIG'
+    category?: ActivityLogCategory;  // Activity log category
     targetDate?: string;        // YYYY-MM-DD (date métier concernée, nullable)
 }
 
