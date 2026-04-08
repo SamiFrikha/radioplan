@@ -243,7 +243,7 @@ const Configuration: React.FC = () => {
         // Save the current tab so we can restore it after template update
         isSavingRef.current = true;
         savedTabRef.current = activeTab;
-        updateTemplate(tempTemplate);
+        await updateTemplate(tempTemplate);
         setEditMode(false);
         await activityLogService.addLog({
             userId: profile?.id || '',
