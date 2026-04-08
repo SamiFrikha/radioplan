@@ -53,7 +53,7 @@ const Activities: React.FC = () => {
     } = useContext(AppContext);
 
     const { profile } = useAuth();
-    const isAdmin = profile?.role === 'Admin' || profile?.role_name === 'Admin';
+    const isAdmin = profile?.role === 'admin' || profile?.role_name === 'Admin';
 
     // --- ACTIVITY LOG STATE ---
     const [showLogPanel, setShowLogPanel] = useState(false);

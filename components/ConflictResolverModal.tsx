@@ -257,11 +257,11 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
             if (doctorToRemove) {
                 ops.push(supabase.from('rcp_attendance').upsert({
                     slot_id: effectiveSlot.id, doctor_id: doctorToRemove, status: 'ABSENT',
-                }));
+                }) as unknown as Promise<any>);
             }
             ops.push(supabase.from('rcp_attendance').upsert({
                 slot_id: effectiveSlot.id, doctor_id: rcpDirectDoctorId, status: 'PRESENT',
-            }));
+            }) as unknown as Promise<any>);
             await Promise.all(ops);
 
             if (isExceptional) {

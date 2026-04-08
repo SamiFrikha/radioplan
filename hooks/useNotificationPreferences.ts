@@ -39,17 +39,20 @@ export function useNotificationPreferences(userId: string | undefined): UseNotif
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
-    supabase
-      .from('profiles')
-      .select('notification_preferences')
-      .eq('id', userId)
-      .single()
-      .then(({ data }) => {
+    void (async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('notification_preferences')
+          .eq('id', userId)
+          .single();
         if (data?.notification_preferences) {
           setPrefs(data.notification_preferences as Record<string, boolean>);
         }
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [userId]);
 
   const isEnabled = useCallback(

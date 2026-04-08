@@ -126,6 +126,7 @@ export interface ScheduleSlot {
   type: SlotType;
   assignedDoctorId: string | null;
   secondaryDoctorIds?: string[];
+  doctorIds?: string[]; // Carried over from template — list of assigned doctors
   backupDoctorId?: string | null; // Carried over from template
   subType?: string;
   isGenerated?: boolean;
@@ -200,6 +201,9 @@ export interface GlobalBackupData {
     rcpExceptions: RcpException[];
     activitiesStartDate?: string | null;
     specialties?: Specialty[];
+    rcpAutoConfig?: any[];
+    scheduleSlots?: ScheduleSlot[];
+    countingPeriods?: any[];
   }
 }
 

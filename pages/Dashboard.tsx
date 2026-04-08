@@ -711,7 +711,7 @@ const Dashboard: React.FC = () => {
 
         // Find WEEKLY activity IDs (like Supervision Workflow) - these are passive and don't block slots
         const passiveActivityIds = activityDefinitions
-            .filter(act => act.type === 'WEEKLY')
+            .filter(act => act.granularity === 'WEEKLY')
             .map(act => act.id);
 
         [Period.MORNING, Period.AFTERNOON].forEach(period => {
