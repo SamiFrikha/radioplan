@@ -9,9 +9,11 @@ export interface ActivityLogEntry {
     action: string;             // Type of action: 'MANUAL_ASSIGN', 'AUTO_RECALCULATE', 'VALIDATE_WEEK', 'UNVALIDATE_WEEK', 'CLEAR_CHOICES', 'WEEKLY_ASSIGN', 'CREATE_ACTIVITY', 'DELETE_ACTIVITY', 'EDIT_ACTIVITY'
     description: string;        // Human-readable description of what changed
     weekKey: string;            // Week identifier (YYYY-MM-DD of Monday)
-    activityName?: string;      // Name of the activity involved  
+    activityName?: string;      // Name of the activity involved
     doctorName?: string;        // Name of the doctor involved
     details?: string;           // Additional JSON details
+    category?: string;          // 'ACTIVITES' | 'RCP' | 'ABSENCE' | 'REMPLACEMENT' | 'PLANNING' | 'PROFIL' | 'CONFIG'
+    targetDate?: string;        // YYYY-MM-DD (date métier concernée, nullable)
 }
 
 const STORAGE_KEY = 'radioplan_activity_logs';
@@ -59,7 +61,9 @@ export const activityLogService = {
                     week_key: logEntry.weekKey,
                     activity_name: logEntry.activityName || null,
                     doctor_name: logEntry.doctorName || null,
-                    details: logEntry.details || null
+                    details: logEntry.details || null,
+                    category: logEntry.category || null,
+                    target_date: logEntry.targetDate || null
                 });
 
             if (error) {
@@ -111,7 +115,9 @@ export const activityLogService = {
                     weekKey: row.week_key,
                     activityName: row.activity_name,
                     doctorName: row.doctor_name,
-                    details: row.details
+                    details: row.details,
+                    category: row.category,
+                    targetDate: row.target_date
                 }));
             }
 
