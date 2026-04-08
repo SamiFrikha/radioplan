@@ -96,6 +96,7 @@ const Planning: React.FC = () => {
       loadDensity();
     }, [user?.id]);
     const [showSettings, setShowSettings] = useState(false);
+    const [highlightMe, setHighlightMe] = useState(false);
 
     // Check if current week is validated/locked in Activities page
     const currentWeekKey = currentWeekStart.toISOString().split('T')[0];
@@ -624,6 +625,8 @@ const Planning: React.FC = () => {
             slotInlineStyle = {};
         }
 
+        const isMe = highlightMe && currentDoctorId && doc?.id === currentDoctorId;
+
         // Handle click based on access control
         const handleSlotClick = () => {
             if (canClick) {
@@ -641,8 +644,8 @@ const Planning: React.FC = () => {
 
         return (
             <div
-                className={`${baseClasses} ${bgClass} ${borderClass}`}
-                style={slotInlineStyle}
+                className={`${baseClasses} ${bgClass} ${borderClass}${isMe ? ' ring-2 ring-inset ring-primary' : ''}`}
+                style={isMe ? { ...slotInlineStyle, backgroundColor: slotInlineStyle.backgroundColor || 'var(--color-primary-10, rgba(59,111,212,0.10))' } : slotInlineStyle}
                 onClick={handleSlotClick}
             >
                 {conflict && (
@@ -869,6 +872,24 @@ const Planning: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {currentDoctorId && (
+                                    <div className="mb-5">
+                                        <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">
+                                            <Eye className="w-3 h-3 mr-1" /> Mon nom
+                                        </h4>
+                                        <button
+                                            onClick={() => setHighlightMe(h => !h)}
+                                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded text-xs font-bold border transition-colors ${highlightMe ? 'bg-primary/10 border-primary/30 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span className={`w-3 h-3 rounded-sm border-2 ${highlightMe ? 'bg-primary border-primary' : 'border-text-muted'}`} />
+                                                Me mettre en surbrillance
+                                            </span>
+                                            {highlightMe && <span className="text-primary text-[10px] font-bold">ON</span>}
+                                        </button>
+                                    </div>
+                                )}
 
                                 <div>
                                     <h4 className="text-xs font-bold text-text-muted uppercase mb-3 flex items-center">

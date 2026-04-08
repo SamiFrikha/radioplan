@@ -288,6 +288,50 @@ const NotificationSection: React.FC<{
     );
 };
 
+const AbsenceRow: React.FC<{
+    abs: any;
+    isAdmin: boolean;
+    fmtDate: (iso: string) => string;
+    removeUnavailability: (id: string) => void;
+}> = ({ abs, isAdmin, fmtDate, removeUnavailability }) => {
+    const daysUntilStart = (new Date(abs.startDate).getTime() - Date.now()) / 86_400_000;
+    const canDelete = isAdmin || daysUntilStart > 30;
+    return (
+        <li className="p-3 flex justify-between items-center hover:bg-muted">
+            <div className="text-sm flex-1">
+                <div className="font-bold text-text-base">{abs.reason}</div>
+                <div className="text-xs text-text-muted mt-0.5">
+                    {fmtDate(abs.startDate)} → {fmtDate(abs.endDate)}
+                    {abs.period && abs.period !== 'ALL_DAY' && (
+                        <span className="ml-2 text-[10px] bg-muted text-text-muted px-1 rounded">
+                            {abs.period === 'MORNING' ? 'Matin' : 'Après-midi'}
+                        </span>
+                    )}
+                </div>
+            </div>
+            {canDelete ? (
+                <button
+                    onClick={() => {
+                        if (window.confirm(`Supprimer l'absence du ${fmtDate(abs.startDate)} au ${fmtDate(abs.endDate)} ?`)) {
+                            removeUnavailability(abs.id);
+                        }
+                    }}
+                    className="p-2 text-danger hover:bg-danger/10 rounded transition-colors"
+                    title="Supprimer cette absence"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            ) : (
+                <div className="p-2 text-text-muted" title="Suppression impossible — moins de 30 jours avant le début">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+            )}
+        </li>
+    );
+};
+
 const Profile: React.FC = () => {
     const {
         unavailabilities,
@@ -1031,6 +1075,14 @@ const Profile: React.FC = () => {
 
     // Main profile view
     const myAbsences = unavailabilities.filter(u => u.doctorId === currentDoctor.id);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const fmtDate = (iso: string) => { const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
+    const pastAbsences = myAbsences
+        .filter(a => new Date(a.endDate) < today)
+        .sort((a, b) => b.startDate.localeCompare(a.startDate)); // plus récent en premier
+    const upcomingAbsences = myAbsences
+        .filter(a => new Date(a.endDate) >= today)
+        .sort((a, b) => a.startDate.localeCompare(b.startDate)); // plus proche en premier
     const upcomingRcps = getUpcomingRcps();
 
     return (
@@ -1387,53 +1439,37 @@ const Profile: React.FC = () => {
                         Historique des absences
                         <span className="ml-2 text-[10px] text-text-muted font-normal">(supprimable jusqu'à J-30)</span>
                     </h3>
-                    <ul className="divide-y divide-border bg-surface border border-border rounded-card max-h-60 overflow-y-auto shadow-sm">
-                        {myAbsences.length === 0 ? (
+
+                    {myAbsences.length === 0 ? (
+                        <ul className="divide-y divide-border bg-surface border border-border rounded-card shadow-sm">
                             <li className="p-4 text-text-muted italic text-sm text-center">Aucune absence déclarée.</li>
-                        ) : (
-                            myAbsences.map(abs => (
-                                <li key={abs.id} className="p-3 flex justify-between items-center hover:bg-muted">
-                                    <div className="text-sm flex-1">
-                                        <div className="font-bold text-text-base">{abs.reason}</div>
-                                        <div className="text-xs text-text-muted mt-0.5">
-                                            {abs.startDate} → {abs.endDate}
-                                            {abs.period && abs.period !== 'ALL_DAY' && (
-                                                <span className="ml-2 text-[10px] bg-muted text-text-muted px-1 rounded">
-                                                    {abs.period === Period.MORNING ? 'Matin' : 'Après-midi'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {(() => {
-                                        const daysUntilStart = (new Date(abs.startDate).getTime() - Date.now()) / 86_400_000;
-                                        const canDelete = isAdmin || daysUntilStart > 30;
-                                        if (canDelete) {
-                                            return (
-                                                <button
-                                                    onClick={() => {
-                                                        if (window.confirm(`Supprimer l'absence du ${abs.startDate} au ${abs.endDate} ?`)) {
-                                                            removeUnavailability(abs.id);
-                                                        }
-                                                    }}
-                                                    className="p-2 text-danger hover:bg-danger/10 rounded transition-colors"
-                                                    title="Supprimer cette absence"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            );
-                                        }
-                                        return (
-                                            <div className="p-2 text-text-muted" title="Suppression impossible — moins de 30 jours avant le début">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                                </svg>
-                                            </div>
-                                        );
-                                    })()}
-                                </li>
-                            ))
-                        )}
-                    </ul>
+                        </ul>
+                    ) : (
+                        <div className="space-y-3">
+                            {/* À venir */}
+                            {upcomingAbsences.length > 0 && (
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1 pl-1">À venir</p>
+                                    <ul className="divide-y divide-border bg-surface border border-border rounded-card max-h-48 overflow-y-auto shadow-sm">
+                                        {upcomingAbsences.map(abs => (
+                                            <AbsenceRow key={abs.id} abs={abs} isAdmin={isAdmin} fmtDate={fmtDate} removeUnavailability={removeUnavailability} />
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {/* Passé */}
+                            {pastAbsences.length > 0 && (
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1 pl-1">Passé</p>
+                                    <ul className="divide-y divide-border bg-surface border border-border rounded-card max-h-40 overflow-y-auto shadow-sm opacity-70">
+                                        {pastAbsences.map(abs => (
+                                            <AbsenceRow key={abs.id} abs={abs} isAdmin={isAdmin} fmtDate={fmtDate} removeUnavailability={removeUnavailability} />
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
                     {myAbsences.length > 0 && myAbsences.every(abs =>
                         (new Date(abs.startDate).getTime() - Date.now()) / 86_400_000 <= 30
                     ) && !isAdmin && (
