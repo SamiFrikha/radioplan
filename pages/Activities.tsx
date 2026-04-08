@@ -113,8 +113,7 @@ const Activities: React.FC = () => {
     const loadLogs = useCallback(async () => {
         setIsLoadingLogs(true);
         try {
-            const weekFilter = logFilter === 'WEEK' ? currentWeekKey : undefined;
-            const entries = await activityLogService.getLogs(weekFilter, 200);
+            const entries = await activityLogService.getLogs({ limit: 200 });
             setLogEntries(entries);
         } catch (err) {
             console.error('Failed to load logs:', err);
