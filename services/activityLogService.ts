@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 
+export type ActivityLogCategory = 'ACTIVITES' | 'RCP' | 'ABSENCE' | 'REMPLACEMENT' | 'PLANNING' | 'PROFIL' | 'CONFIG';
+
 export interface ActivityLogEntry {
     id: string;
     timestamp: string;          // ISO date string
@@ -9,9 +11,11 @@ export interface ActivityLogEntry {
     action: string;             // Type of action: 'MANUAL_ASSIGN', 'AUTO_RECALCULATE', 'VALIDATE_WEEK', 'UNVALIDATE_WEEK', 'CLEAR_CHOICES', 'WEEKLY_ASSIGN', 'CREATE_ACTIVITY', 'DELETE_ACTIVITY', 'EDIT_ACTIVITY'
     description: string;        // Human-readable description of what changed
     weekKey: string;            // Week identifier (YYYY-MM-DD of Monday)
-    activityName?: string;      // Name of the activity involved  
+    activityName?: string;      // Name of the activity involved
     doctorName?: string;        // Name of the doctor involved
     details?: string;           // Additional JSON details
+    category?: ActivityLogCategory;  // Activity log category
+    targetDate?: string;        // YYYY-MM-DD (date métier concernée, nullable)
 }
 
 const STORAGE_KEY = 'radioplan_activity_logs';
@@ -59,7 +63,9 @@ export const activityLogService = {
                     week_key: logEntry.weekKey,
                     activity_name: logEntry.activityName || null,
                     doctor_name: logEntry.doctorName || null,
-                    details: logEntry.details || null
+                    details: logEntry.details || null,
+                    category: logEntry.category || null,
+                    target_date: logEntry.targetDate || null
                 });
 
             if (error) {
@@ -78,9 +84,16 @@ export const activityLogService = {
     },
 
     /**
-     * Get logs, optionally filtered by week
+     * Get logs with flexible filtering
      */
-    async getLogs(weekKey?: string, limit: number = 100): Promise<ActivityLogEntry[]> {
+    async getLogs(filters: {
+        doctorName?: string;
+        category?: string;
+        dateFrom?: string;   // YYYY-MM-DD
+        dateTo?: string;     // YYYY-MM-DD
+        limit?: number;
+    } = {}): Promise<ActivityLogEntry[]> {
+        const { doctorName, category, dateFrom, dateTo, limit = 1000 } = filters;
         try {
             let query = supabase
                 .from('activity_logs')
@@ -88,40 +101,52 @@ export const activityLogService = {
                 .order('timestamp', { ascending: false })
                 .limit(limit);
 
-            if (weekKey) {
-                query = query.eq('week_key', weekKey);
-            }
+            if (doctorName) query = query.eq('user_name', doctorName);
+            if (category) query = query.eq('category', category);
+            if (dateFrom) query = query.gte('timestamp', `${dateFrom}T00:00:00.000Z`);
+            if (dateTo) query = query.lte('timestamp', `${dateTo}T23:59:59.999Z`);
 
             const { data, error } = await query;
 
             if (error) {
-                console.warn('Supabase log fetch failed, falling back to localStorage:', error.message);
-                return this.getLocalLogsFiltered(weekKey, limit);
+                console.warn('Supabase log fetch failed:', error.message);
+                return [];
             }
 
-            if (data && data.length > 0) {
-                return data.map((row: any) => ({
-                    id: row.id,
-                    timestamp: row.timestamp,
-                    userId: row.user_id,
-                    userEmail: row.user_email,
-                    userName: row.user_name,
-                    action: row.action,
-                    description: row.description,
-                    weekKey: row.week_key,
-                    activityName: row.activity_name,
-                    doctorName: row.doctor_name,
-                    details: row.details
-                }));
-            }
-
-            // If Supabase returned empty, check localStorage too
-            return this.getLocalLogsFiltered(weekKey, limit);
-
+            return (data || []).map((row: any) => ({
+                id: row.id,
+                timestamp: row.timestamp,
+                userId: row.user_id,
+                userEmail: row.user_email,
+                userName: row.user_name,
+                action: row.action,
+                description: row.description,
+                weekKey: row.week_key,
+                activityName: row.activity_name,
+                doctorName: row.doctor_name,
+                details: row.details,
+                category: row.category,
+                targetDate: row.target_date,
+            }));
         } catch (err) {
-            console.warn('Supabase unavailable for log fetch, using localStorage:', err);
-            return this.getLocalLogsFiltered(weekKey, limit);
+            console.warn('Supabase unavailable for log fetch:', err);
+            return [];
         }
+    },
+
+    /**
+     * Purge logs older than 180 days
+     */
+    async purgeOldLogs(): Promise<number> {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 180);
+        const { error, count } = await supabase
+            .from('activity_logs')
+            .delete({ count: 'exact' })
+            .lt('timestamp', cutoff.toISOString());
+
+        if (error) throw new Error(error.message);
+        return count || 0;
     },
 
     getLocalLogsFiltered(weekKey?: string, limit: number = 100): ActivityLogEntry[] {

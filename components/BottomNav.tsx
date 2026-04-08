@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, LayoutGrid, Activity } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, LayoutGrid, Activity, ScrollText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const staticTabs = [
@@ -11,7 +11,7 @@ const staticTabs = [
 ];
 
 const BottomNav: React.FC = () => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const initials = (profile?.email ?? 'U').substring(0, 2).toUpperCase();
 
   return (
@@ -43,6 +43,27 @@ const BottomNav: React.FC = () => {
             )}
           </NavLink>
         ))}
+
+        {isAdmin && (
+          <NavLink
+            to="/logs"
+            aria-label="Logs"
+            className="relative flex flex-col items-center justify-center gap-0.5 flex-1 pt-1 cursor-pointer"
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-gradient-primary" aria-hidden="true" />
+                )}
+                <ScrollText className={isActive ? 'w-6 h-6 text-primary' : 'w-6 h-6 text-text-muted'} aria-hidden="true" />
+                <span className={isActive ? 'text-[10px] font-bold text-primary leading-none' : 'text-[10px] font-medium text-text-muted leading-none'}>
+                  Logs
+                </span>
+                {isActive && <span className="sr-only">(page actuelle)</span>}
+              </>
+            )}
+          </NavLink>
+        )}
 
         {/* Profile tab with user initials */}
         <NavLink

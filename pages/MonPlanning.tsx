@@ -6,6 +6,7 @@ import ConflictResolverModal from '../components/ConflictResolverModal';
 import RcpAttendanceModal from '../components/RcpAttendanceModal';
 import { ScheduleSlot } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { activityLogService } from '../services/activityLogService';
 
 const MonPlanning: React.FC = () => {
   const [agendaView, setAgendaView] = useState<'week' | 'month'>('week');
@@ -20,9 +21,22 @@ const MonPlanning: React.FC = () => {
 
   const { profile } = useAuth();
 
-  const handleConsultResolve = (slotId: string, newDoctorId: string) => {
+  const handleConsultResolve = async (slotId: string, newDoctorId: string) => {
+    const slot = selectedConsultSlot;
     setManualOverrides({ ...manualOverrides, [slotId]: newDoctorId });
     setSelectedConsultSlot(null);
+
+    const currentDoctor = doctors.find(d => d.id === profile?.doctor_id);
+    await activityLogService.addLog({
+      userId: profile?.id || '',
+      userEmail: profile?.email || '',
+      userName: currentDoctor?.name || '',
+      action: 'CONSULT_MODIFY',
+      description: `Consultation modifiée (${slot?.location || ''})`,
+      weekKey: '',
+      category: 'PLANNING',
+      targetDate: slot?.date,
+    });
   };
 
   const handleConsultCloseSlot = (slotId: string) => {
@@ -30,9 +44,22 @@ const MonPlanning: React.FC = () => {
     setSelectedConsultSlot(null);
   };
 
-  const handleActivityResolve = (slotId: string, newDoctorId: string) => {
+  const handleActivityResolve = async (slotId: string, newDoctorId: string) => {
+    const slot = selectedActivitySlot;
     setManualOverrides({ ...manualOverrides, [slotId]: newDoctorId });
     setSelectedActivitySlot(null);
+
+    const currentDoctor = doctors.find(d => d.id === profile?.doctor_id);
+    await activityLogService.addLog({
+      userId: profile?.id || '',
+      userEmail: profile?.email || '',
+      userName: currentDoctor?.name || '',
+      action: 'ACTIVITY_MODIFY',
+      description: `Activité modifiée (${slot?.location || (slot as any)?.activityId || ''})`,
+      weekKey: '',
+      category: 'PLANNING',
+      targetDate: slot?.date,
+    });
   };
 
   const handleActivityCloseSlot = (slotId: string) => {

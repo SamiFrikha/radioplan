@@ -10,7 +10,7 @@ import ConflictResolverModal from '../components/ConflictResolverModal';
 import { getDoctorHexColor } from '../components/DoctorBadge';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { activityLogService, ActivityLogEntry } from '../services/activityLogService';
+import { activityLogService, ActivityLogEntry, ActivityLogCategory } from '../services/activityLogService';
 
 // Option C clinical palette hex constants
 const ACT_COLORS = {
@@ -94,7 +94,7 @@ const Activities: React.FC = () => {
     const isCurrentWeekValidated = validatedWeeks?.includes(currentWeekKey) || false;
 
     // Helper to add a log entry (defined after currentWeekKey)
-    const addLog = useCallback(async (action: string, description: string, opts?: { activityName?: string; doctorName?: string; details?: string }) => {
+    const addLog = useCallback(async (action: string, description: string, opts?: { activityName?: string; doctorName?: string; details?: string; category?: ActivityLogCategory }) => {
         if (!profile) return;
         await activityLogService.addLog({
             userId: profile.id,
@@ -105,7 +105,8 @@ const Activities: React.FC = () => {
             weekKey: currentWeekKey,
             activityName: opts?.activityName,
             doctorName: opts?.doctorName,
-            details: opts?.details
+            details: opts?.details,
+            category: opts?.category
         });
     }, [profile, getUserDisplayName, currentWeekKey]);
 
@@ -113,15 +114,28 @@ const Activities: React.FC = () => {
     const loadLogs = useCallback(async () => {
         setIsLoadingLogs(true);
         try {
-            const weekFilter = logFilter === 'WEEK' ? currentWeekKey : undefined;
-            const entries = await activityLogService.getLogs(weekFilter, 200);
+            let params: any = { limit: 200 };
+
+            // When logFilter === 'WEEK', filter to the current week's date range
+            if (logFilter === 'WEEK') {
+                // currentWeekStart is Monday at 00:00
+                const dateFrom = currentWeekStart.toISOString().split('T')[0];
+                // Sunday is 6 days after Monday at 23:59
+                const weekEnd = new Date(currentWeekStart);
+                weekEnd.setDate(weekEnd.getDate() + 6);
+                const dateTo = weekEnd.toISOString().split('T')[0];
+                params.dateFrom = dateFrom;
+                params.dateTo = dateTo;
+            }
+
+            const entries = await activityLogService.getLogs(params);
             setLogEntries(entries);
         } catch (err) {
             console.error('Failed to load logs:', err);
         } finally {
             setIsLoadingLogs(false);
         }
-    }, [logFilter, currentWeekKey]);
+    }, [logFilter, currentWeekStart]);
 
     useEffect(() => {
         if (showLogPanel) {
@@ -300,7 +314,8 @@ const Activities: React.FC = () => {
         const groupName = currentEquityGroup === 'workflow' ? 'Supervision Workflow' : 'Unity + Astreinte';
         addLog('AUTO_RECALCULATE', `Recalcul automatique du groupe "${groupName}"`, {
             activityName: groupName,
-            details: JSON.stringify({ equityGroup: currentEquityGroup })
+            details: JSON.stringify({ equityGroup: currentEquityGroup }),
+            category: 'ACTIVITES'
         });
 
         console.log('✅ Auto-calcul effectué pour groupe', currentEquityGroup, '- weekOffset should still be:', weekOffset);
@@ -336,7 +351,8 @@ const Activities: React.FC = () => {
         // Log the clear action
         addLog('CLEAR_CHOICES', `Tous les choix de "${groupName}" effacés (${weekSlotIds.length} créneaux)`, {
             activityName: groupName,
-            details: JSON.stringify({ slotsCleared: weekSlotIds.length })
+            details: JSON.stringify({ slotsCleared: weekSlotIds.length }),
+            category: 'ACTIVITES'
         });
 
         console.log('🗑️ Choix effacés pour groupe:', currentEquityGroup, '- slots:', weekSlotIds.length);
@@ -461,7 +477,8 @@ const Activities: React.FC = () => {
             });
             addLog('CREATE_ACTIVITY', `Nouvelle activité créée : "${newActName}" (${newActType === 'WEEKLY' ? 'Semaine' : 'Demi-journée'}, Groupe: ${groupLabel})`, {
                 activityName: newActName,
-                details: JSON.stringify({ type: newActType, equityGroup: newActEquityGroup })
+                details: JSON.stringify({ type: newActType, equityGroup: newActEquityGroup }),
+                category: 'ACTIVITES'
             });
             setNewActName("");
             setNewActEquityGroup('custom');
@@ -475,7 +492,8 @@ const Activities: React.FC = () => {
             removeActivityDefinition(id);
             setDeleteConfirmId(null);
             addLog('DELETE_ACTIVITY', `Activité supprimée : "${act?.name || id}"`, {
-                activityName: act?.name
+                activityName: act?.name,
+                category: 'ACTIVITES'
             });
             // Switch tab if current activity was deleted
             if (activeTabId === id) {
@@ -514,7 +532,8 @@ const Activities: React.FC = () => {
             if (changes.length > 0) {
                 addLog('EDIT_ACTIVITY', `Activité modifiée : ${changes.join(', ')}`, {
                     activityName: editActivityName.trim(),
-                    details: JSON.stringify({ oldName: act.name, newName: editActivityName.trim(), oldGroup: act.equityGroup, newGroup: editActivityEquityGroup })
+                    details: JSON.stringify({ oldName: act.name, newName: editActivityName.trim(), oldGroup: act.equityGroup, newGroup: editActivityEquityGroup }),
+                    category: 'ACTIVITES'
                 });
             }
         }
@@ -534,7 +553,8 @@ const Activities: React.FC = () => {
             addLog('MANUAL_ASSIGN', `Assignation retirée${actDef ? ` pour "${actDef.name}"` : ''} (${slot?.day} ${slot?.period})`, {
                 activityName: actDef?.name,
                 doctorName: prevDoc?.name,
-                details: JSON.stringify({ slotId, day: slot?.day, period: slot?.period, action: 'removed' })
+                details: JSON.stringify({ slotId, day: slot?.day, period: slot?.period, action: 'removed' }),
+                category: 'ACTIVITES'
             });
         } else {
             // Set Override
@@ -543,7 +563,8 @@ const Activities: React.FC = () => {
             addLog('MANUAL_ASSIGN', `${doc?.name || 'Médecin'} assigné manuellement${actDef ? ` à "${actDef.name}"` : ''} (${slot?.day} ${slot?.period})`, {
                 activityName: actDef?.name,
                 doctorName: doc?.name,
-                details: JSON.stringify({ slotId, doctorId, day: slot?.day, period: slot?.period })
+                details: JSON.stringify({ slotId, doctorId, day: slot?.day, period: slot?.period }),
+                category: 'ACTIVITES'
             });
         }
 
@@ -571,12 +592,14 @@ const Activities: React.FC = () => {
             setWeeklyAssignmentMode('MANUAL');
             addLog('WEEKLY_ASSIGN', `${doc?.name || 'Médecin'} assigné pour toute la semaine à "${currentActivity?.name || 'Activité'}"`, {
                 activityName: currentActivity?.name,
-                doctorName: doc?.name
+                doctorName: doc?.name,
+                category: 'ACTIVITES'
             });
         } else {
             setWeeklyAssignmentMode('AUTO');
             addLog('WEEKLY_ASSIGN', `Assignation semaine retirée pour "${currentActivity?.name || 'Activité'}"`, {
-                activityName: currentActivity?.name
+                activityName: currentActivity?.name,
+                category: 'ACTIVITES'
             });
         }
     }
@@ -658,7 +681,8 @@ const Activities: React.FC = () => {
             if (window.confirm('⚠️ Déverrouiller cette semaine ?\n\nLes affectations pourront être modifiées par l\'algorithme automatique.\n\n⚠️ Attention: Les affectations verrouillées resteront, mais de nouvelles peuvent être générées automatiquement.')) {
                 unvalidateWeek(currentWeekKey);
                 addLog('UNVALIDATE_WEEK', `Semaine déverrouillée`, {
-                    details: JSON.stringify({ weekKey: currentWeekKey })
+                    details: JSON.stringify({ weekKey: currentWeekKey }),
+                    category: 'ACTIVITES'
                 });
             }
         } else {
@@ -696,7 +720,8 @@ const Activities: React.FC = () => {
                         return `${act?.name}: ${doc?.name} (${s.day} ${s.period})`;
                     });
                 addLog('VALIDATE_WEEK', `Semaine validée et verrouillée (${assignedCount} affectations)`, {
-                    details: JSON.stringify({ assignedCount, assignments: assignmentDetails.slice(0, 20) })
+                    details: JSON.stringify({ assignedCount, assignments: assignmentDetails.slice(0, 20) }),
+                    category: 'ACTIVITES'
                 });
             }
         }

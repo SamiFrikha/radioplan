@@ -3,6 +3,7 @@ import { supabase } from '../../services/supabaseClient';
 import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability, ExcludedHalfDay } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { AppContext } from '../../App';
+import { activityLogService } from '../../services/activityLogService';
 import { unavailabilityService } from '../../services/unavailabilityService';
 import { Users, UserPlus, Edit2, Trash2, X, Save, Key, UserCheck, Mail, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, Stethoscope, Link2, Unlink, Tag, Plus, Ban, Calendar } from 'lucide-react';
 import { Card, CardBody, EmptyState } from '../../src/components/ui';
@@ -34,7 +35,7 @@ interface DoctorWithUser {
 const NON_DOCTOR_ROLES = ['Secrétariat', 'Secretariat', 'Secretary'];
 
 const TeamManagement: React.FC = () => {
-    const { hasPermission } = useAuth();
+    const { hasPermission, profile } = useAuth();
     const { doctors, removeDoctor, updateDoctor, activityDefinitions, unavailabilities, addUnavailability, syncUnavailability, removeUnavailability } = useContext(AppContext);
     const [users, setUsers] = useState<UserData[]>([]);
     const [roles, setRoles] = useState<AppRole[]>([]);
@@ -304,6 +305,18 @@ const TeamManagement: React.FC = () => {
             }
 
             setSuccess('Compte créé avec succès !');
+            if (doctorData) {
+                await activityLogService.addLog({
+                    userId: profile?.id || '',
+                    userEmail: profile?.email || '',
+                    userName: (profile as any).doctor_name || profile?.email || '',
+                    action: 'DOCTOR_CREATE',
+                    description: `Médecin ${doctorData.name} créé`,
+                    weekKey: '',
+                    category: 'CONFIG',
+                    doctorName: doctorData.name,
+                });
+            }
             resetForm();
 
             setTimeout(() => {
@@ -368,6 +381,19 @@ const TeamManagement: React.FC = () => {
                 setSuccess('Profil mis à jour avec succès !');
             }
 
+            if (doctorData) {
+                await activityLogService.addLog({
+                    userId: profile?.id || '',
+                    userEmail: profile?.email || '',
+                    userName: (profile as any).doctor_name || profile?.email || '',
+                    action: 'DOCTOR_UPDATE',
+                    description: `Médecin ${doctorData.name} mis à jour`,
+                    weekKey: '',
+                    category: 'CONFIG',
+                    doctorName: doctorData.name,
+                });
+            }
+
             setTimeout(() => {
                 setIsEditModalOpen(false);
                 setEditingUser(null);
@@ -411,6 +437,16 @@ const TeamManagement: React.FC = () => {
 
             if (user.doctor_id) {
                 removeDoctor(user.doctor_id);
+                await activityLogService.addLog({
+                    userId: profile?.id || '',
+                    userEmail: profile?.email || '',
+                    userName: (profile as any).doctor_name || profile?.email || '',
+                    action: 'DOCTOR_DELETE',
+                    description: `Médecin ${user.doctors?.name || user.email} supprimé`,
+                    weekKey: '',
+                    category: 'CONFIG',
+                    doctorName: user.doctors?.name || user.email,
+                });
             }
 
             fetchData();
@@ -454,6 +490,18 @@ const TeamManagement: React.FC = () => {
             }
 
             removeDoctor(doctor.id);
+
+            await activityLogService.addLog({
+                userId: profile?.id || '',
+                userEmail: profile?.email || '',
+                userName: (profile as any).doctor_name || profile?.email || '',
+                action: 'DOCTOR_DELETE',
+                description: `Médecin ${doctor.name} supprimé`,
+                weekKey: '',
+                category: 'CONFIG',
+                doctorName: doctor.name,
+            });
+
             fetchData();
 
         } catch (err: any) {
@@ -565,6 +613,17 @@ const TeamManagement: React.FC = () => {
             }
 
             setSuccess('Profil médecin mis à jour !');
+
+            await activityLogService.addLog({
+                userId: profile?.id || '',
+                userEmail: profile?.email || '',
+                userName: (profile as any).doctor_name || profile?.email || '',
+                action: 'DOCTOR_UPDATE',
+                description: `Médecin ${doctorFormData.name} mis à jour`,
+                weekKey: '',
+                category: 'CONFIG',
+                doctorName: doctorFormData.name,
+            });
 
             setTimeout(() => {
                 setIsEditDoctorModalOpen(false);

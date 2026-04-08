@@ -10,6 +10,7 @@ import { markReplacementResolved } from '../services/replacementService';
 import { createNotification } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
 import { AppContext } from '../App';
+import { activityLogService } from '../services/activityLogService';
 
 const NOTIF_ICON: Record<string, string> = {
   RCP_AUTO_ASSIGNED: '🎲',
@@ -67,6 +68,16 @@ const ReplacementActions: React.FC<{
         requesterDoctorId = result.requester_doctor_id as string;
         console.log('[BELL] 1️⃣ RPC success ✅', { slotId, slotType, requesterDoctorId });
 
+        await activityLogService.addLog({
+          userId: profile?.id || '',
+          userEmail: profile?.email || '',
+          userName: (profile as any).doctor_name || profile?.email || '',
+          action: 'REPLACEMENT_ACCEPT',
+          description: `Demande de remplacement acceptée`,
+          weekKey: '',
+          category: 'REMPLACEMENT',
+        });
+
         if (slotId) {
           console.log('[BELL] 2️⃣ syncing React state…', { slotType });
           if (slotType === 'RCP') {
@@ -98,6 +109,16 @@ const ReplacementActions: React.FC<{
         period            = reqRow?.period;
         await markReplacementResolved(requestId, 'REJECTED');
         console.log('[BELL] 1️⃣ marked REJECTED ✅');
+
+        await activityLogService.addLog({
+          userId: profile?.id || '',
+          userEmail: profile?.email || '',
+          userName: (profile as any).doctor_name || profile?.email || '',
+          action: 'REPLACEMENT_REJECT',
+          description: `Demande de remplacement refusée`,
+          weekKey: '',
+          category: 'REMPLACEMENT',
+        });
       }
 
       console.log('[BELL] 3️⃣ notifying requester…', { requesterDoctorId });

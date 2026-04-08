@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarDays, UserCircle, Database,
-  LogOut, Activity, Settings2, Users, Shield, LayoutGrid,
+  LogOut, Activity, Settings2, Users, Shield, LayoutGrid, ScrollText,
 } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
@@ -57,6 +57,7 @@ const Sidebar: React.FC = () => {
     { to: '/admin/team', icon: Users, label: "Gestion d'équipe", show: hasPermission('manage_users') },
     { to: '/admin/roles', icon: Shield, label: 'Gestion des rôles', show: hasPermission('manage_users') },
     { to: '/data', icon: Database, label: 'Données', show: hasPermission('manage_settings') },
+    { to: '/logs', icon: ScrollText, label: 'Logs', show: hasPermission('manage_settings') },
   ];
 
   const visibleAdminItems = adminItems.filter(i => i.show);

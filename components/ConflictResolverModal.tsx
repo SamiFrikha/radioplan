@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useContext } from 'react';
+import React, { useState, useEffect, useMemo, useContext, useCallback } from 'react';
 import { Conflict, Doctor, ScheduleSlot, ReplacementSuggestion, SlotType, RcpAttendance } from '../types';
 import { getAvailableDoctors, getAlgorithmicReplacementSuggestion, findConflictingSlot, getDoctorWorkRate } from '../services/scheduleService';
 import { X, UserCheck, AlertTriangle, User, Lightbulb, Ban, RefreshCw, Lock, ArrowRight, Activity, Calendar, ShieldAlert, UserX, UserPlus, Send } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Button } from '../src/components/ui/Button';
 import { supabase } from '../services/supabaseClient';
 import { sendReplacementRequest } from '../services/replacementService';
 import { createNotification } from '../services/notificationService';
+import { activityLogService, ActivityLogCategory } from '../services/activityLogService';
 
 interface Props {
     slot: ScheduleSlot;
@@ -24,6 +25,24 @@ interface Props {
 const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots, unavailabilities, onClose, onResolve, onCloseSlot }) => {
     const { effectiveHistory, activityDefinitions, rcpAttendance, setRcpAttendance, rcpTypes, template } = useContext(AppContext);
     const { profile, isAdmin, isDoctor } = useAuth();
+
+    const modalAddLog = useCallback(async (
+        action: string,
+        description: string,
+        opts: { category: ActivityLogCategory; targetDate?: string; doctorName?: string }
+    ) => {
+        if (!profile) return;
+        await activityLogService.addLog({
+            userId: profile.id,
+            userEmail: profile.email || '',
+            userName: (profile as any).doctor_name || profile.email || '',
+            action,
+            description,
+            weekKey: '',
+            ...opts,
+        });
+    }, [profile]);
+
     const [loading, setLoading] = useState(false);
     const [requestSent, setRequestSent] = useState(false);
     const [sendingRequestTo, setSendingRequestTo] = useState<string | null>(null);
@@ -205,6 +224,11 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
             }
 
             setRequestSent(true);
+            const targetDoc = doctors.find(d => d.id === targetDoctorId);
+            await modalAddLog('REPLACEMENT_REQUEST',
+                `Demande de remplacement envoyée à ${targetDoc?.name || 'médecin inconnu'}`,
+                { category: 'REMPLACEMENT', targetDate: effectiveSlot.date }
+            );
         } catch (e) {
             console.error('Failed to send replacement request:', e);
         } finally {
@@ -229,6 +253,9 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                 slot_id: effectiveSlot.id,
                 doctor_id: doctorToRemove,
                 status: 'ABSENT',
+            });
+            await modalAddLog('RCP_ABSENT', `Absent au RCP du ${effectiveSlot.date} via résolution`, {
+                category: 'RCP', targetDate: effectiveSlot.date,
             });
         } catch (e) {
             console.error('[RCP] handleRcpLeaveEmpty failed:', e);
@@ -267,12 +294,36 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
             if (isExceptional) {
                 console.log(`[RCP] Remplacement exceptionnel : Dr ${rcpDirectDoctorId} hors affectation initiale`);
             }
+            const newDoc = doctors.find(d => d.id === rcpDirectDoctorId);
+            await modalAddLog('CONFLICT_RESOLVE',
+                `Conflit résolu — ${newDoc?.name || rcpDirectDoctorId} assigné`,
+                { category: 'PLANNING', targetDate: effectiveSlot.date }
+            );
         } catch (e) {
             console.error('[RCP] handleRcpDirectReplacement failed:', e);
         } finally {
             setRcpActionLoading(false);
         }
         onClose();
+    };
+
+    const handleResolve = async (slotId: string, newDoctorId: string) => {
+        if (newDoctorId) {
+            const newDoc = doctors.find(d => d.id === newDoctorId);
+            await modalAddLog('CONFLICT_RESOLVE',
+                `Conflit résolu — ${newDoc?.name || newDoctorId} assigné`,
+                { category: 'PLANNING', targetDate: slot?.date }
+            );
+        }
+        onResolve(slotId, newDoctorId);
+    };
+
+    const handleCloseSlotWithLog = async (slotId: string) => {
+        await modalAddLog('SLOT_CLOSE',
+            `Créneau fermé (${slot?.location || ''} ${slot?.period || ''})`,
+            { category: 'PLANNING', targetDate: slot?.date }
+        );
+        onCloseSlot(slotId);
     };
 
     const getSlotColor = (s: ScheduleSlot) => {
@@ -641,7 +692,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
                                     {/* 🔴 Fermer le créneau */}
                                     <button
-                                        onClick={() => { onCloseSlot(slot.id); onClose(); }}
+                                        onClick={() => { handleCloseSlotWithLog(slot.id); onClose(); }}
                                         className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-danger/20 bg-danger/10 hover:border-danger/40 hover:bg-danger/20 transition-all group"
                                     >
                                         <div className="w-10 h-10 rounded-full bg-danger/10 group-hover:bg-danger/20 flex items-center justify-center mb-2">
@@ -753,7 +804,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         size="md"
                                         onClick={() => {
                                             if (manualDoctorId && targetSlotForReplacement) {
-                                                onResolve(targetSlotForReplacement.id, manualDoctorId);
+                                                handleResolve(targetSlotForReplacement.id, manualDoctorId);
                                                 onClose();
                                             }
                                         }}
@@ -977,7 +1028,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                             <Button
                                                                 variant="primary"
                                                                 size="sm"
-                                                                onClick={() => onResolve(targetSlotForReplacement.id, doc.id)}
+                                                                onClick={() => handleResolve(targetSlotForReplacement.id, doc.id)}
                                                             >
                                                                 Choisir
                                                             </Button>
@@ -1048,7 +1099,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                                 variant="primary"
                                                 size="md"
                                                 disabled={!manualDoctorId}
-                                                onClick={() => onResolve(targetSlotForReplacement.id, manualDoctorId)}
+                                                onClick={() => handleResolve(targetSlotForReplacement.id, manualDoctorId)}
                                                 className="w-full"
                                             >
                                                 Valider le choix manuel
@@ -1062,13 +1113,13 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                                         </h4>
                                         <div className="grid grid-cols-2 gap-3">
                                             <button
-                                                onClick={() => onCloseSlot(targetSlotForReplacement.id)}
+                                                onClick={() => handleCloseSlotWithLog(targetSlotForReplacement.id)}
                                                 className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-danger/10 hover:text-danger hover:border-danger/20 text-xs font-bold transition-colors"
                                             >
                                                 Fermer le créneau
                                             </button>
                                             <button
-                                                onClick={() => onResolve(targetSlotForReplacement.id, "")}
+                                                onClick={() => handleResolve(targetSlotForReplacement.id, "")}
                                                 className="flex items-center justify-center px-4 py-2 border border-border bg-surface text-text-muted rounded-btn hover:bg-warning/10 hover:text-warning hover:border-warning/20 text-xs font-bold transition-colors"
                                             >
                                                 Laisser vide
@@ -1086,7 +1137,7 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                             <p className="text-sm text-text-muted mb-4">Gérez ce créneau normalement. Utilisez les suggestions ci-dessus ou fermez le créneau.</p>
                             <div className="grid grid-cols-1 gap-3">
                                 <button
-                                    onClick={() => onCloseSlot(slot.id)}
+                                    onClick={() => handleCloseSlotWithLog(slot.id)}
                                     className="flex flex-col items-center text-center p-4 rounded-xl border-2 border-danger/20 bg-danger/10 hover:border-danger/40 hover:bg-danger/20 transition-all group"
                                 >
                                     <div className="w-10 h-10 rounded-full bg-danger/10 group-hover:bg-danger/20 flex items-center justify-center mb-2">

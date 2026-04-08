@@ -11,6 +11,7 @@ import { getDoctorHexColor } from '../components/DoctorBadge';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
+import { activityLogService } from '../services/activityLogService';
 
 const Planning: React.FC = () => {
     const {
@@ -163,7 +164,7 @@ const Planning: React.FC = () => {
         .map(a => a.name);
     const displayRows = [...sortedActivityRows, ...postes];
 
-    const handleResolve = (slotId: string, newDoctorId: string) => {
+    const handleResolve = async (slotId: string, newDoctorId: string) => {
         if (newDoctorId === "") {
             const newOverrides = { ...manualOverrides };
             delete newOverrides[slotId];
@@ -175,6 +176,22 @@ const Planning: React.FC = () => {
             });
         }
         setSelectedSlotId(null);
+
+        // Log PLANNING_ASSIGN when a doctor is assigned (not when clearing)
+        if (newDoctorId && newDoctorId !== "") {
+            const slot = schedule.find(s => s.id === slotId);
+            const assignedDoc = doctors.find(d => d.id === newDoctorId);
+            await activityLogService.addLog({
+                userId: profile?.id || '',
+                userEmail: profile?.email || '',
+                userName: (profile as any).doctor_name || profile?.email || '',
+                action: 'PLANNING_ASSIGN',
+                description: `${assignedDoc?.name || newDoctorId} assigné — ${slot?.location || ''} (${slot?.day || ''} ${slot?.period || ''})`,
+                weekKey: currentWeekKey,
+                category: 'PLANNING',
+                targetDate: slot?.date,
+            });
+        }
     };
 
     const handleCloseSlot = (slotId: string) => {

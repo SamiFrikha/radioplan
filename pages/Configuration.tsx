@@ -8,6 +8,7 @@ import { DoctorBadge, getDoctorHexColor } from '../components/DoctorBadge';
 import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow, cancelWeekAutoAssign, deleteRcpAutoConfig, deleteAllRcpAutoConfigs } from '../services/rcpAutoConfigService';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
+import { activityLogService } from '../services/activityLogService';
 
 
 const Configuration: React.FC = () => {
@@ -237,13 +238,22 @@ const Configuration: React.FC = () => {
         )));
     };
 
-    const saveChanges = () => {
+    const saveChanges = async () => {
         console.log('💾 Saving changes, current tab:', activeTab);
         // Save the current tab so we can restore it after template update
         isSavingRef.current = true;
         savedTabRef.current = activeTab;
-        updateTemplate(tempTemplate);
+        await updateTemplate(tempTemplate);
         setEditMode(false);
+        await activityLogService.addLog({
+            userId: profile?.id || '',
+            userEmail: profile?.email || '',
+            userName: (profile as any).doctor_name || profile?.email || '',
+            action: 'TEMPLATE_UPDATE',
+            description: `Template de planning mis à jour`,
+            weekKey: '',
+            category: 'CONFIG',
+        });
     };
 
     const cancelChanges = () => {
@@ -372,6 +382,15 @@ const Configuration: React.FC = () => {
             }
             const updated = await getRcpAutoConfigs();
             setRcpAutoConfigs(updated);
+            await activityLogService.addLog({
+                userId: profile?.id || '',
+                userEmail: profile?.email || '',
+                userName: (profile as any).doctor_name || profile?.email || '',
+                action: 'SETTINGS_UPDATE',
+                description: `Paramètres de configuration mis à jour`,
+                weekKey: '',
+                category: 'CONFIG',
+            });
         } catch (e) {
             console.error(e);
         } finally {

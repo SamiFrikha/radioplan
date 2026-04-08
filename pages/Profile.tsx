@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useMemo } from 'react';
+import React, { useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import AbsenceConflictsModal from '../components/AbsenceConflictsModal';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import RcpExceptionModal from '../components/RcpExceptionModal';
+import { activityLogService } from '../services/activityLogService';
 
 const NOTIF_ICON: Record<string, string> = {
     RCP_AUTO_ASSIGNED: '🎲', RCP_SLOT_FILLED: '✅', RCP_REMINDER_24H: '⏰',
@@ -40,7 +41,9 @@ const NotificationSection: React.FC<{
     currentDoctorId?: string;
     // Called after ACCEPTED — caller owns AppContext update (mirrors ConflictResolverModal)
     onAccepted?: (slotId: string, acceptorDoctorId: string, requesterDoctorId: string, slotType: string) => Promise<void>;
-}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId, currentDoctorId, onAccepted }) => {
+    // Called after notification prefs toggle — for audit logging
+    onPrefsToggle?: () => void;
+}> = ({ notifications, unreadCount, markRead, markAllRead, clearAll, loading, currentDoctorName, userId, currentDoctorId, onAccepted, onPrefsToggle }) => {
     const [resolvedMap, setResolvedMap] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [clearing, setClearing] = useState(false);
@@ -190,7 +193,7 @@ const NotificationSection: React.FC<{
                         <span className="text-sm text-text-base">{NOTIFICATION_TYPE_LABELS[type]}</span>
                         <button
                           disabled={prefsLoading}
-                          onClick={() => toggle(type)}
+                          onClick={() => { toggle(type); onPrefsToggle?.(); }}
                           aria-label={`${isEnabled(type) ? 'Désactiver' : 'Activer'} ${NOTIFICATION_TYPE_LABELS[type]}`}
                           className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-50 ${isEnabled(type) ? 'bg-primary' : 'bg-border'}`}
                         >
@@ -402,6 +405,24 @@ const Profile: React.FC = () => {
     // Avatar state
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarUploading, setAvatarUploading] = useState(false);
+
+    // Audit log helper
+    const profileAddLog = useCallback(async (
+        action: string,
+        description: string,
+        opts: { category: 'ACTIVITES' | 'RCP' | 'ABSENCE' | 'REMPLACEMENT' | 'PLANNING' | 'PROFIL' | 'CONFIG'; targetDate?: string; doctorName?: string; details?: string }
+    ) => {
+        if (!profile) return;
+        await activityLogService.addLog({
+            userId: profile.id,
+            userEmail: profile.email || '',
+            userName: currentDoctor?.name || profile.email || '',
+            action,
+            description,
+            weekKey: '',
+            ...opts,
+        });
+    }, [profile, currentDoctor]);
 
     // RCP Week navigation - use context to survive re-renders
     const notifWeekOffset = profileRcpWeekOffset;
@@ -799,6 +820,17 @@ const Profile: React.FC = () => {
                 console.error('Error saving attendance:', error);
             } else {
                 console.log('✅ Attendance saved:', slotId, status);
+                // Extract date from slotId (format: "<templateId>-<YYYY-MM-DD>" or "manual-rcp-...-<date>")
+                const slotDate = slotId.split('-').slice(-3).join('-');
+                if (status === 'PRESENT') {
+                    await profileAddLog('RCP_PRESENT', `Présence confirmée au RCP du ${slotDate}`, {
+                        category: 'RCP', targetDate: slotDate,
+                    });
+                } else {
+                    await profileAddLog('RCP_ABSENT', `Absence déclarée au RCP du ${slotDate}`, {
+                        category: 'RCP', targetDate: slotDate,
+                    });
+                }
             }
         } catch (err) {
             console.error('Error saving attendance:', err);
@@ -825,6 +857,10 @@ const Profile: React.FC = () => {
                 console.error('Error deleting attendance:', error);
             } else {
                 console.log('✅ Attendance cleared:', slotId);
+                const slotDate = slotId.split('-').slice(-3).join('-');
+                await profileAddLog('RCP_CANCEL', `Présence annulée au RCP du ${slotDate}`, {
+                    category: 'RCP', targetDate: slotDate,
+                });
             }
         } catch (err) {
             console.error('Error deleting attendance:', err);
@@ -847,6 +883,7 @@ const Profile: React.FC = () => {
                 .getPublicUrl(path);
             await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id);
             setAvatarUrl(publicUrl);
+            await profileAddLog('AVATAR_UPDATE', `Photo de profil mise à jour`, { category: 'PROFIL' });
         } catch (err) {
             console.error('Avatar upload failed:', err);
         } finally {
@@ -864,6 +901,7 @@ const Profile: React.FC = () => {
             updateDoctor(updatedDoc);
             setCurrentDoctor(updatedDoc);
             setIsEditingProfile(false);
+            await profileAddLog('PROFILE_UPDATE', `Profil mis à jour`, { category: 'PROFIL' });
         }
     };
 
@@ -890,6 +928,9 @@ const Profile: React.FC = () => {
             endDate,
             period: absencePeriod,
             reason: reason === 'AUTRE' ? customReason : reason,
+        });
+        void profileAddLog('ABSENCE_DECLARE', `Absence déclarée du ${savedStartDate} au ${savedEndDate}`, {
+            category: 'ABSENCE', targetDate: savedStartDate,
         });
         setCustomReason("");
 
@@ -920,6 +961,16 @@ const Profile: React.FC = () => {
         );
         updateSchedule(updatedSchedule);
     };
+
+    const removeUnavailabilityWithLog = useCallback(async (id: string) => {
+        const abs = unavailabilities.find((a: any) => a.id === id);
+        removeUnavailability(id);
+        if (abs) {
+            await profileAddLog('ABSENCE_DELETE', `Absence supprimée (${abs.startDate} → ${abs.endDate})`, {
+                category: 'ABSENCE', targetDate: abs.startDate,
+            });
+        }
+    }, [removeUnavailability, unavailabilities, profileAddLog]);
 
     const getNotificationWeekLabel = () => {
         const today = new Date();
@@ -1354,6 +1405,9 @@ const Profile: React.FC = () => {
                                     setManualOverrides({ ...manualOverrides, [slotId]: acceptorId });
                                 }
                             }}
+                            onPrefsToggle={() => {
+                                void profileAddLog('NOTIF_PREFS_UPDATE', `Préférences de notifications mises à jour`, { category: 'PROFIL' });
+                            }}
                         />
                     )}
 
@@ -1452,7 +1506,7 @@ const Profile: React.FC = () => {
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1 pl-1">À venir</p>
                                     <ul className="divide-y divide-border bg-surface border border-border rounded-card max-h-48 overflow-y-auto shadow-sm">
                                         {upcomingAbsences.map(abs => (
-                                            <AbsenceRow key={abs.id} abs={abs} isAdmin={isAdmin} fmtDate={fmtDate} removeUnavailability={removeUnavailability} />
+                                            <AbsenceRow key={abs.id} abs={abs} isAdmin={isAdmin} fmtDate={fmtDate} removeUnavailability={removeUnavailabilityWithLog} />
                                         ))}
                                     </ul>
                                 </div>
@@ -1463,7 +1517,7 @@ const Profile: React.FC = () => {
                                     <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1 pl-1">Passé</p>
                                     <ul className="divide-y divide-border bg-surface border border-border rounded-card max-h-40 overflow-y-auto shadow-sm opacity-70">
                                         {pastAbsences.map(abs => (
-                                            <AbsenceRow key={abs.id} abs={abs} isAdmin={isAdmin} fmtDate={fmtDate} removeUnavailability={removeUnavailability} />
+                                            <AbsenceRow key={abs.id} abs={abs} isAdmin={isAdmin} fmtDate={fmtDate} removeUnavailability={removeUnavailabilityWithLog} />
                                         ))}
                                     </ul>
                                 </div>
