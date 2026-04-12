@@ -310,9 +310,55 @@ function makeTOC() {
 }
 
 // ─── SECTIONS ────────────────────────────────────────────────────────────────
+function makeChapter1() {
+  return [
+    heading1('1. Premiers pas'),
+    para('Bienvenue dans RadioPlan AI. Ce manuel te guide dans l\'utilisation de l\'application au quotidien. En quelques minutes, tu seras opérationnel.'),
+
+    heading2('1.1 Se connecter'),
+    numbered('Ouvre ton navigateur et accède à l\'URL de l\'application (fournie par ton administrateur).', 0),
+    numbered('Saisis ton adresse email et ton mot de passe, puis clique sur Connexion.', 0),
+    numbered('Si tu as oublié ton mot de passe : clique sur "Mot de passe oublié" \u2192 un email de réinitialisation te sera envoyé.', 0),
+    tip('L\'application fonctionne sur tous les navigateurs modernes (Chrome, Firefox, Safari, Edge). Aucune installation requise.'),
+
+    heading2('1.2 Découvrir l\'interface'),
+    para('L\'interface s\'adapte automatiquement à ton écran :'),
+    bullet('Sur desktop/tablette : une barre latérale (sidebar) à gauche contient tous les liens de navigation et la cloche de notifications.'),
+    bullet('Sur mobile : la navigation se trouve en bas de l\'écran (barre d\'icônes). La cloche de notifications est accessible en haut à droite.'),
+
+    heading2('1.3 Pages accessibles au médecin'),
+    ...makeTable(
+      ['Page', 'Accès', 'Rôle'],
+      [
+        ['Tableau de bord', 'Toujours', 'Vue générale de la semaine'],
+        ['Mon Planning', 'Toujours', 'Ton agenda personnel semaine/mois'],
+        ['Planning Global', 'Si autorisé par l\'admin', 'Planning de toute l\'équipe'],
+        ['Activités', 'Toujours', 'Répartition des gardes et activités'],
+        ['Mon Profil', 'Toujours', 'Absences, préférences, notifications'],
+      ],
+      [3400, 2200, 3400]
+    ),
+
+    heading2('1.4 Installer l\'app sur mobile (optionnel)'),
+    para('RadioPlan AI peut fonctionner comme une application native sur ton smartphone :'),
+    para('Sur iPhone/iPad (Safari) :', { bold: true }),
+    numbered('Tap le bouton "Partager" (carré avec flèche vers le haut).', 0),
+    numbered('Choisis "Sur l\'écran d\'accueil".', 0),
+    numbered('Confirme \u2192 l\'icône RadioPlan AI apparaît sur ton écran d\'accueil.', 0),
+    para('Sur Android (Chrome) :', { bold: true }),
+    numbered('Tape les 3 points en haut à droite.', 0),
+    numbered('Choisis "Ajouter à l\'écran d\'accueil".', 0),
+    tip('Une fois installée, l\'app s\'ouvre en plein écran sans barre du navigateur, exactement comme une app native.'),
+
+    heading2('1.5 Se déconnecter'),
+    para('Clique sur le bouton de déconnexion (icône de sortie) en bas de la sidebar. Sur mobile, accède à "Mon Profil" puis "Déconnexion".'),
+  ];
+}
+
 const allChildren = [
   ...makeCoverPage(),
   ...makeTOC(),
+  ...makeChapter1(),
   // Chapitres ajoutés dans les tâches suivantes
 ];
 
