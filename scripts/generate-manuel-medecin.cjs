@@ -252,9 +252,68 @@ function makeFooter() {
   });
 }
 
+// ─── Page de couverture ───────────────────────────────────────────────────────
+function makeCoverPage() {
+  return [
+    new Paragraph({ spacing: { before: 2400, after: 0 }, children: [] }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'RadioPlan AI', font: 'Arial', size: 72, bold: true, color: COLORS.primary })],
+      spacing: { before: 0, after: 200 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'Manuel Utilisateur', font: 'Arial', size: 44, bold: false, color: COLORS.secondary })],
+      spacing: { before: 0, after: 80 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'Rôle : Médecin', font: 'Arial', size: 32, color: COLORS.muted })],
+      spacing: { before: 0, after: 480 },
+    }),
+    separator(),
+    new Paragraph({ spacing: { before: 240, after: 0 }, children: [] }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'Hôpital Henri Mondor', font: 'Arial', size: 28, bold: true, color: COLORS.text })],
+      spacing: { before: 0, after: 80 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'Service Radiothérapie', font: 'Arial', size: 26, color: COLORS.secondary })],
+      spacing: { before: 0, after: 80 },
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: 'Avril 2026 — Version 1.0', font: 'Arial', size: 22, color: COLORS.muted })],
+      spacing: { before: 0, after: 480 },
+    }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
+}
+
+// ─── Table des matières ───────────────────────────────────────────────────────
+function makeTOC() {
+  return [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      children: [new TextRun({ text: 'Table des matières', font: 'Arial', size: 32, bold: true, color: COLORS.primary })],
+      pageBreakBefore: false,
+      spacing: { before: 0, after: 240 },
+    }),
+    new TableOfContents('Table des matières', {
+      hyperlink: true,
+      headingStyleRange: '1-3',
+    }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
+}
+
 // ─── SECTIONS ────────────────────────────────────────────────────────────────
 const allChildren = [
-  new Paragraph({ children: [new TextRun({ text: 'PLACEHOLDER', font: 'Arial', size: 22 })] }),
+  ...makeCoverPage(),
+  ...makeTOC(),
+  // Chapitres ajoutés dans les tâches suivantes
 ];
 
 // ─── Document assembly ───────────────────────────────────────────────────────
