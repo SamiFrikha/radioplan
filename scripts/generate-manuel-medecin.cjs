@@ -614,6 +614,17 @@ const allChildren = [
   ...makeChapter5(),
   ...makeChapter6(),
   ...makeChapter7(),
+  new Paragraph({ children: [new PageBreak()] }),
+  new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 2400, after: 0 },
+    children: [new TextRun({ text: 'Fin du manuel', font: 'Arial', size: 22, italics: true, color: '6C757D' })],
+  }),
+  new Paragraph({
+    alignment: AlignmentType.CENTER,
+    children: [new TextRun({ text: 'Pour toute question, contactez votre administrateur RadioPlan AI.', font: 'Arial', size: 20, color: '6C757D' })],
+    spacing: { before: 80, after: 0 },
+  }),
   // Chapitres ajoutés dans les tâches suivantes
 ];
 
