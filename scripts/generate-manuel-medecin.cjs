@@ -154,12 +154,17 @@ function makeTable(headers, rows, colWidths) {
     })),
   }));
 
-  return new Table({
+  const table = new Table({
     width: { size: totalWidth, type: WidthType.DXA },
     columnWidths: colWidths,
     rows: [headerRow, ...dataRows],
-    spacing: { before: 120, after: 160 },
   });
+
+  return [
+    new Paragraph({ children: [], spacing: { before: 0, after: 120 } }),
+    table,
+    new Paragraph({ children: [], spacing: { before: 0, after: 160 } }),
+  ];
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
