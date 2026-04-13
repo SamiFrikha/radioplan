@@ -38,6 +38,12 @@ const fmtDateTime = (iso: string) => {
     return `${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+const fmtDate = (dateStr: string) => {
+    // dateStr est au format YYYY-MM-DD
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+};
+
 const LogsPage: React.FC = () => {
     const navigate = useNavigate();
     const { isAdmin } = useAuth();
@@ -100,7 +106,7 @@ const LogsPage: React.FC = () => {
             alert('Export limité à 10 000 entrées — affinez vos filtres.');
         }
         const BOM = '\uFEFF';
-        const header = 'Date,Heure,Médecin,Email,Catégorie,Action,Description,Détails';
+        const header = 'Date log,Heure log,Date événement,Médecin,Email,Catégorie,Action,Description,Détails';
         const escape = (v?: string) => {
             if (!v) return '';
             if (v.includes(',') || v.includes('"') || v.includes('\n'))
@@ -112,6 +118,7 @@ const LogsPage: React.FC = () => {
             return [
                 d.toLocaleDateString('fr-FR'),
                 d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+                e.targetDate ? fmtDate(e.targetDate) : '',
                 escape(e.userName),
                 escape(e.userEmail),
                 escape(e.category),
@@ -249,6 +256,7 @@ const LogsPage: React.FC = () => {
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-36">Date & Heure</th>
+                                    <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-28">Date événement</th>
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-40">Médecin</th>
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-32">Catégorie</th>
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider">Description</th>
@@ -258,6 +266,9 @@ const LogsPage: React.FC = () => {
                                 {paginated.map(entry => (
                                     <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-3 py-2.5 text-xs text-text-muted whitespace-nowrap">{fmtDateTime(entry.timestamp)}</td>
+                                        <td className="px-3 py-2.5 text-xs text-text-muted whitespace-nowrap">
+                                            {entry.targetDate ? fmtDate(entry.targetDate) : <span className="opacity-30">—</span>}
+                                        </td>
                                         <td className="px-3 py-2.5 text-xs font-medium text-text-base truncate max-w-[160px]">{entry.userName}</td>
                                         <td className="px-3 py-2.5">
                                             {entry.category ? (
@@ -286,7 +297,14 @@ const LogsPage: React.FC = () => {
                                         )}
                                     </div>
                                     <p className="text-sm text-text-base mb-0.5">{entry.description}</p>
-                                    <p className="text-[11px] text-text-muted">{entry.userName}</p>
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                        <p className="text-[11px] text-text-muted">{entry.userName}</p>
+                                        {entry.targetDate && (
+                                            <p className="text-[10px] text-text-muted/70">
+                                                📅 {fmtDate(entry.targetDate)}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
