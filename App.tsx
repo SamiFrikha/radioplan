@@ -44,6 +44,22 @@ const RecoveryRedirect: React.FC = () => {
     return null;
 };
 
+// Catch-all route: redirect to / UNLESS the URL hash contains Supabase recovery
+// tokens (#access_token=...&type=recovery). In that case, show a spinner and
+// let supabase-js read the tokens from the hash in its async _initialize().
+// RecoveryRedirect will navigate to /reset-password once PASSWORD_RECOVERY fires.
+const CatchAllRoute: React.FC = () => {
+    const hash = window.location.hash;
+    if (hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('type=signup')) {
+        return (
+            <div className="flex items-center justify-center h-dvh bg-app-bg">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+    return <Navigate to="/" replace />;
+};
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { session, loading, passwordRecovery } = useAuth();
     if (loading) return <div className="flex items-center justify-center h-dvh">Chargement...</div>;
@@ -746,7 +762,7 @@ const App: React.FC = () => {
                         } />
                     </Route>
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<CatchAllRoute />} />
                 </Routes>
             </Router>
             </NotificationProvider>
