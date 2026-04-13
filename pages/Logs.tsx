@@ -38,10 +38,28 @@ const fmtDateTime = (iso: string) => {
     return `${d.toLocaleDateString('fr-FR')} ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
+// Convertit YYYY-MM-DD → JJ/MM/AAAA
 const fmtDate = (dateStr: string) => {
-    // dateStr est au format YYYY-MM-DD
     const [y, m, d] = dateStr.split('-');
     return `${d}/${m}/${y}`;
+};
+
+/**
+ * Enrichit la description en intégrant la date métier (targetDate) directement dans le texte :
+ * - Si la description contient déjà la date en format ISO (YYYY-MM-DD) → remplace par JJ/MM/AAAA
+ * - Sinon, si targetDate est défini → ajoute " du JJ/MM/AAAA" à la fin
+ */
+const enrichDescription = (entry: ActivityLogEntry): string => {
+    if (!entry.targetDate) return entry.description;
+    const raw = entry.targetDate;           // YYYY-MM-DD
+    const formatted = fmtDate(raw);         // JJ/MM/AAAA
+    if (entry.description.includes(raw)) {
+        return entry.description.replace(raw, formatted);
+    }
+    if (entry.description.includes(formatted)) {
+        return entry.description; // déjà formaté
+    }
+    return `${entry.description} du ${formatted}`;
 };
 
 const LogsPage: React.FC = () => {
@@ -106,7 +124,7 @@ const LogsPage: React.FC = () => {
             alert('Export limité à 10 000 entrées — affinez vos filtres.');
         }
         const BOM = '\uFEFF';
-        const header = 'Date log,Heure log,Date événement,Médecin,Email,Catégorie,Action,Description,Détails';
+        const header = 'Date log,Heure log,Médecin,Email,Catégorie,Action,Description,Détails';
         const escape = (v?: string) => {
             if (!v) return '';
             if (v.includes(',') || v.includes('"') || v.includes('\n'))
@@ -118,12 +136,11 @@ const LogsPage: React.FC = () => {
             return [
                 d.toLocaleDateString('fr-FR'),
                 d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-                e.targetDate ? fmtDate(e.targetDate) : '',
                 escape(e.userName),
                 escape(e.userEmail),
                 escape(e.category),
                 escape(e.action),
-                escape(e.description),
+                escape(enrichDescription(e)),
                 escape(e.details),
             ].join(',');
         });
@@ -256,7 +273,6 @@ const LogsPage: React.FC = () => {
                             <thead>
                                 <tr className="border-b border-border bg-muted/50">
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-36">Date & Heure</th>
-                                    <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-28">Date événement</th>
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-40">Médecin</th>
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider w-32">Catégorie</th>
                                     <th className="text-left px-3 py-2 text-xs font-bold text-text-muted uppercase tracking-wider">Description</th>
@@ -266,9 +282,6 @@ const LogsPage: React.FC = () => {
                                 {paginated.map(entry => (
                                     <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-3 py-2.5 text-xs text-text-muted whitespace-nowrap">{fmtDateTime(entry.timestamp)}</td>
-                                        <td className="px-3 py-2.5 text-xs text-text-muted whitespace-nowrap">
-                                            {entry.targetDate ? fmtDate(entry.targetDate) : <span className="opacity-30">—</span>}
-                                        </td>
                                         <td className="px-3 py-2.5 text-xs font-medium text-text-base truncate max-w-[160px]">{entry.userName}</td>
                                         <td className="px-3 py-2.5">
                                             {entry.category ? (
@@ -279,7 +292,7 @@ const LogsPage: React.FC = () => {
                                                 <span className="text-[10px] text-text-muted">—</span>
                                             )}
                                         </td>
-                                        <td className="px-3 py-2.5 text-xs text-text-base">{entry.description}</td>
+                                        <td className="px-3 py-2.5 text-xs text-text-base">{enrichDescription(entry)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -296,15 +309,8 @@ const LogsPage: React.FC = () => {
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-sm text-text-base mb-0.5">{entry.description}</p>
-                                    <div className="flex items-center gap-3 mt-0.5">
-                                        <p className="text-[11px] text-text-muted">{entry.userName}</p>
-                                        {entry.targetDate && (
-                                            <p className="text-[10px] text-text-muted/70">
-                                                📅 {fmtDate(entry.targetDate)}
-                                            </p>
-                                        )}
-                                    </div>
+                                    <p className="text-sm text-text-base mb-0.5">{enrichDescription(entry)}</p>
+                                    <p className="text-[11px] text-text-muted">{entry.userName}</p>
                                 </div>
                             ))}
                         </div>
