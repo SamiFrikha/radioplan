@@ -793,7 +793,7 @@ const Profile: React.FC = () => {
         return { lockedByDoctorId };
     };
 
-    const handleAttendanceToggle = async (slotId: string, status: 'PRESENT' | 'ABSENT') => {
+    const handleAttendanceToggle = async (slotId: string, status: 'PRESENT' | 'ABSENT', rcpName?: string) => {
         if (!currentDoctor) return;
         // Block PRÉSENT if slot is already locked by someone else
         const { lockedByDoctorId } = getRcpLockInfo(slotId);
@@ -822,12 +822,13 @@ const Profile: React.FC = () => {
                 console.log('✅ Attendance saved:', slotId, status);
                 // Extract date from slotId (format: "<templateId>-<YYYY-MM-DD>" or "manual-rcp-...-<date>")
                 const slotDate = slotId.split('-').slice(-3).join('-');
+                const rcpLabel = rcpName ? ` "${rcpName}"` : '';
                 if (status === 'PRESENT') {
-                    await profileAddLog('RCP_PRESENT', `Présence confirmée au RCP du ${slotDate}`, {
+                    await profileAddLog('RCP_PRESENT', `Présence confirmée au RCP${rcpLabel}`, {
                         category: 'RCP', targetDate: slotDate,
                     });
                 } else {
-                    await profileAddLog('RCP_ABSENT', `Absence déclarée au RCP du ${slotDate}`, {
+                    await profileAddLog('RCP_ABSENT', `Absence déclarée au RCP${rcpLabel}`, {
                         category: 'RCP', targetDate: slotDate,
                     });
                 }
@@ -837,7 +838,7 @@ const Profile: React.FC = () => {
         }
     };
 
-    const handleClearDecision = async (slotId: string) => {
+    const handleClearDecision = async (slotId: string, rcpName?: string) => {
         if (!currentDoctor) return;
         const currentMap = rcpAttendance[slotId] || {};
         const newMap = { ...currentMap };
@@ -858,7 +859,8 @@ const Profile: React.FC = () => {
             } else {
                 console.log('✅ Attendance cleared:', slotId);
                 const slotDate = slotId.split('-').slice(-3).join('-');
-                await profileAddLog('RCP_CANCEL', `Présence annulée au RCP du ${slotDate}`, {
+                const rcpLabel = rcpName ? ` "${rcpName}"` : '';
+                await profileAddLog('RCP_CANCEL', `Présence annulée au RCP${rcpLabel}`, {
                     category: 'RCP', targetDate: slotDate,
                 });
             }
@@ -1623,7 +1625,7 @@ const Profile: React.FC = () => {
                                                                 <div className="flex gap-2 mb-3">
                                                                     {!lockedByOther && (
                                                                         <button
-                                                                            onClick={() => handleAttendanceToggle(rcp.generatedId, 'PRESENT')}
+                                                                            onClick={() => handleAttendanceToggle(rcp.generatedId, 'PRESENT', rcp.template.location)}
                                                                             disabled={rcp.myStatus === 'PRESENT'}
                                                                             className={`flex-1 py-2 rounded-btn text-sm font-semibold transition-all press-scale ${
                                                                                 rcp.myStatus === 'PRESENT'
@@ -1640,7 +1642,7 @@ const Profile: React.FC = () => {
                                                                         </button>
                                                                     )}
                                                                     <button
-                                                                        onClick={() => handleAttendanceToggle(rcp.generatedId, 'ABSENT')}
+                                                                        onClick={() => handleAttendanceToggle(rcp.generatedId, 'ABSENT', rcp.template.location)}
                                                                         disabled={rcp.myStatus === 'ABSENT'}
                                                                         className={`flex-1 py-2 rounded-btn text-sm font-semibold transition-all press-scale ${
                                                                             rcp.myStatus === 'ABSENT'
@@ -1651,7 +1653,7 @@ const Profile: React.FC = () => {
                                                                         Absent
                                                                     </button>
                                                                     {rcp.myStatus && (
-                                                                        <button onClick={() => handleClearDecision(rcp.generatedId)}
+                                                                        <button onClick={() => handleClearDecision(rcp.generatedId, rcp.template.location)}
                                                                             className="px-2 py-2 rounded-btn text-text-muted hover:text-text-base hover:bg-muted border border-border transition-all" title="Réinitialiser">
                                                                             <RotateCcw className="w-3.5 h-3.5" />
                                                                         </button>

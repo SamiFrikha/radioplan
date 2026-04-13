@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
+import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '../src/components/ui';
 
@@ -14,25 +15,25 @@ const ResetPassword: React.FC = () => {
     const [ready, setReady] = useState(false);
     const navigate = useNavigate();
 
-    // La session de recovery est établie par AuthContext (event PASSWORD_RECOVERY)
-    // On vérifie qu'une session active existe, ET on s'abonne aux changements
-    // d'état auth pour capturer la session si elle arrive de façon asynchrone
-    // (cas où le composant monte avant que Supabase ait fini d'établir la session).
-    useEffect(() => {
-        // Vérification immédiate
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) setReady(true);
-        });
+    // AuthContext gère PASSWORD_RECOVERY et stocke la session dès que supabase-js
+    // a fini de lire les tokens dans l'URL. On lit directement la session du contexte
+    // pour éviter un double abonnement et les problèmes de timing.
+    const { session } = useAuth();
 
-        // Listener asynchrone : capture PASSWORD_RECOVERY ou SIGNED_IN tardifs
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+    useEffect(() => {
+        if (session) {
+            setReady(true);
+            return;
+        }
+        // Fallback : si pour une raison quelconque la session n'est pas encore dans
+        // le contexte (rare), on écoute les événements Supabase directement.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
+            if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && s) {
                 setReady(true);
             }
         });
-
         return () => subscription.unsubscribe();
-    }, []);
+    }, [session]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
