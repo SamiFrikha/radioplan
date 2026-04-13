@@ -15,4 +15,12 @@ const fetchWithTimeout = (input: RequestInfo | URL, init?: RequestInit): Promise
 
 export const supabase = createClient(sb_u, sb_k, {
   global: { fetch: fetchWithTimeout },
+  auth: {
+    // Force implicit flow: le mode PKCE par défaut de supabase-js@2.x+
+    // place le ?code= dans le fragment hash quand l'app utilise HashRouter,
+    // ce qui empêche Supabase de le détecter via window.location.search.
+    // Le mode implicit envoie le token directement dans le hash, compatible
+    // avec HashRouter.
+    flowType: 'implicit',
+  },
 });

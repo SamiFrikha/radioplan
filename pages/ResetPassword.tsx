@@ -14,13 +14,24 @@ const ResetPassword: React.FC = () => {
     const [ready, setReady] = useState(false);
     const navigate = useNavigate();
 
-    // La session de recovery est déjà établie par AuthContext (event PASSWORD_RECOVERY)
-    // On vérifie juste qu'une session active existe
+    // La session de recovery est établie par AuthContext (event PASSWORD_RECOVERY)
+    // On vérifie qu'une session active existe, ET on s'abonne aux changements
+    // d'état auth pour capturer la session si elle arrive de façon asynchrone
+    // (cas où le composant monte avant que Supabase ait fini d'établir la session).
     useEffect(() => {
+        // Vérification immédiate
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) setReady(true);
-            else setReady(false);
         });
+
+        // Listener asynchrone : capture PASSWORD_RECOVERY ou SIGNED_IN tardifs
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+                setReady(true);
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
