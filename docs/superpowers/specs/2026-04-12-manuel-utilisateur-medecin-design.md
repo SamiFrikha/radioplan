@@ -220,9 +220,11 @@ Quand tu reçois une notification 🔄 :
 4. Si tu acceptes : le planning est mis à jour automatiquement, le médecin demandeur est informé
 
 #### 7.4 Demander un remplacement
+Applicable pour les slots de **consultation (Box)** et les slots d'**activité (Astreinte, Unity, Workflow)** assignés au médecin.
+
 Depuis "Mon Planning" ou le "Tableau de bord" :
 1. Clique sur le slot concerné
-2. Bouton "Demander un remplacement" → sélectionne le médecin cible
+2. Bouton "Demander un remplacement" → sélectionne le médecin cible dans la liste (tous les médecins de l'équipe sont listés, sans filtre de disponibilité — c'est à l'administrateur de valider la cohérence)
 3. Le médecin cible reçoit une notification 🔄
 
 ---
