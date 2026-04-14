@@ -27,8 +27,9 @@ const ResetPassword: React.FC = () => {
         }
         // Fallback : si pour une raison quelconque la session n'est pas encore dans
         // le contexte (rare), on écoute les événements Supabase directement.
+        // Bug 3 fix: ne pas réagir à SIGNED_IN (peut venir d'un autre onglet).
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
-            if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && s) {
+            if (event === 'PASSWORD_RECOVERY' && s) {
                 setReady(true);
             }
         });

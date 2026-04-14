@@ -40,7 +40,8 @@ const RecoveryRedirect: React.FC = () => {
             clearPasswordRecovery();
             navigate('/reset-password', { replace: true });
         }
-    }, [passwordRecovery]);
+    // Bug 4 fix: include all referenced values in deps array
+    }, [passwordRecovery, navigate, clearPasswordRecovery]);
     return null;
 };
 
@@ -48,9 +49,21 @@ const RecoveryRedirect: React.FC = () => {
 // tokens (#access_token=...&type=recovery). In that case, show a spinner and
 // let supabase-js read the tokens from the hash in its async _initialize().
 // RecoveryRedirect will navigate to /reset-password once PASSWORD_RECOVERY fires.
+// Bug 1 fix: add 10-second timeout so expired/invalid links don't spin forever.
 const CatchAllRoute: React.FC = () => {
+    const navigate = useNavigate();
     const hash = window.location.hash;
-    if (hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('type=signup')) {
+    const hasTokens = hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('type=signup');
+
+    useEffect(() => {
+        if (!hasTokens) return;
+        const timer = setTimeout(() => {
+            navigate('/login?error=link_expired', { replace: true });
+        }, 10_000);
+        return () => clearTimeout(timer);
+    }, [hasTokens, navigate]);
+
+    if (hasTokens) {
         return (
             <div className="flex items-center justify-center h-dvh bg-app-bg">
                 <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -702,7 +715,15 @@ const App: React.FC = () => {
         }
     };
 
-    if (loadingData && session) {
+    // Bug 2 fix: si l'URL contient des tokens de récupération (type=recovery ou access_token),
+    // l'utilisateur est en train de réinitialiser son mot de passe même s'il est déjà connecté.
+    // On NE DOIT PAS masquer le Router avec l'écran de chargement, car cela empêcherait
+    // RecoveryRedirect et CatchAllRoute de traiter les tokens et naviguer vers /reset-password.
+    const hasRecoveryTokensInHash =
+        window.location.hash.includes('type=recovery') ||
+        window.location.hash.includes('access_token=');
+
+    if (loadingData && session && !hasRecoveryTokensInHash) {
         return <div className="flex items-center justify-center h-dvh">Chargement des données...</div>;
     }
 
