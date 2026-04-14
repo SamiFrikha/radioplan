@@ -1,5 +1,6 @@
 // components/PersonalAgendaWeek.tsx
-import React, { useMemo, useContext } from 'react';
+import React, { useMemo, useContext, useRef } from 'react';
+import { useSwipe } from '../hooks/useSwipe';
 import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, EyeOff, XCircle } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
@@ -234,6 +235,16 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
     return () => window.removeEventListener('resize', handler);
   }, []);
 
+  const swipeRef = useRef<HTMLDivElement>(null);
+  useSwipe(
+    swipeRef,
+    {
+      onSwipeLeft:  () => onOffsetChange(weekOffset + 1),
+      onSwipeRight: () => onOffsetChange(weekOffset - 1),
+    },
+    isMobile
+  );
+
   // Maps slot type + RCP status to a Badge variant
   const getSlotBadgeVariant = (slot: any): 'green' | 'red' | 'amber' | 'blue' | 'gray' => {
     if (slot.type === 'LEAVE') return 'gray';
@@ -321,6 +332,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
           </div>
         )}
 
+        <div ref={swipeRef}>
         {days.map(({ day, date, isToday, periods }) => {
           // Filter out WEEKLY activities — already shown in banner
           const allSlots = periods.flatMap(p => p.slots).filter((s: any) => {
@@ -411,6 +423,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
             </div>
           );
         })}
+        </div>
       </div>
     );
   }
