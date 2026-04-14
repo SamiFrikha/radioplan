@@ -1,7 +1,7 @@
 # Design: Swipe semaine + Persistance surbrillance
 
 **Date:** 2026-04-13
-**Statut:** Approuvé
+**Statut:** Approuvé (v2 — post spec-review)
 
 ---
 
@@ -9,28 +9,42 @@
 
 ### Contexte
 
-`PersonalAgendaWeek.tsx` affiche la vue semaine du planning. La navigation entre semaines se fait uniquement via des boutons chevron gauche/droite. Ce composant est utilisé par `MonPlanning.tsx` (vue personnelle) et `Planning.tsx` (planning global). Sur mobile, le swipe est le geste naturel attendu.
+Deux composants affichent une vue semaine avec navigation par boutons chevron :
+
+1. **`PersonalAgendaWeek.tsx`** — utilisé par `MonPlanning.tsx` (vue personnelle). Prop `onOffsetChange(weekOffset)`.
+2. **`Planning.tsx`** — planning global, grille semaine propre avec `handleWeekChange(direction: number)`.
+
+Ce sont deux implémentations indépendantes. Le swipe doit être intégré dans les deux.
 
 ### Solution
 
-Créer un hook `useSwipe(ref, { onSwipeLeft, onSwipeRight })` dans `hooks/useSwipe.ts`.
+Créer un hook réutilisable `useSwipe(ref, callbacks)` dans `hooks/useSwipe.ts`.
 
-**Mécanisme :**
+**Mécanisme du hook :**
 - Écoute `touchstart`, `touchmove`, `touchend` sur le `ref` fourni
-- Seuil de déclenchement : déplacement horizontal >= 50px ET ratio horizontal/vertical > 1.5 (évite les conflits avec le scroll vertical)
-- `touchmove` avec `passive: true` pour ne pas bloquer le scroll natif
-- Aucune lib externe
+- Tous les listeners en `{ passive: true }` (pas besoin de `preventDefault`)
+- Seuil : déplacement horizontal >= 50px ET ratio horizontal/vertical > 1.5
+- **Cooldown de 300ms** après chaque swipe déclenché pour éviter les sauts de plusieurs semaines en cas de gestes rapides
+- Nettoyage automatique des listeners dans le cleanup du `useEffect`
 
-**Intégration :**
-- Dans `PersonalAgendaWeek.tsx` : wrapper `ref` sur le conteneur de la grille jours
-- `onSwipeLeft` → `onOffsetChange(weekOffset + 1)` (semaine suivante)
-- `onSwipeRight` → `onOffsetChange(weekOffset - 1)` (semaine précédente)
-- Actif uniquement quand `isMobile` est `true` (détection déjà en place via `window.innerWidth < 768`)
-- Pas d'animation de transition — le contenu se recharge comme avec les boutons
+**Intégration PersonalAgendaWeek.tsx :**
+- `ref` placé sur le conteneur des cartes jours (sous la barre de navigation semaine, pas au-dessus — évite que swiper sur les chevrons déclenche aussi le hook)
+- `onSwipeLeft` → `onOffsetChange(weekOffset + 1)`
+- `onSwipeRight` → `onOffsetChange(weekOffset - 1)`
+- Hook appelé uniquement quand `isMobile === true` (détection existante via `window.innerWidth < 768`)
+
+**Intégration Planning.tsx :**
+- `ref` placé sur le conteneur de la grille planning mobile
+- `onSwipeLeft` → `handleWeekChange(1)`
+- `onSwipeRight` → `handleWeekChange(-1)`
+- Hook appelé uniquement sur mobile (même détection `isMobile` ou `window.innerWidth < 768`)
+
+**Pas d'animation de transition** — le contenu se recharge comme avec les boutons existants.
 
 **Fichiers impactés :**
 - `hooks/useSwipe.ts` (nouveau)
 - `components/PersonalAgendaWeek.tsx` (ajout ref + appel hook)
+- `pages/Planning.tsx` (ajout ref + appel hook sur la vue mobile)
 
 ---
 
@@ -38,7 +52,7 @@ Créer un hook `useSwipe(ref, { onSwipeLeft, onSwipeRight })` dans `hooks/useSwi
 
 ### Contexte
 
-Le toggle "Me mettre en surbrillance" dans `Planning.tsx` (ligne 100) utilise `useState(false)`. L'état est perdu à chaque refresh ou changement de page. Le pattern de persistance existe déjà pour `density` via `profiles.ui_prefs` (champ JSONB).
+Le toggle "Me mettre en surbrillance" dans `Planning.tsx` (state `highlightMe` déclaré ligne ~100, bouton UI ligne ~899) utilise `useState(false)`. L'état est perdu au refresh. Le pattern de persistance existe déjà pour `density` via `profiles.ui_prefs` (JSONB).
 
 ### Solution
 
@@ -48,13 +62,15 @@ Suivre le pattern exact de `handleDensityChange` :
 - `Planning.tsx` lit déjà `ui_prefs` pour `density` (via `useEffect` existant)
 - Ajouter la lecture de `ui_prefs.planning_highlight_me` dans le même `useEffect`
 - Initialiser `highlightMe` avec la valeur lue (défaut `false`)
+- **Guard :** vérifier `user?.id` avant la requête (comme pour density)
 
 **Écriture au toggle :**
-- Au clic sur le bouton de surbrillance, sauvegarder dans Supabase :
+- Au clic, `setState` immédiat (optimiste), puis persist async :
   ```
   profiles.ui_prefs = { ...existing, planning_highlight_me: newValue }
   ```
-- Mise à jour optimiste (setState immédiat, persist async)
+- **Guard :** `if (!user?.id) return` (comme `handleDensityChange`)
+- **En cas d'erreur Supabase :** `console.error` sans rollback (comportement identique au pattern existant de `handleDensityChange`)
 
 **Clé JSONB :** `planning_highlight_me` (cohérent avec `planning_density`)
 
@@ -70,3 +86,4 @@ Suivre le pattern exact de `handleDensityChange` :
 - Animation de swipe (slide/fade entre semaines)
 - Persistance des autres préférences du panel settings (view mode, color mode)
 - Swipe sur la vue mois
+- Swipe sur tablettes/laptops tactiles (> 768px) — le hook est conditionné à `isMobile`
