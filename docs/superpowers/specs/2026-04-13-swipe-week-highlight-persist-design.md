@@ -12,7 +12,7 @@
 Deux composants affichent une vue semaine avec navigation par boutons chevron :
 
 1. **`PersonalAgendaWeek.tsx`** — utilisé par `MonPlanning.tsx` (vue personnelle). Prop `onOffsetChange(weekOffset)`.
-2. **`Planning.tsx`** — planning global, grille semaine propre avec `handleWeekChange(direction: number)`.
+2. **`Planning.tsx`** — planning global, grille semaine propre avec `handleWeekChange(direction: 'prev' | 'next')`. **Note :** Planning.tsx n'a pas de détection `isMobile` — il faudra l'ajouter.
 
 Ce sont deux implémentations indépendantes. Le swipe doit être intégré dans les deux.
 
@@ -28,16 +28,16 @@ Créer un hook réutilisable `useSwipe(ref, callbacks)` dans `hooks/useSwipe.ts`
 - Nettoyage automatique des listeners dans le cleanup du `useEffect`
 
 **Intégration PersonalAgendaWeek.tsx :**
-- `ref` placé sur le conteneur des cartes jours (sous la barre de navigation semaine, pas au-dessus — évite que swiper sur les chevrons déclenche aussi le hook)
+- Ajouter un `<div ref={swipeRef}>` wrapper autour des cartes jours (la map `days.map(...)`) — ce wrapper n'existe pas actuellement, les cartes sont enfants directs du `<div className="space-y-4">`. Ne PAS inclure la barre de navigation chevrons dans ce wrapper.
 - `onSwipeLeft` → `onOffsetChange(weekOffset + 1)`
 - `onSwipeRight` → `onOffsetChange(weekOffset - 1)`
 - Hook appelé uniquement quand `isMobile === true` (détection existante via `window.innerWidth < 768`)
 
 **Intégration Planning.tsx :**
 - `ref` placé sur le conteneur de la grille planning mobile
-- `onSwipeLeft` → `handleWeekChange(1)`
-- `onSwipeRight` → `handleWeekChange(-1)`
-- Hook appelé uniquement sur mobile (même détection `isMobile` ou `window.innerWidth < 768`)
+- `onSwipeLeft` → `handleWeekChange('next')`
+- `onSwipeRight` → `handleWeekChange('prev')`
+- Ajouter une détection `isMobile` (state + resize listener, même pattern que `PersonalAgendaWeek.tsx` lignes 230-235). Hook appelé uniquement quand `isMobile === true`.
 
 **Pas d'animation de transition** — le contenu se recharge comme avec les boutons existants.
 
