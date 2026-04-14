@@ -46,23 +46,18 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
   const [resolvedSlots, setResolvedSlots] = useState<Set<string>>(new Set());
   const [activeConflictSlot, setActiveConflictSlot] = useState<ScheduleSlot | null>(null);
 
-  // Generate schedule for each week in the absence range, find slots assigned to this doctor
-  const conflictingSlots = useMemo(() => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const allSlots: ScheduleSlot[] = [];
-
-    // Find the Monday of the week containing startDate
-    const firstMonday = new Date(start);
+  // Generate full schedule (all doctors) for every week covered by the absence.
+  // Used by ConflictResolverModal to check real availability (who is already assigned).
+  const allWeekSlots = useMemo(() => {
+    const firstMonday = new Date(startDate + 'T00:00:00');
     const dow = firstMonday.getDay();
     firstMonday.setDate(firstMonday.getDate() - (dow === 0 ? 6 : dow - 1));
 
-    // Find the Monday of the week containing endDate
-    const lastMonday = new Date(end);
+    const lastMonday = new Date(endDate + 'T00:00:00');
     const dow2 = lastMonday.getDay();
     lastMonday.setDate(lastMonday.getDate() - (dow2 === 0 ? 6 : dow2 - 1));
 
-    // Generate schedule for each week
+    const allSlots: ScheduleSlot[] = [];
     for (let monday = new Date(firstMonday); monday <= lastMonday; monday.setDate(monday.getDate() + 7)) {
       try {
         const weekSlots = generateScheduleForWeek(
@@ -74,22 +69,19 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
         // Skip weeks that fail to generate
       }
     }
+    return allSlots;
+  }, [startDate, endDate, template, unavailabilities, doctors, activityDefinitions, rcpTypes, shiftHistory, rcpAttendance, rcpExceptions]);
 
-    return allSlots.filter(slot => {
-      // Must be within the absence date range
+  // Filtered to slots where the absent doctor is assigned — used for display only.
+  const conflictingSlots = useMemo(() => {
+    return allWeekSlots.filter(slot => {
       if (slot.date < startDate || slot.date > endDate) return false;
-
-      // Check period overlap
       if (period !== 'ALL_DAY' && slot.period !== period) return false;
-
-      // Check if doctor is assigned
       const isPrimary = slot.assignedDoctorId === doctorId;
       const isSecondary = slot.secondaryDoctorIds?.includes(doctorId) ?? false;
-      return isPrimary || isSecondary;
-    })
-    .filter(slot => !slot.isClosed && !slot.isCancelled)
-    .sort((a, b) => a.date.localeCompare(b.date) || a.period.localeCompare(b.period));
-  }, [startDate, endDate, period, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, shiftHistory, rcpAttendance, rcpExceptions]);
+      return (isPrimary || isSecondary) && !slot.isClosed && !slot.isCancelled;
+    }).sort((a, b) => a.date.localeCompare(b.date) || a.period.localeCompare(b.period));
+  }, [allWeekSlots, startDate, endDate, period, doctorId]);
 
   // Group by date for display
   const groupedByDate = useMemo(() => {
@@ -128,7 +120,7 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
         slot={activeConflictSlot}
         conflict={conflict}
         doctors={doctors}
-        slots={conflictingSlots}
+        slots={allWeekSlots}
         unavailabilities={unavailabilities}
         onClose={() => setActiveConflictSlot(null)}
         onResolve={handleResolve}

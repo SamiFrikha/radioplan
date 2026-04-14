@@ -11,7 +11,6 @@ import { getDoctorHexColor } from '../components/DoctorBadge';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
-import { useSwipe } from '../hooks/useSwipe';
 import { activityLogService } from '../services/activityLogService';
 
 const Planning: React.FC = () => {
@@ -153,15 +152,6 @@ const Planning: React.FC = () => {
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const tableContainerRef = useRef<HTMLDivElement>(null);
 
-    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-    useEffect(() => {
-      const handler = () => setIsMobile(window.innerWidth < 768);
-      window.addEventListener('resize', handler);
-      return () => window.removeEventListener('resize', handler);
-    }, []);
-
-    const weekNavRef = useRef<HTMLDivElement>(null);
-
     const days = Object.values(DayOfWeek);
 
     // Row order: Astreinte → Unity → Workflow → other activities → postes (consultation)
@@ -229,15 +219,6 @@ const Planning: React.FC = () => {
         newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
         setCurrentWeekStart(newDate);
     };
-    useSwipe(
-      weekNavRef,
-      {
-        onSwipeLeft:  () => handleWeekChange('next'),
-        onSwipeRight: () => handleWeekChange('prev'),
-      },
-      isMobile
-    );
-
     const handleDownloadPDF = () => {
         try {
             setIsGeneratingPdf(true);
@@ -1009,14 +990,13 @@ const Planning: React.FC = () => {
                 </div>
             </div>
 
-            {/* Planning grid card — swipe zone */}
-            <div ref={weekNavRef} className="flex-1 min-h-0 flex flex-col">
+            {/* Planning grid card */}
             <Card className="flex-1 min-h-0 flex flex-col">
                 {/* Dual-axis scroll container */}
                 <div
                     ref={tableContainerRef}
                     className="flex-1 overflow-x-auto overflow-y-auto overscroll-contain"
-                    style={{ touchAction: 'pan-y' }}
+                    style={{ touchAction: 'pan-x pan-y' }}
                 >
                     <table className="w-full border-collapse" style={{ minWidth: '600px' }}>
                         <thead>
@@ -1118,7 +1098,6 @@ const Planning: React.FC = () => {
                     </table>
                 </div>
             </Card>
-            </div>
 
             {selectedSlot && (
                 <SlotDetailsModal
