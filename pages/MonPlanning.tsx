@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { AppContext } from '../App';
 import PersonalAgendaWeek from '../components/PersonalAgendaWeek';
 import PersonalAgendaMonth from '../components/PersonalAgendaMonth';
@@ -7,6 +7,7 @@ import RcpAttendanceModal from '../components/RcpAttendanceModal';
 import { ScheduleSlot } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../services/activityLogService';
+import { generateScheduleForWeek } from '../services/scheduleService';
 
 const MonPlanning: React.FC = () => {
   const [agendaView, setAgendaView] = useState<'week' | 'month'>('week');
@@ -17,6 +18,8 @@ const MonPlanning: React.FC = () => {
 
   const {
     doctors, unavailabilities, manualOverrides, setManualOverrides,
+    template, activityDefinitions, rcpTypes, effectiveHistory,
+    rcpAttendance, rcpExceptions,
   } = useContext(AppContext);
 
   const { profile } = useAuth();
@@ -67,7 +70,51 @@ const MonPlanning: React.FC = () => {
     setSelectedActivitySlot(null);
   };
 
-  const weekSlots: ScheduleSlot[] = [];
+  // Slot actif (consult ou activité) pour déterminer la semaine à générer
+  const activeModalSlot = selectedConsultSlot || selectedActivitySlot;
+
+  // Génère le planning complet (tous médecins) de la semaine du slot sélectionné.
+  // Utilisé par ConflictResolverModal pour vérifier qui est déjà pris sur ce créneau.
+  // Sans ce calcul, weekSlots était vide → tous les médecins apparaissaient "Disponible"
+  // même s'ils étaient déjà assignés à une Unity/Astreinte/Consultation ce demi-journée.
+  const weekSlots: ScheduleSlot[] = useMemo(() => {
+    if (!activeModalSlot?.date) return [];
+
+    // Calcule le lundi de la semaine du slot
+    const slotDate = new Date(activeModalSlot.date + 'T00:00:00');
+    const dayOfWeek = slotDate.getDay();
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const weekStart = new Date(slotDate);
+    weekStart.setDate(slotDate.getDate() + diffToMonday);
+
+    const generated = generateScheduleForWeek(
+      weekStart,
+      template,
+      unavailabilities,
+      doctors,
+      activityDefinitions,
+      rcpTypes,
+      true,
+      effectiveHistory,
+      rcpAttendance,
+      rcpExceptions,
+    );
+
+    // Applique les overrides manuels (sans effacer les assignations d'activités —
+    // on veut voir qui est vraiment assigné pour le check de disponibilité)
+    return generated.map(slot => {
+      const overrideValue = manualOverrides[slot.id];
+      if (!overrideValue) return slot;
+      if (overrideValue === '__CLOSED__') return { ...slot, assignedDoctorId: null, isLocked: true };
+      const isAuto = overrideValue.startsWith('auto:');
+      const doctorId = isAuto ? overrideValue.substring(5) : overrideValue;
+      return { ...slot, assignedDoctorId: doctorId, isLocked: true };
+    });
+  }, [
+    activeModalSlot?.date,
+    template, unavailabilities, doctors, activityDefinitions,
+    rcpTypes, effectiveHistory, rcpAttendance, rcpExceptions, manualOverrides,
+  ]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 pb-20">
