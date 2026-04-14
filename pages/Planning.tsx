@@ -79,9 +79,10 @@ const Planning: React.FC = () => {
     const [density, setDensity] = useState<'COMPACT' | 'COMFORTABLE'>(
         () => window.innerWidth < 768 ? 'COMPACT' : 'COMFORTABLE'
     );
+    const [highlightMe, setHighlightMe] = useState(false);
     useEffect(() => {
       if (!user?.id) return;
-      const loadDensity = async () => {
+      const loadPrefs = async () => {
         try {
           const { data } = await supabase
             .from('profiles')
@@ -91,14 +92,16 @@ const Planning: React.FC = () => {
           if (data?.ui_prefs?.planning_density) {
             setDensity(data.ui_prefs.planning_density as 'COMPACT' | 'COMFORTABLE');
           }
+          if (typeof data?.ui_prefs?.planning_highlight_me === 'boolean') {
+            setHighlightMe(data.ui_prefs.planning_highlight_me);
+          }
         } catch (err) {
           console.error(err);
         }
       };
-      loadDensity();
+      loadPrefs();
     }, [user?.id]);
     const [showSettings, setShowSettings] = useState(false);
-    const [highlightMe, setHighlightMe] = useState(false);
 
     // Check if current week is validated/locked in Activities page
     const currentWeekKey = currentWeekStart.toISOString().split('T')[0];
@@ -785,6 +788,25 @@ const Planning: React.FC = () => {
       }
     };
 
+    const handleHighlightToggle = async () => {
+      const newValue = !highlightMe;
+      setHighlightMe(newValue);                   // optimiste
+      if (!user?.id) return;
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('profiles').select('ui_prefs').eq('id', user.id).single();
+        if (fetchError) throw fetchError;
+        const existing = data?.ui_prefs ?? {};
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ ui_prefs: { ...existing, planning_highlight_me: newValue } })
+          .eq('id', user.id);
+        if (updateError) throw updateError;
+      } catch (err) {
+        console.error('Failed to persist highlight preference:', err);
+      }
+    };
+
     const selectedSlot = schedule.find(s => s.id === selectedSlotId);
     const selectedConflict = conflicts.find(c => c.slotId === selectedSlotId);
     const rowHeightClass = density === 'COMPACT' ? 'h-20' : 'h-28';
@@ -914,7 +936,7 @@ const Planning: React.FC = () => {
                                             <Eye className="w-3 h-3 mr-1" /> Mon nom
                                         </h4>
                                         <button
-                                            onClick={() => setHighlightMe(h => !h)}
+                                            onClick={() => handleHighlightToggle()}
                                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded text-xs font-bold border transition-colors ${highlightMe ? 'bg-primary/10 border-primary/30 text-primary-text' : 'bg-surface border-border text-text-muted hover:bg-muted'}`}
                                         >
                                             <span className="flex items-center gap-2">
