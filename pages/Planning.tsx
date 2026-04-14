@@ -1,7 +1,6 @@
 import React, { useContext, useState, useRef, useMemo, useEffect } from 'react';
 import { AppContext } from '../App';
 import { DayOfWeek, Period, SlotType, ScheduleSlot } from '../types';
-import SlotDetailsModal from '../components/SlotDetailsModal';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import { AlertCircle, ChevronLeft, ChevronRight, Calendar, UserCheck, Users, LayoutGrid, Printer, Loader2, ImageIcon, Lock, Ban, Settings, Palette, Eye, ShieldAlert, X } from 'lucide-react';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
@@ -147,7 +146,6 @@ const Planning: React.FC = () => {
     }, [schedule, unavailabilities, doctors, activityDefinitions]);
 
 
-    const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
     const [selectedConflictSlot, setSelectedConflictSlot] = useState<ScheduleSlot | null>(null);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -178,7 +176,7 @@ const Planning: React.FC = () => {
                 [slotId]: newDoctorId
             });
         }
-        setSelectedSlotId(null);
+        setSelectedConflictSlot(null);
 
         // Log PLANNING_ASSIGN when a doctor is assigned (not when clearing)
         if (newDoctorId && newDoctorId !== "") {
@@ -202,7 +200,7 @@ const Planning: React.FC = () => {
             ...manualOverrides,
             [slotId]: '__CLOSED__'
         });
-        setSelectedSlotId(null);
+        setSelectedConflictSlot(null);
     }
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -557,11 +555,7 @@ const Planning: React.FC = () => {
                     style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, var(--color-border) 10px, var(--color-border) 20px)' }}
                     onClick={() => {
                         if (canClick) {
-                            if (isDoctor && !isAdmin) {
-                                setSelectedConflictSlot(slot as ScheduleSlot);
-                            } else {
-                                setSelectedSlotId(slot.id);
-                            }
+                            setSelectedConflictSlot(slot as ScheduleSlot);
                         } else if (!isAdmin) {
                             setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation.");
                             setTimeout(() => setAccessDeniedMessage(null), 4000);
@@ -649,12 +643,7 @@ const Planning: React.FC = () => {
         // Handle click based on access control
         const handleSlotClick = () => {
             if (canClick) {
-                if (isDoctor && !isAdmin) {
-                    // Activity slots open the ConflictResolverModal directly (same as consult)
-                    setSelectedConflictSlot(slot as ScheduleSlot);
-                } else {
-                    setSelectedSlotId(slot.id);
-                }
+                setSelectedConflictSlot(slot as ScheduleSlot);
             } else if (!isAdmin) {
                 setAccessDeniedMessage("Vous ne pouvez modifier que vos propres créneaux de consultation ou d'activité.");
                 setTimeout(() => setAccessDeniedMessage(null), 4000);
@@ -788,8 +777,6 @@ const Planning: React.FC = () => {
       }
     };
 
-    const selectedSlot = schedule.find(s => s.id === selectedSlotId);
-    const selectedConflict = conflicts.find(c => c.slotId === selectedSlotId);
     const rowHeightClass = density === 'COMPACT' ? 'h-20' : 'h-28';
 
     return (
@@ -1099,19 +1086,6 @@ const Planning: React.FC = () => {
                 </div>
             </Card>
 
-            {selectedSlot && (
-                <SlotDetailsModal
-                    slot={selectedSlot}
-                    conflict={selectedConflict}
-                    doctors={doctors}
-                    slots={schedule}
-                    unavailabilities={unavailabilities}
-                    onClose={() => setSelectedSlotId(null)}
-                    onResolve={handleResolve}
-                    onCloseSlot={handleCloseSlot}
-                />
-            )}
-
             {selectedConflictSlot && (
                 <ConflictResolverModal
                     slot={selectedConflictSlot}
@@ -1120,14 +1094,8 @@ const Planning: React.FC = () => {
                     slots={schedule}
                     unavailabilities={unavailabilities}
                     onClose={() => setSelectedConflictSlot(null)}
-                    onResolve={(slotId, newDoctorId) => {
-                        handleResolve(slotId, newDoctorId);
-                        setSelectedConflictSlot(null);
-                    }}
-                    onCloseSlot={(slotId) => {
-                        handleCloseSlot(slotId);
-                        setSelectedConflictSlot(null);
-                    }}
+                    onResolve={handleResolve}
+                    onCloseSlot={handleCloseSlot}
                 />
             )}
         </div>
