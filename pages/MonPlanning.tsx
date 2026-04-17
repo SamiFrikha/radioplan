@@ -94,7 +94,7 @@ const MonPlanning: React.FC = () => {
       doctors,
       activityDefinitions,
       rcpTypes,
-      true,
+      false, // Only use saved overrides — avoids random re-roll from fillAutoActivities diverging from the actual schedule
       effectiveHistory,
       rcpAttendance,
       rcpExceptions,
