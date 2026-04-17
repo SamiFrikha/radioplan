@@ -338,9 +338,12 @@ const Dashboard: React.FC = () => {
         const filledSlots = filteredSlots.filter(s => s.assignedDoctorId).length;
         const occupancy = totalSlots > 0 ? Math.round((filledSlots / totalSlots) * 100) : 0;
 
-        // conflicts is already scoped to the visible period (day or week)
-        // by the conflicts useMemo — no secondary filtering needed here.
-        const relevantConflicts = conflicts;
+        // Non-admin doctors only see conflicts that concern their own slots.
+        // Admins and users without a linked doctor profile see everything.
+        const isAdminUser = profile?.role === 'admin' || profile?.role_name === 'Admin';
+        const relevantConflicts = (!isAdminUser && profile?.doctor_id)
+            ? conflicts.filter(c => c.doctorId === profile.doctor_id)
+            : conflicts;
 
         let absentees = [];
         if (viewMode === 'DAY') {
@@ -364,7 +367,7 @@ const Dashboard: React.FC = () => {
             filteredConflicts: relevantConflicts,
             absentees
         };
-    }, [schedule, viewMode, selectedDate, conflicts, currentWeekStart, unavailabilities, doctors]);
+    }, [schedule, viewMode, selectedDate, conflicts, currentWeekStart, unavailabilities, doctors, profile]);
 
     // --- RESOLUTION HANDLERS ---
     const handleResolve = (slotId: string, newDoctorId: string) => {

@@ -534,8 +534,11 @@ const Profile: React.FC = () => {
             });
     }, [profile?.id]);
 
-    // Conflicts tab: raw schedule WITHOUT overrides — used for conflict detection so that
-    // closed/resolved slots still appear in the list after the user takes action.
+    // Conflicts tab: schedule for conflict detection.
+    // We apply non-CLOSED overrides (auto:X activity assignments, replacement Y) so that
+    // activity/RCP conflicts are correctly attributed to the right doctor.
+    // We intentionally do NOT apply __CLOSED__ — this keeps the original doctor on a
+    // closed slot so the "Créneau fermé" conflict card remains visible after closure.
     const conflictsRawSchedule = useMemo(() => {
         if (!currentDoctor) return [];
 
@@ -544,12 +547,19 @@ const Profile: React.FC = () => {
         weekStart.setDate(weekStart.getDate() - day + (day === 0 ? -6 : 1) + (conflictsWeekOffset * 7));
         weekStart.setHours(0, 0, 0, 0);
 
-        return generateScheduleForWeek(
+        const generated = generateScheduleForWeek(
             weekStart, template, unavailabilities, doctors,
             activityDefinitions, rcpTypes, false, {},
             rcpAttendance, rcpExceptions
         );
-    }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+        return generated.map(slot => {
+            const overrideValue = manualOverrides[slot.id];
+            if (!overrideValue || overrideValue === '__CLOSED__') return slot;
+            const isAuto = overrideValue.startsWith('auto:');
+            const doctorId = isAuto ? overrideValue.substring(5) : overrideValue;
+            return { ...slot, assignedDoctorId: doctorId, isLocked: true };
+        });
+    }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides]);
 
     // Schedule WITH overrides — passed to ConflictResolverModal so Dispo/Indispo badges are correct
     const conflictsWeekSchedule = useMemo(() => {

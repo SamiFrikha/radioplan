@@ -171,7 +171,17 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
 
       const periods = PERIODS.map(period => {
         if (onLeave) {
-          return { period, slots: [{ id: 'leave-'+dateStr+period, type: 'LEAVE', location: 'Congé', date: dateStr, period }] };
+          // Slots that were assigned to the doctor on this leave day — used to show what
+          // happened to each (closed, unresolved, etc.)
+          const conflictSlots = schedule.filter(s =>
+            s.day === day && s.period === period &&
+            (s.assignedDoctorId === doctorId || s.secondaryDoctorIds?.includes(doctorId!))
+          );
+          return {
+            period,
+            slots: [{ id: 'leave-'+dateStr+period, type: 'LEAVE', location: 'Congé', date: dateStr, period }],
+            conflictSlots,
+          };
         }
         return {
           period,
@@ -187,6 +197,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
               ))
             )
           ),
+          conflictSlots: [] as any[],
         };
       });
 
@@ -340,6 +351,8 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
             const def = activityDefinitions.find((a: any) => a.id === s.activityId);
             return def?.granularity !== 'WEEKLY';
           });
+          // Slots impacted by leave — to show what happened to each
+          const allConflictSlots = periods.flatMap((p: any) => p.conflictSlots || []);
           const dayNumber = date.getDate();
           const dayName = DAY_LABELS[day];
           const monthShort = date.toLocaleDateString('fr-FR', { month: 'short' });
@@ -419,6 +432,34 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                     </div>
                   );
                 })}
+                {/* Slots impacted by leave — mobile */}
+                {allConflictSlots.map((slot: any) => {
+                  const ov = manualOverrides[slot.id] ?? '';
+                  const isClosed = ov === '__CLOSED__';
+                  const name = slot.subType || slot.location || (slot.type === SlotType.CONSULTATION ? 'Consultation' : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
+                  const statusColor = isClosed ? '#059669' : '#D97706';
+                  return (
+                    <div key={`conf-mob-${slot.id}`} className="relative">
+                      <div className="w-2.5 h-2.5 rounded-full -ml-[22px] mt-3 flex-shrink-0 absolute border-2 border-surface"
+                        style={{ backgroundColor: statusColor }} aria-hidden="true" />
+                      <div className="flex items-center gap-3 py-2 px-3 rounded-btn-sm opacity-80">
+                        <span className="text-xs font-semibold text-text-muted tabular-nums w-10 flex-shrink-0">
+                          {slot.period === Period.MORNING ? '08h00' : '14h00'}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="text-sm font-medium truncate block" style={{ color: statusColor }}>{name}</span>
+                          <span className="text-[10px] font-semibold" style={{ color: statusColor }}>
+                            {isClosed ? '✓ Fermé' : '⚠ Non résolu'}
+                          </span>
+                        </span>
+                        <span className="rounded-full text-[9px] font-bold px-2 py-0.5 text-white flex-shrink-0"
+                          style={{ backgroundColor: statusColor }}>
+                          {isClosed ? 'FERMÉ' : 'À résoudre'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -486,7 +527,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
               </div>
 
               {/* AM / PM slots */}
-              {periods.map(({ period, slots: rawSlots }) => {
+              {periods.map(({ period, slots: rawSlots, conflictSlots }) => {
                 // Filter out WEEKLY-granularity activity slots — they appear in the banner strip above
                 const slots = rawSlots.filter((slot: any) => {
                   if (slot.type !== SlotType.ACTIVITY) return true;
@@ -630,6 +671,26 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                         );
                       })
                     )}
+                    {/* Slots impacted by leave — show what happened (closed / unresolved) */}
+                    {conflictSlots?.map((slot: any) => {
+                      const ov = manualOverrides[slot.id] ?? '';
+                      const isClosed = ov === '__CLOSED__';
+                      const name = slot.subType || slot.location || (slot.type === SlotType.CONSULTATION ? 'Consult.' : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
+                      const statusColor = isClosed ? '#059669' : '#D97706';
+                      return (
+                        <div key={`conf-${slot.id}`}
+                          className="rounded-btn-sm border border-dashed px-1.5 py-1 mb-0.5"
+                          style={{ backgroundColor: isClosed ? 'rgba(5,150,105,0.08)' : 'rgba(217,119,6,0.08)', borderColor: isClosed ? 'rgba(5,150,105,0.35)' : 'rgba(217,119,6,0.35)' }}>
+                          <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
+                            <span className="text-[10px] font-semibold truncate flex-1" style={{ color: statusColor }}>{name}</span>
+                          </div>
+                          <p className="text-[9px] ml-2.5 font-medium" style={{ color: statusColor }}>
+                            {isClosed ? '✓ Fermé' : '⚠ Non résolu'}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
