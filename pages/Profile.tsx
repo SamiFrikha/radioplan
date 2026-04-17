@@ -520,12 +520,21 @@ const Profile: React.FC = () => {
         weekStart.setDate(weekStart.getDate() - day + (day === 0 ? -6 : 1) + (conflictsWeekOffset * 7));
         weekStart.setHours(0, 0, 0, 0);
 
-        return generateScheduleForWeek(
+        const generated = generateScheduleForWeek(
             weekStart, template, unavailabilities, doctors,
             activityDefinitions, rcpTypes, false, {},
             rcpAttendance, rcpExceptions
         );
-    }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+        // Apply saved overrides so doctors on astreinte/unity show as Indispo in replacement modal
+        return generated.map(slot => {
+            const overrideValue = manualOverrides[slot.id];
+            if (!overrideValue) return slot;
+            if (overrideValue === '__CLOSED__') return { ...slot, assignedDoctorId: null, isLocked: true };
+            const isAuto = overrideValue.startsWith('auto:');
+            const doctorId = isAuto ? overrideValue.substring(5) : overrideValue;
+            return { ...slot, assignedDoctorId: doctorId, isLocked: true };
+        });
+    }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides]);
 
     // Schedule for the RCP tab's displayed week — used as slots prop in ConflictResolverModal from RCP tab
     const rcpWeekSlots = useMemo(() => {
@@ -538,11 +547,20 @@ const Profile: React.FC = () => {
         currentMonday.setHours(0, 0, 0, 0);
         const targetMonday = new Date(currentMonday);
         targetMonday.setDate(targetMonday.getDate() + (notifWeekOffset * 7));
-        return generateScheduleForWeek(
+        const generated = generateScheduleForWeek(
             targetMonday, template, unavailabilities, doctors,
             activityDefinitions, rcpTypes, false, {}, rcpAttendance, rcpExceptions
         );
-    }, [currentDoctor, notifWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+        // Apply saved overrides so doctors on astreinte/unity show as Indispo in replacement modal
+        return generated.map(slot => {
+            const overrideValue = manualOverrides[slot.id];
+            if (!overrideValue) return slot;
+            if (overrideValue === '__CLOSED__') return { ...slot, assignedDoctorId: null, isLocked: true };
+            const isAuto = overrideValue.startsWith('auto:');
+            const doctorId = isAuto ? overrideValue.substring(5) : overrideValue;
+            return { ...slot, assignedDoctorId: doctorId, isLocked: true };
+        });
+    }, [currentDoctor, notifWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides]);
 
     const profileConflicts = useMemo(() => {
         if (!currentDoctor || conflictsWeekSchedule.length === 0) return [];

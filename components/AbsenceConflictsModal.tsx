@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import { Calendar, AlertTriangle, CheckCircle2, ChevronRight, X } from 'lucide-react';
 import { Button } from '../src/components/ui/Button';
 import { ScheduleTemplateSlot, ScheduleSlot, Doctor, ActivityDefinition, Unavailability, Conflict, Period, ShiftHistory, RcpDefinition, RcpAttendance, RcpException } from '../types';
 import { generateScheduleForWeek } from '../services/scheduleService';
 import ConflictResolverModal from './ConflictResolverModal';
+import { AppContext } from '../App';
 
 interface AbsenceConflictsModalProps {
   doctorId: string;
@@ -45,6 +46,7 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
 }) => {
   const [resolvedSlots, setResolvedSlots] = useState<Set<string>>(new Set());
   const [activeConflictSlot, setActiveConflictSlot] = useState<ScheduleSlot | null>(null);
+  const { manualOverrides } = useContext(AppContext);
 
   // Generate full schedule (all doctors) for every week covered by the absence.
   // Used by ConflictResolverModal to check real availability (who is already assigned).
@@ -69,8 +71,16 @@ const AbsenceConflictsModal: React.FC<AbsenceConflictsModalProps> = ({
         // Skip weeks that fail to generate
       }
     }
-    return allSlots;
-  }, [startDate, endDate, template, unavailabilities, doctors, activityDefinitions, rcpTypes, shiftHistory, rcpAttendance, rcpExceptions]);
+    // Apply saved overrides so doctors on astreinte/unity show as Indispo
+    return allSlots.map(slot => {
+      const overrideValue = manualOverrides[slot.id];
+      if (!overrideValue) return slot;
+      if (overrideValue === '__CLOSED__') return { ...slot, assignedDoctorId: null, isLocked: true };
+      const isAuto = overrideValue.startsWith('auto:');
+      const doctorId = isAuto ? overrideValue.substring(5) : overrideValue;
+      return { ...slot, assignedDoctorId: doctorId, isLocked: true };
+    });
+  }, [startDate, endDate, template, unavailabilities, doctors, activityDefinitions, rcpTypes, shiftHistory, rcpAttendance, rcpExceptions, manualOverrides]);
 
   // Filtered to slots where the absent doctor is assigned — used for display only.
   const conflictingSlots = useMemo(() => {
