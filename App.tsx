@@ -15,6 +15,7 @@ import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, A
 import { detectConflicts, generateScheduleForWeek, computeHistoryFromDate, getDateForDayOfWeek } from './services/scheduleService';
 import { useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import NotificationToastStack from './components/NotificationToastStack';
 import Login from './pages/Login';
 import ResetPassword from './pages/ResetPassword';
 import RoleManagement from './pages/admin/RoleManagement';
@@ -748,6 +749,7 @@ const App: React.FC = () => {
             configRcpFullscreen, setConfigRcpFullscreen
         }}>
             <NotificationProvider>
+            <NotificationToastStack />
             <Router>
                 <RecoveryRedirect />
                 <Routes>

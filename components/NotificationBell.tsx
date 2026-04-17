@@ -46,6 +46,7 @@ const ReplacementActions: React.FC<{
       let requesterDoctorId: string | undefined;
       let slotDate: string | undefined;
       let period: string | undefined;
+      let activityName: string | undefined;
 
       if (status === 'ACCEPTED') {
         if (!currentDoctorId) {
@@ -67,6 +68,16 @@ const ReplacementActions: React.FC<{
         slotType          = (result.slot_type as string) ?? '';
         requesterDoctorId = result.requester_doctor_id as string;
         console.log('[BELL] 1️⃣ RPC success ✅', { slotId, slotType, requesterDoctorId });
+
+        // Fetch slot details for rich notification body
+        const { data: reqDetails } = await supabase
+          .from('replacement_requests')
+          .select('slot_date, period, activity_name')
+          .eq('id', requestId)
+          .single();
+        slotDate     = reqDetails?.slot_date;
+        period       = reqDetails?.period;
+        activityName = reqDetails?.activity_name;
 
         await activityLogService.addLog({
           userId: profile?.id || '',
@@ -98,7 +109,7 @@ const ReplacementActions: React.FC<{
         console.log('[BELL] 1️⃣ REJECTED — fetching request info…');
         const { data: reqRow, error: selErr } = await supabase
           .from('replacement_requests')
-          .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
+          .select('slot_id, slot_type, requester_doctor_id, slot_date, period, activity_name')
           .eq('id', requestId)
           .single();
         console.log('[BELL] 1️⃣ SELECT:', { reqRow, selErr });
@@ -107,6 +118,7 @@ const ReplacementActions: React.FC<{
         requesterDoctorId = reqRow?.requester_doctor_id;
         slotDate          = reqRow?.slot_date;
         period            = reqRow?.period;
+        activityName      = reqRow?.activity_name;
         await markReplacementResolved(requestId, 'REJECTED');
         console.log('[BELL] 1️⃣ marked REJECTED ✅');
 
@@ -130,7 +142,15 @@ const ReplacementActions: React.FC<{
             user_id: requesterProfile.id,
             type: status === 'ACCEPTED' ? 'REPLACEMENT_ACCEPTED' : 'REPLACEMENT_REJECTED',
             title: status === 'ACCEPTED' ? 'Remplacement accepté ✅' : 'Remplacement refusé ❌',
-            body: `${currentDoctorName ? `Dr. ${currentDoctorName} a ` : ''}${status === 'ACCEPTED' ? 'accepté' : 'refusé'} votre demande de remplacement${slotDate ? ` pour le ${slotDate}` : ''}${period ? ` (${period})` : ''}.`,
+            body: (() => {
+              const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+              const verb = status === 'ACCEPTED' ? 'accepté' : 'refusé';
+              const who = currentDoctorName ? `Dr. ${currentDoctorName} a ` : '';
+              const what = activityName ? ` — ${activityName}` : '';
+              const when = slotDate ? `, le ${fmtDate(slotDate)}` : '';
+              const per = period ? ` (${period})` : '';
+              return `${who}${verb} votre demande de remplacement${what}${when}${per}.`;
+            })(),
             data: { requestId, slotId, slotType },
             read: false,
           });

@@ -18,6 +18,8 @@ interface NotificationContextType {
   markAllRead: () => Promise<void>;
   clearAll: () => Promise<void>;
   refresh: () => Promise<void>;
+  toasts: AppNotification[];
+  dismissToast: (id: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
@@ -28,6 +30,8 @@ const NotificationContext = createContext<NotificationContextType>({
   markAllRead: async () => {},
   clearAll: async () => {},
   refresh: async () => {},
+  toasts: [],
+  dismissToast: () => {},
 });
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,6 +39,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const userId = session?.user?.id;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [toasts, setToasts] = useState<AppNotification[]>([]);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -52,6 +61,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     refresh();
     const unsub = subscribeToNotifications(userId, (newNotif) => {
       setNotifications(prev => [newNotif, ...prev]);
+      setToasts(prev => [...prev, newNotif]);
+      setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== newNotif.id));
+      }, 6000);
     });
     return unsub;
   }, [userId, refresh]);
@@ -84,7 +97,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, loading, markRead, markAllRead, clearAll, refresh }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, loading, markRead, markAllRead, clearAll, refresh, toasts, dismissToast }}>
       {children}
     </NotificationContext.Provider>
   );

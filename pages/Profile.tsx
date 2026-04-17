@@ -9,11 +9,11 @@ import {
     Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut, Camera
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
-import { markReplacementResolved } from '../services/replacementService';
+import { markReplacementResolved, getMyReplacementRequests } from '../services/replacementService';
 import { createNotification } from '../services/notificationService';
 import { settingsService } from '../services/settingsService';
 import { useNotificationPreferences, ALL_NOTIFICATION_TYPES, NOTIFICATION_TYPE_LABELS } from '../hooks/useNotificationPreferences';
-import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException } from '../types';
+import { SlotType, Doctor, Period, Specialty, Conflict, ScheduleSlot, RcpException, ReplacementRequest } from '../types';
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts, getWeekNumber, getNthDayOfMonth } from '../services/scheduleService';
 import { supabase } from '../services/supabaseClient';
 import { useNotifications } from '../context/NotificationContext';
@@ -62,6 +62,7 @@ const NotificationSection: React.FC<{
             let requesterDoctorId: string | undefined;
             let slotDate: string | undefined;
             let period: string | undefined;
+            let activityName: string | undefined;
 
             if (status === 'ACCEPTED') {
                 if (!currentDoctorId) throw new Error('No doctor profile linked to this account');
@@ -77,13 +78,23 @@ const NotificationSection: React.FC<{
                 slotType          = (result.slot_type as string) ?? '';
                 requesterDoctorId = result.requester_doctor_id as string;
 
+                // Fetch slot details for rich notification body
+                const { data: reqDetails } = await supabase
+                    .from('replacement_requests')
+                    .select('slot_date, period, activity_name')
+                    .eq('id', requestId)
+                    .single();
+                slotDate     = reqDetails?.slot_date;
+                period       = reqDetails?.period;
+                activityName = reqDetails?.activity_name;
+
                 if (slotId) {
                     await onAccepted?.(slotId, currentDoctorId, requesterDoctorId ?? '', slotType);
                 }
             } else {
                 const { data: reqRow } = await supabase
                     .from('replacement_requests')
-                    .select('slot_id, slot_type, requester_doctor_id, slot_date, period')
+                    .select('slot_id, slot_type, requester_doctor_id, slot_date, period, activity_name')
                     .eq('id', requestId)
                     .single();
                 slotId            = reqRow?.slot_id;
@@ -91,6 +102,7 @@ const NotificationSection: React.FC<{
                 requesterDoctorId = reqRow?.requester_doctor_id;
                 slotDate          = reqRow?.slot_date;
                 period            = reqRow?.period;
+                activityName      = reqRow?.activity_name;
                 await markReplacementResolved(requestId, 'REJECTED');
             }
 
@@ -98,11 +110,17 @@ const NotificationSection: React.FC<{
                 const { data: requesterProfile } = await supabase
                     .from('profiles').select('id').eq('doctor_id', requesterDoctorId).single();
                 if (requesterProfile) {
+                    const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+                    const verb = status === 'ACCEPTED' ? 'accepté' : 'refusé';
+                    const who = currentDoctorName ? `Dr. ${currentDoctorName} a ` : '';
+                    const what = activityName ? ` — ${activityName}` : '';
+                    const when = slotDate ? `, le ${fmtDate(slotDate)}` : '';
+                    const per = period ? ` (${period})` : '';
                     await createNotification({
                         user_id: requesterProfile.id,
                         type: status === 'ACCEPTED' ? 'REPLACEMENT_ACCEPTED' : 'REPLACEMENT_REJECTED',
                         title: status === 'ACCEPTED' ? 'Remplacement accepté ✅' : 'Remplacement refusé ❌',
-                        body: `${currentDoctorName ? `Dr. ${currentDoctorName} a ` : ''}${status === 'ACCEPTED' ? 'accepté' : 'refusé'} votre demande de remplacement${slotDate ? ` pour le ${slotDate}` : ''}${period ? ` (${period})` : ''}.`,
+                        body: `${who}${verb} votre demande de remplacement${what}${when}${per}.`,
                         data: { requestId, slotId, slotType },
                         read: false,
                     });
@@ -365,7 +383,12 @@ const Profile: React.FC = () => {
     const navigate = useNavigate();
 
     // Tab state for bottom section
-    const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences' | 'rcp' | 'conflits'>('rcp');
+    const [activeTab, setActiveTab] = useState<'notifications' | 'absences' | 'preferences' | 'rcp' | 'conflits' | 'replacements'>('rcp');
+
+    // Replacements tab state
+    const [replacements, setReplacements] = useState<{ sent: ReplacementRequest[]; received: ReplacementRequest[] } | null>(null);
+    const [replacementsFilter, setReplacementsFilter] = useState<'ALL' | 'PENDING' | 'ACCEPTED' | 'REJECTED'>('ALL');
+    const [replacementsLoading, setReplacementsLoading] = useState(false);
 
     // RCP Exception Modal state (for moving holiday RCPs)
     const [rcpExceptionSlot, setRcpExceptionSlot] = useState<ScheduleSlot | null>(null);
@@ -568,6 +591,16 @@ const Profile: React.FC = () => {
         const allConflicts = detectConflicts(conflictsWeekSchedule, unavailabilities, doctors, activityDefinitions);
         return allConflicts.filter(c => c.doctorId === currentDoctor.id);
     }, [currentDoctor, conflictsWeekSchedule, unavailabilities, doctors, activityDefinitions]);
+
+    // Load replacement requests when the tab becomes active
+    useEffect(() => {
+        if (activeTab !== 'replacements' || !currentDoctor) return;
+        setReplacementsLoading(true);
+        getMyReplacementRequests(currentDoctor.id)
+            .then(setReplacements)
+            .catch(console.error)
+            .finally(() => setReplacementsLoading(false));
+    }, [activeTab, currentDoctor]);
 
     const getConflictsWeekLabel = () => {
         const today = new Date();
@@ -1396,6 +1429,16 @@ const Profile: React.FC = () => {
                             </span>
                         )}
                     </button>
+                    <button
+                        onClick={() => setActiveTab('replacements')}
+                        role="tab"
+                        aria-selected={activeTab === 'replacements'}
+                        className={activeTab === 'replacements' ? 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-bold text-primary border-b-2 border-primary -mb-0.5 whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2' : 'px-2 py-2 text-xs md:px-4 md:py-3 md:text-sm font-medium text-text-muted hover:text-text-base whitespace-nowrap transition-colors flex items-center gap-1 md:gap-2'}
+                    >
+                        <RotateCcw className="w-4 h-4 hidden md:block" />
+                        <span className="md:hidden">Rempl.</span>
+                        <span className="hidden md:inline">Remplacements</span>
+                    </button>
                 </div>
 
                 {/* Tab Content */}
@@ -1932,6 +1975,119 @@ const Profile: React.FC = () => {
                             )}
                         </div>
                     )}
+                    {activeTab === 'replacements' && (() => {
+                        const fmtReqDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+                        const filterReqs = (list: ReplacementRequest[]) =>
+                            replacementsFilter === 'ALL' ? list : list.filter(r => r.status === replacementsFilter);
+
+                        const StatusBadge = ({ status }: { status: string }) => {
+                            const cfg = status === 'PENDING'
+                                ? { label: 'En attente', cls: 'bg-yellow-100 text-yellow-700' }
+                                : status === 'ACCEPTED'
+                                ? { label: 'Accepté', cls: 'bg-green-100 text-green-700' }
+                                : { label: 'Refusé', cls: 'bg-red-100 text-red-600' };
+                            return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.cls}`}>{cfg.label}</span>;
+                        };
+
+                        const RequestRow = ({ req, role }: { req: ReplacementRequest; role: 'sent' | 'received' }) => {
+                            const otherId = role === 'sent' ? req.targetDoctorId : req.requesterDoctorId;
+                            const otherDoc = doctors.find(d => d.id === otherId);
+                            return (
+                                <div className="flex items-start gap-3 p-3 rounded-card border border-border bg-surface hover:bg-muted transition-colors">
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                        <RotateCcw className="w-4 h-4 text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-sm font-semibold text-text-base truncate">{req.activityName}</span>
+                                            <StatusBadge status={req.status} />
+                                        </div>
+                                        <p className="text-xs text-text-muted mt-0.5">
+                                            {fmtReqDate(req.slotDate)} · {req.period}
+                                        </p>
+                                        <p className="text-xs text-text-muted mt-0.5">
+                                            {role === 'sent' ? '→ Demandé à' : '← Demandé par'}{' '}
+                                            <span className="font-medium text-text-base">{otherDoc ? `Dr. ${otherDoc.name}` : '—'}</span>
+                                        </p>
+                                    </div>
+                                    <span className="text-[10px] text-text-muted flex-shrink-0 mt-1">
+                                        {new Date(req.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                </div>
+                            );
+                        };
+
+                        const sent = filterReqs(replacements?.sent ?? []);
+                        const received = filterReqs(replacements?.received ?? []);
+
+                        return (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-base font-semibold text-text-base flex items-center gap-2">
+                                        <RotateCcw className="w-5 h-5 text-primary" />
+                                        Demandes de remplacement
+                                    </h3>
+                                    <button
+                                        onClick={() => {
+                                            if (!currentDoctor) return;
+                                            setReplacementsLoading(true);
+                                            getMyReplacementRequests(currentDoctor.id)
+                                                .then(setReplacements)
+                                                .catch(console.error)
+                                                .finally(() => setReplacementsLoading(false));
+                                        }}
+                                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                                    >
+                                        <RotateCcw className="w-3 h-3" /> Actualiser
+                                    </button>
+                                </div>
+
+                                {/* Filter bar */}
+                                <div className="flex rounded-card border border-border overflow-hidden text-xs">
+                                    {(['ALL', 'PENDING', 'ACCEPTED', 'REJECTED'] as const).map(f => (
+                                        <button
+                                            key={f}
+                                            onClick={() => setReplacementsFilter(f)}
+                                            className={`flex-1 py-1.5 font-medium transition-colors ${replacementsFilter === f ? 'bg-primary text-white' : 'text-text-muted hover:bg-muted'}`}
+                                        >
+                                            {f === 'ALL' ? 'Tout' : f === 'PENDING' ? 'En attente' : f === 'ACCEPTED' ? 'Accepté' : 'Refusé'}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {replacementsLoading ? (
+                                    <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+                                ) : !replacements ? (
+                                    <p className="text-sm text-text-muted text-center py-4">Chargement…</p>
+                                ) : (
+                                    <div className="space-y-5">
+                                        {/* Sent */}
+                                        <div>
+                                            <h4 className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2">Mes demandes envoyées ({sent.length})</h4>
+                                            {sent.length === 0 ? (
+                                                <p className="text-sm text-text-muted">Aucune demande</p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {sent.map(req => <RequestRow key={req.id} req={req} role="sent" />)}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Received */}
+                                        <div>
+                                            <h4 className="text-xs font-bold text-text-muted uppercase tracking-wide mb-2">Demandes reçues ({received.length})</h4>
+                                            {received.length === 0 ? (
+                                                <p className="text-sm text-text-muted">Aucune demande</p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {received.map(req => <RequestRow key={req.id} req={req} role="received" />)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
                 </div>
             </Card>
                 </div>{/* end right column */}

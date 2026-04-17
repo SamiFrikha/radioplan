@@ -74,6 +74,29 @@ export const markReplacementResolved = async (
  * For non-RCP slots: only marks accepted — the caller updates app_settings via
  *   setManualOverrides (AppContext wrapper) which persists correctly with RLS.
  */
+export const getMyReplacementRequests = async (
+    doctorId: string
+): Promise<{ sent: ReplacementRequest[]; received: ReplacementRequest[] }> => {
+    const [sentResult, receivedResult] = await Promise.all([
+        supabase
+            .from('replacement_requests')
+            .select('*')
+            .eq('requester_doctor_id', doctorId)
+            .order('created_at', { ascending: false }),
+        supabase
+            .from('replacement_requests')
+            .select('*')
+            .eq('target_doctor_id', doctorId)
+            .order('created_at', { ascending: false }),
+    ]);
+    if (sentResult.error) throw sentResult.error;
+    if (receivedResult.error) throw receivedResult.error;
+    return {
+        sent: (sentResult.data ?? []).map(mapRow),
+        received: (receivedResult.data ?? []).map(mapRow),
+    };
+};
+
 export const acceptAndAssignReplacement = async (
   requestId: string,
   slotId: string,
