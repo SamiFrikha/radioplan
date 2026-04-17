@@ -534,8 +534,9 @@ const Profile: React.FC = () => {
             });
     }, [profile?.id]);
 
-    // Conflicts tab: generate schedule and detect conflicts for the current doctor's week
-    const conflictsWeekSchedule = useMemo(() => {
+    // Conflicts tab: raw schedule WITHOUT overrides — used for conflict detection so that
+    // closed/resolved slots still appear in the list after the user takes action.
+    const conflictsRawSchedule = useMemo(() => {
         if (!currentDoctor) return [];
 
         const weekStart = new Date();
@@ -543,13 +544,16 @@ const Profile: React.FC = () => {
         weekStart.setDate(weekStart.getDate() - day + (day === 0 ? -6 : 1) + (conflictsWeekOffset * 7));
         weekStart.setHours(0, 0, 0, 0);
 
-        const generated = generateScheduleForWeek(
+        return generateScheduleForWeek(
             weekStart, template, unavailabilities, doctors,
             activityDefinitions, rcpTypes, false, {},
             rcpAttendance, rcpExceptions
         );
-        // Apply saved overrides so doctors on astreinte/unity show as Indispo in replacement modal
-        return generated.map(slot => {
+    }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions]);
+
+    // Schedule WITH overrides — passed to ConflictResolverModal so Dispo/Indispo badges are correct
+    const conflictsWeekSchedule = useMemo(() => {
+        return conflictsRawSchedule.map(slot => {
             const overrideValue = manualOverrides[slot.id];
             if (!overrideValue) return slot;
             if (overrideValue === '__CLOSED__') return { ...slot, assignedDoctorId: null, isLocked: true };
@@ -557,7 +561,7 @@ const Profile: React.FC = () => {
             const doctorId = isAuto ? overrideValue.substring(5) : overrideValue;
             return { ...slot, assignedDoctorId: doctorId, isLocked: true };
         });
-    }, [currentDoctor, conflictsWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides]);
+    }, [conflictsRawSchedule, manualOverrides]);
 
     // Schedule for the RCP tab's displayed week — used as slots prop in ConflictResolverModal from RCP tab
     const rcpWeekSlots = useMemo(() => {
@@ -586,11 +590,11 @@ const Profile: React.FC = () => {
     }, [currentDoctor, notifWeekOffset, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides]);
 
     const profileConflicts = useMemo(() => {
-        if (!currentDoctor || conflictsWeekSchedule.length === 0) return [];
+        if (!currentDoctor || conflictsRawSchedule.length === 0) return [];
 
-        const allConflicts = detectConflicts(conflictsWeekSchedule, unavailabilities, doctors, activityDefinitions);
+        const allConflicts = detectConflicts(conflictsRawSchedule, unavailabilities, doctors, activityDefinitions);
         return allConflicts.filter(c => c.doctorId === currentDoctor.id);
-    }, [currentDoctor, conflictsWeekSchedule, unavailabilities, doctors, activityDefinitions]);
+    }, [currentDoctor, conflictsRawSchedule, unavailabilities, doctors, activityDefinitions]);
 
     // Load replacement requests when the tab becomes active
     useEffect(() => {
@@ -1423,9 +1427,9 @@ const Profile: React.FC = () => {
                     >
                         <AlertTriangle className="w-4 h-4 hidden md:block" />
                         Conflits
-                        {profileConflicts.length > 0 && (
+                        {profileConflicts.filter(c => !manualOverrides[c.slotId]).length > 0 && (
                             <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">
-                                {profileConflicts.length}
+                                {profileConflicts.filter(c => !manualOverrides[c.slotId]).length}
                             </span>
                         )}
                     </button>
@@ -1900,7 +1904,14 @@ const Profile: React.FC = () => {
                                 </button>
                                 <div className="text-center">
                                     <h3 className="font-bold text-text-base">{getConflictsWeekLabel()}</h3>
-                                    <p className="text-xs text-text-muted">{profileConflicts.length} conflit{profileConflicts.length !== 1 ? 's' : ''}</p>
+                                    <p className="text-xs text-text-muted">
+                                        {(() => {
+                                            const unresolved = profileConflicts.filter(c => !manualOverrides[c.slotId]).length;
+                                            const total = profileConflicts.length;
+                                            if (unresolved === total) return `${total} conflit${total !== 1 ? 's' : ''}`;
+                                            return `${unresolved} conflit${unresolved !== 1 ? 's' : ''} actif${unresolved !== 1 ? 's' : ''} · ${total - unresolved} résolu${total - unresolved !== 1 ? 's' : ''}`;
+                                        })()}
+                                    </p>
                                 </div>
                                 <button onClick={() => setConflictsWeekOffset(prev => prev + 1)} className="p-2 hover:bg-muted rounded-btn transition">
                                     <ChevronRight className="w-5 h-5 text-text-muted" />
@@ -1930,13 +1941,13 @@ const Profile: React.FC = () => {
                                             <div
                                                 key={conflict.id}
                                                 onClick={() => {
+                                                    if (isResolved || isClosed) return;
                                                     setConflictModalSlot(slot);
                                                     setConflictModalConflict(conflict);
                                                 }}
-                                                className={`p-3 rounded-card shadow-sm transition-all cursor-pointer relative group ${
-                                                    isResolved ? 'bg-green-50 border border-green-200 hover:border-green-400'
-                                                    : isClosed  ? 'bg-muted border border-border'
-                                                    : 'bg-surface border border-red-100 hover:border-red-300 hover:shadow-md'
+                                                className={`p-3 rounded-card shadow-sm transition-all relative group ${
+                                                    isResolved || isClosed ? 'bg-green-50 border border-green-200'
+                                                    : 'bg-surface border border-red-100 hover:border-red-300 hover:shadow-md cursor-pointer'
                                                 }`}
                                             >
                                                 <div className="flex justify-between items-start mb-1">
@@ -1960,14 +1971,16 @@ const Profile: React.FC = () => {
                                                     </div>
                                                 )}
                                                 {isClosed && (
-                                                    <div className="flex items-center gap-1.5 mt-2 text-xs text-text-muted font-semibold">
-                                                        <XCircle className="w-3.5 h-3.5" />
-                                                        Créneau fermé
+                                                    <div className="flex items-center gap-1.5 mt-2 text-xs text-green-700 font-semibold">
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                                                        Créneau fermé ✓
                                                     </div>
                                                 )}
-                                                <div className="absolute right-2 bottom-2 text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    Résoudre →
-                                                </div>
+                                                {!isResolved && !isClosed && (
+                                                    <div className="absolute right-2 bottom-2 text-xs text-primary font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Résoudre →
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
