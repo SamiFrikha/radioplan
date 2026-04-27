@@ -4,7 +4,7 @@ import PersonalAgendaWeek from '../components/PersonalAgendaWeek';
 import PersonalAgendaMonth from '../components/PersonalAgendaMonth';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import RcpAttendanceModal from '../components/RcpAttendanceModal';
-import { ScheduleSlot } from '../types';
+import { ScheduleSlot, SlotType, Period } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../services/activityLogService';
 import { generateScheduleForWeek } from '../services/scheduleService';
@@ -15,6 +15,10 @@ const MonPlanning: React.FC = () => {
   const [selectedConsultSlot, setSelectedConsultSlot] = useState<ScheduleSlot | null>(null);
   const [selectedRcpSlot, setSelectedRcpSlot] = useState<ScheduleSlot | null>(null);
   const [selectedActivitySlot, setSelectedActivitySlot] = useState<ScheduleSlot | null>(null);
+  const [resolvedDetailSlot, setResolvedDetailSlot] = useState<{
+    slot: ScheduleSlot;
+    replacementDoctorId: string | null;
+  } | null>(null);
 
   const {
     doctors, unavailabilities, manualOverrides, setManualOverrides,
@@ -68,6 +72,19 @@ const MonPlanning: React.FC = () => {
   const handleActivityCloseSlot = (slotId: string) => {
     setManualOverrides({ ...manualOverrides, [slotId]: '__CLOSED__' });
     setSelectedActivitySlot(null);
+  };
+
+  const handleConflictClick = (slot: ScheduleSlot) => {
+    if (slot.type === SlotType.CONSULTATION) {
+      setSelectedConsultSlot(slot);
+    } else if (slot.type === SlotType.ACTIVITY) {
+      setSelectedActivitySlot(slot);
+    }
+    // RCP conflicts from leave days: not common, ignore for now
+  };
+
+  const handleResolvedConflictClick = (slot: ScheduleSlot, replacementDoctorId: string | null) => {
+    setResolvedDetailSlot({ slot, replacementDoctorId });
   };
 
   // Slot actif (consult ou activité) pour déterminer la semaine à générer
@@ -144,12 +161,16 @@ const MonPlanning: React.FC = () => {
             onConsultClick={setSelectedConsultSlot}
             onRcpClick={setSelectedRcpSlot}
             onActivityClick={setSelectedActivitySlot}
+            onConflictClick={handleConflictClick}
+            onResolvedConflictClick={handleResolvedConflictClick}
           />
         ) : (
           <PersonalAgendaMonth
             onRcpClick={setSelectedRcpSlot}
             onActivityClick={setSelectedActivitySlot}
             onConsultClick={setSelectedConsultSlot}
+            onConflictClick={handleConflictClick}
+            onResolvedConflictClick={handleResolvedConflictClick}
           />
         )}
       </div>
@@ -185,6 +206,84 @@ const MonPlanning: React.FC = () => {
           onClose={() => setSelectedRcpSlot(null)}
         />
       )}
+
+      {resolvedDetailSlot && (() => {
+        const { slot, replacementDoctorId } = resolvedDetailSlot;
+        const isClosed = replacementDoctorId === null;
+        const replacerDoctor = replacementDoctorId
+          ? doctors.find(d => d.id === replacementDoctorId)
+          : null;
+        const absentDoctor = doctors.find(d => d.id === profile?.doctor_id);
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setResolvedDetailSlot(null)}
+          >
+            <div
+              className="bg-surface rounded-2xl shadow-modal max-w-sm w-full p-5 border border-border/60"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+                <h3 className="font-bold text-base text-text-base">Détail du remplacement</h3>
+                <button
+                  onClick={() => setResolvedDetailSlot(null)}
+                  className="w-8 h-8 flex items-center justify-center hover:bg-muted rounded-lg text-text-muted transition-colors"
+                >
+                  <span className="text-lg leading-none">✕</span>
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted">Activité</span>
+                  <span className="font-semibold text-text-base">
+                    {slot.subType || slot.location || 'Activité'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted">Date</span>
+                  <span className="font-semibold text-text-base">
+                    {slot.date
+                      ? new Date(slot.date + 'T12:00').toLocaleDateString('fr-FR', {
+                          weekday: 'short', day: 'numeric', month: 'short',
+                        })
+                      : slot.day ?? ''}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted">Créneau</span>
+                  <span className="font-semibold text-text-base">
+                    {slot.period === Period.MORNING ? 'Matin' : 'Après-midi'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted">Médecin absent</span>
+                  <span className="font-semibold text-text-base">
+                    {absentDoctor?.name ?? 'Vous'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-text-muted">Remplaçant</span>
+                  <span className="font-semibold text-text-base">
+                    {isClosed ? 'Créneau fermé' : (replacerDoctor?.name ?? 'Dr. inconnu')}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-border pt-3">
+                  <span className="text-text-muted">Statut</span>
+                  <span className="font-semibold text-green-600">
+                    {isClosed ? '✓ Fermé' : '✓ Résolu'}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setResolvedDetailSlot(null)}
+                className="mt-4 w-full py-2 text-sm font-semibold bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
