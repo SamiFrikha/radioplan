@@ -194,9 +194,11 @@ interface Props {
   onRcpClick?: (slot: any) => void;
   onActivityClick?: (slot: any) => void;
   onConsultClick?: (slot: any) => void;
+  onConflictClick?: (slot: any) => void;
+  onResolvedConflictClick?: (slot: any, replacementDoctorId: string | null) => void;
 }
 
-const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onConsultClick }) => {
+const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onConsultClick, onConflictClick, onResolvedConflictClick }) => {
   const {
     doctors, template, unavailabilities,
     activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
@@ -241,8 +243,8 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
     );
   }, [year, month]);
 
-  const scheduleByDate = useMemo(() => {
-    if (!doctorId) return {};
+  const rawScheduleByDate = useMemo(() => {
+    if (!doctorId) return {} as Record<string, any[]>;
     const result: Record<string, any[]> = {};
     const mondays = weeks.map(w => w[0]);
     for (const monday of mondays) {
@@ -250,16 +252,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
         monday, template, unavailabilities, doctors,
         activityDefinitions, rcpTypes, false, {}, rcpAttendance, rcpExceptions,
       );
-      // Apply manual overrides so activity assignments are visible
-      const slots = generated.map((slot: any) => {
-        const overrideValue = manualOverrides[slot.id];
-        if (!overrideValue || overrideValue === '__CLOSED__') return slot;
-        const isAuto = overrideValue.startsWith('auto:');
-        const assignedId = isAuto ? overrideValue.substring(5) : overrideValue;
-        return { ...slot, assignedDoctorId: assignedId };
-      });
-      for (const slot of slots) {
-        // Show slot if doctor is assigned, secondary, or confirmed present via rcp_attendance
+      for (const slot of generated) {
         const isVisible =
           slot.assignedDoctorId === doctorId ||
           slot.secondaryDoctorIds?.includes(doctorId) ||
@@ -274,7 +267,21 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
       }
     }
     return result;
-  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides, weeks]);
+  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, weeks]);
+
+  const scheduleByDate = useMemo(() => {
+    const result: Record<string, any[]> = {};
+    for (const [date, slots] of Object.entries(rawScheduleByDate)) {
+      result[date] = slots.map(slot => {
+        const overrideValue = manualOverrides[slot.id];
+        if (!overrideValue || overrideValue === '__CLOSED__') return slot;
+        const isAuto = overrideValue.startsWith('auto:');
+        const assignedId = isAuto ? overrideValue.substring(5) : overrideValue;
+        return { ...slot, assignedDoctorId: assignedId };
+      });
+    }
+    return result;
+  }, [rawScheduleByDate, manualOverrides]);
 
   const monthLabel = new Date(year, month).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
 
@@ -408,11 +415,51 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                     )}
 
                     {onLeave && isCurrentMonth && !isWeekend ? (
-                      <div
-                        className="text-[9px] sm:text-[10px] rounded px-1 py-0.5 text-center font-semibold leading-tight text-white mt-0.5"
-                        style={{ backgroundColor: SLOT_COLORS.LEAVE }}
-                      >
-                        Congé
+                      <div className="space-y-0.5">
+                        <div
+                          className="text-[9px] sm:text-[10px] rounded px-1 py-0.5 text-center font-semibold leading-tight text-white mt-0.5"
+                          style={{ backgroundColor: SLOT_COLORS.LEAVE }}
+                        >
+                          Congé
+                        </div>
+                        {(() => {
+                          const dayRawSlots = rawScheduleByDate[key] ?? [];
+                          const impacted = dayRawSlots.filter((s: any) => {
+                            if (s.type === SlotType.ACTIVITY) {
+                              const def = activityDefinitions.find((a: any) => a.id === s.activityId);
+                              return def?.granularity !== 'WEEKLY';
+                            }
+                            return true;
+                          });
+                          const visible = impacted.slice(0, 2);
+                          const extra = impacted.length - visible.length;
+                          return (
+                            <>
+                              {visible.map((s: any) => {
+                                const ov = manualOverrides[s.id] ?? '';
+                                const isClosed = ov === '__CLOSED__';
+                                const rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+                                const isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                                const isResolved = isClosed || isReplaced;
+                                const dotColor = isResolved ? '#059669' : '#D97706';
+                                const actName = s.subType || s.location
+                                  || (s.type === SlotType.CONSULTATION ? 'CS'
+                                    : s.type === SlotType.RCP ? 'RCP' : 'Act.');
+                                return (
+                                  <div key={s.id} className="flex items-center gap-0.5">
+                                    <span className="w-1.5 h-1.5 rounded-full shrink-0 flex-shrink-0" style={{ backgroundColor: dotColor }} />
+                                    <span className="text-[8px] truncate" style={{ color: dotColor }}>
+                                      {isResolved ? '✓' : '⚠'} {actName.substring(0, 7)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                              {extra > 0 && (
+                                <span className="text-[8px] text-text-muted">+{extra}</span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className="flex flex-col flex-1">
@@ -526,12 +573,68 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
               const onLeave = unavailabilities.some(u =>
                 u.doctorId === doctorId && selectedDate >= u.startDate && selectedDate <= u.endDate
               );
-              if (onLeave) return (
-                <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-muted">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: SLOT_COLORS.LEAVE }} />
-                  <p className="text-text-muted italic text-sm">Congé / Indisponibilité</p>
-                </div>
-              );
+              if (onLeave) {
+                const dayRawSlots = rawScheduleByDate[selectedDate] ?? [];
+                const impacted = dayRawSlots.filter((s: any) => {
+                  if (s.type === SlotType.ACTIVITY) {
+                    const def = activityDefinitions.find((a: any) => a.id === s.activityId);
+                    return def?.granularity !== 'WEEKLY';
+                  }
+                  return true;
+                });
+                return (
+                  <div>
+                    <div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-muted mb-3">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: SLOT_COLORS.LEAVE }} />
+                      <p className="text-text-muted italic text-sm">Congé / Indisponibilité</p>
+                    </div>
+                    {impacted.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Activités impactées</p>
+                        {impacted.map((s: any) => {
+                          const ov = manualOverrides[s.id] ?? '';
+                          const isClosed = ov === '__CLOSED__';
+                          const rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+                          const isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                          const replacerDoctor = isReplaced ? doctors.find((d: any) => d.id === rawReplacerId) : null;
+                          const isResolved = isClosed || isReplaced;
+                          const statusColor = isResolved ? '#059669' : '#D97706';
+                          const actName = s.subType || s.location
+                            || (s.type === SlotType.CONSULTATION ? 'Consultation'
+                              : s.type === SlotType.RCP ? 'RCP' : 'Activité');
+                          const statusLabel = isClosed
+                            ? '✓ Fermé'
+                            : isReplaced
+                              ? `✓ Remplacé par ${replacerDoctor?.name || '?'}`
+                              : '⚠ Non résolu';
+                          const handleClick = () => {
+                            setSelectedDate(null);
+                            if (!isResolved) onConflictClick?.(s);
+                            else onResolvedConflictClick?.(s, isReplaced ? rawReplacerId : null);
+                          };
+                          return (
+                            <div
+                              key={s.id}
+                              className={`rounded-lg p-3 border border-dashed ${(onConflictClick || onResolvedConflictClick) ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                              style={{
+                                backgroundColor: isResolved ? 'rgba(5,150,105,0.06)' : 'rgba(217,119,6,0.06)',
+                                borderColor: isResolved ? 'rgba(5,150,105,0.3)' : 'rgba(217,119,6,0.3)',
+                              }}
+                              onClick={handleClick}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-sm font-semibold" style={{ color: statusColor }}>{actName}</span>
+                                <span className="text-xs font-medium" style={{ color: statusColor }}>{s.period === Period.MORNING ? 'Matin' : 'AM'}</span>
+                              </div>
+                              <p className="text-[11px] mt-1" style={{ color: statusColor }}>{statusLabel}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
               if (daySlots.length === 0) return <p className="text-text-muted italic text-sm py-2">Aucune activité planifiée</p>;
 
               const morningSlots = daySlots.filter((s: any) => s.period === Period.MORNING);
