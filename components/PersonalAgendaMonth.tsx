@@ -425,6 +425,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                         {(() => {
                           const dayRawSlots = rawScheduleByDate[key] ?? [];
                           const impacted = dayRawSlots.filter((s: any) => {
+                            if (s.isCancelled) return false;
                             if (s.type === SlotType.ACTIVITY) {
                               const def = activityDefinitions.find((a: any) => a.id === s.activityId);
                               return def?.granularity !== 'WEEKLY';
@@ -576,6 +577,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
               if (onLeave) {
                 const dayRawSlots = rawScheduleByDate[selectedDate] ?? [];
                 const impacted = dayRawSlots.filter((s: any) => {
+                  if (s.isCancelled) return false;
                   if (s.type === SlotType.ACTIVITY) {
                     const def = activityDefinitions.find((a: any) => a.id === s.activityId);
                     return def?.granularity !== 'WEEKLY';
@@ -624,7 +626,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <span className="text-sm font-semibold" style={{ color: statusColor }}>{actName}</span>
-                                <span className="text-xs font-medium" style={{ color: statusColor }}>{s.period === Period.MORNING ? 'Matin' : 'AM'}</span>
+                                <span className="text-xs font-medium" style={{ color: statusColor }}>{s.period === Period.MORNING ? 'Matin' : 'Après-midi'}</span>
                               </div>
                               <p className="text-[11px] mt-1" style={{ color: statusColor }}>{statusLabel}</p>
                             </div>
