@@ -15,6 +15,8 @@ interface Props {
   onConsultClick?: (slot: any) => void;
   onRcpClick?: (slot: any) => void;
   onActivityClick?: (slot: any) => void;
+  onConflictClick?: (slot: any) => void;           // NEW
+  onResolvedConflictClick?: (slot: any, replacementDoctorId: string | null) => void;  // NEW
 }
 
 const DAY_ORDER = [DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY];
@@ -91,7 +93,11 @@ const RCP_CARD_STYLE = {
   },
 };
 
-const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onConsultClick, onRcpClick, onActivityClick }) => {
+const PersonalAgendaWeek: React.FC<Props> = ({
+  weekOffset, onOffsetChange,
+  onConsultClick, onRcpClick, onActivityClick,
+  onConflictClick, onResolvedConflictClick,  // NEW
+}) => {
   const {
     doctors, template, unavailabilities,
     activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
@@ -120,21 +126,25 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
     return monday;
   }, [weekOffset]);
 
-  const schedule = useMemo(() => {
+  // 1. Raw schedule — generated, no override application
+  const rawSchedule = useMemo(() => {
     if (!doctorId) return [];
-    const generated = generateScheduleForWeek(
+    return generateScheduleForWeek(
       weekStart, template, unavailabilities, doctors,
       activityDefinitions, rcpTypes, false, {}, rcpAttendance, rcpExceptions,
     );
-    // Apply manual overrides so activity assignments are visible
-    return generated.map(slot => {
+  }, [weekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, doctorId]);
+
+  // 2. Schedule with overrides applied — used for normal slot display
+  const schedule = useMemo(() => {
+    return rawSchedule.map(slot => {
       const overrideValue = manualOverrides[slot.id];
       if (!overrideValue || overrideValue === '__CLOSED__') return slot;
       const isAuto = overrideValue.startsWith('auto:');
       const assignedId = isAuto ? overrideValue.substring(5) : overrideValue;
       return { ...slot, assignedDoctorId: assignedId };
     });
-  }, [weekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides, doctorId]);
+  }, [rawSchedule, manualOverrides]);
 
 
   // Build per-day, per-period data including dates
@@ -156,7 +166,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
         if (onLeave) {
           // Slots that were assigned to the doctor on this leave day — used to show what
           // happened to each (closed, unresolved, etc.)
-          const conflictSlots = schedule.filter(s =>
+          const conflictSlots = rawSchedule.filter(s =>
             s.day === day && s.period === period &&
             (s.assignedDoctorId === doctorId || s.secondaryDoctorIds?.includes(doctorId!))
           );
@@ -186,7 +196,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
 
       return { day, date, dateStr, isToday, onLeave, periods };
     });
-  }, [schedule, doctorId, unavailabilities, weekStart, rcpAttendance]);
+  }, [schedule, rawSchedule, doctorId, unavailabilities, weekStart, rcpAttendance]);
 
   // Detect WEEKLY-granularity activities for this doctor in the current week.
   // Derived from `schedule` directly (not from `days`) per spec.
@@ -431,25 +441,49 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                 {allConflictSlots.map((slot: any) => {
                   const ov = manualOverrides[slot.id] ?? '';
                   const isClosed = ov === '__CLOSED__';
-                  const name = slot.subType || slot.location || (slot.type === SlotType.CONSULTATION ? 'Consultation' : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
-                  const statusColor = isClosed ? '#059669' : '#D97706';
+                  const rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+                  const isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                  const replacerDoctor = isReplaced ? doctors.find((d: any) => d.id === rawReplacerId) : null;
+                  const isResolved = isClosed || isReplaced;
+
+                  const name = slot.subType || slot.location
+                    || (slot.type === SlotType.CONSULTATION ? 'Consultation'
+                      : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
+
+                  const statusColor = isResolved ? '#059669' : '#D97706';
+                  const statusLabel = isClosed
+                    ? '✓ Fermé'
+                    : isReplaced
+                      ? `✓ ${replacerDoctor?.name || '?'}`
+                      : '⚠ Non résolu';
+
+                  const handleClick = () => {
+                    if (!isResolved) onConflictClick?.(slot);
+                    else onResolvedConflictClick?.(slot, isReplaced ? rawReplacerId : null);
+                  };
+
                   return (
                     <div key={`conf-mob-${slot.id}`} className="relative">
-                      <div className="w-2.5 h-2.5 rounded-full -ml-[22px] mt-3 flex-shrink-0 absolute border-2 border-surface"
-                        style={{ backgroundColor: statusColor }} aria-hidden="true" />
-                      <div className="flex items-center gap-3 py-2 px-3 rounded-btn-sm opacity-80">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full -ml-[22px] mt-3 flex-shrink-0 absolute border-2 border-surface"
+                        style={{ backgroundColor: statusColor }} aria-hidden="true"
+                      />
+                      <div
+                        className={`flex items-center gap-3 py-2 px-3 rounded-btn-sm opacity-80 ${(onConflictClick || onResolvedConflictClick) ? 'cursor-pointer hover:opacity-100 transition-opacity' : ''}`}
+                        onClick={handleClick}
+                      >
                         <span className="text-xs font-semibold text-text-muted tabular-nums w-10 flex-shrink-0">
                           {slot.period === Period.MORNING ? '08h00' : '14h00'}
                         </span>
                         <span className="flex-1 min-w-0">
                           <span className="text-sm font-medium truncate block" style={{ color: statusColor }}>{name}</span>
-                          <span className="text-[10px] font-semibold" style={{ color: statusColor }}>
-                            {isClosed ? '✓ Fermé' : '⚠ Non résolu'}
-                          </span>
+                          <span className="text-[10px] font-semibold" style={{ color: statusColor }}>{statusLabel}</span>
                         </span>
-                        <span className="rounded-full text-[9px] font-bold px-2 py-0.5 text-white flex-shrink-0"
-                          style={{ backgroundColor: statusColor }}>
-                          {isClosed ? 'FERMÉ' : 'À résoudre'}
+                        <span
+                          className="rounded-full text-[9px] font-bold px-2 py-0.5 text-white flex-shrink-0"
+                          style={{ backgroundColor: statusColor }}
+                        >
+                          {isClosed ? 'FERMÉ' : isReplaced ? 'REMPL.' : 'À résoudre'}
                         </span>
                       </div>
                     </div>
@@ -685,22 +719,50 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
                         );
                       })
                     )}
-                    {/* Slots impacted by leave — show what happened (closed / unresolved) */}
+                    {/* Slots impacted by leave — show what happened (closed / unresolved / replaced) */}
                     {conflictSlots?.map((slot: any) => {
                       const ov = manualOverrides[slot.id] ?? '';
                       const isClosed = ov === '__CLOSED__';
-                      const name = slot.subType || slot.location || (slot.type === SlotType.CONSULTATION ? 'Consult.' : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
-                      const statusColor = isClosed ? '#059669' : '#D97706';
+                      const rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+                      const isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                      const replacerDoctor = isReplaced ? doctors.find((d: any) => d.id === rawReplacerId) : null;
+                      const isResolved = isClosed || isReplaced;
+
+                      const name = slot.subType || slot.location
+                        || (slot.type === SlotType.CONSULTATION ? 'Consult.'
+                          : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
+
+                      const statusColor = isResolved ? '#059669' : '#D97706';
+                      const statusLabel = isClosed
+                        ? '✓ Fermé'
+                        : isReplaced
+                          ? `✓ ${replacerDoctor?.name || '?'}`
+                          : '⚠ Non résolu';
+
+                      const handleClick = () => {
+                        if (!isResolved) {
+                          onConflictClick?.(slot);
+                        } else {
+                          onResolvedConflictClick?.(slot, isReplaced ? rawReplacerId : null);
+                        }
+                      };
+
                       return (
-                        <div key={`conf-${slot.id}`}
-                          className="rounded-btn-sm border border-dashed px-1.5 py-1 mb-0.5"
-                          style={{ backgroundColor: isClosed ? 'rgba(5,150,105,0.08)' : 'rgba(217,119,6,0.08)', borderColor: isClosed ? 'rgba(5,150,105,0.35)' : 'rgba(217,119,6,0.35)' }}>
+                        <div
+                          key={`conf-${slot.id}`}
+                          className={`rounded-btn-sm border border-dashed px-1.5 py-1 mb-0.5 ${(onConflictClick || onResolvedConflictClick) ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                          style={{
+                            backgroundColor: isResolved ? 'rgba(5,150,105,0.08)' : 'rgba(217,119,6,0.08)',
+                            borderColor: isResolved ? 'rgba(5,150,105,0.35)' : 'rgba(217,119,6,0.35)',
+                          }}
+                          onClick={handleClick}
+                        >
                           <div className="flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: statusColor }} />
                             <span className="text-[10px] font-semibold truncate flex-1" style={{ color: statusColor }}>{name}</span>
                           </div>
-                          <p className="text-[9px] ml-2.5 font-medium" style={{ color: statusColor }}>
-                            {isClosed ? '✓ Fermé' : '⚠ Non résolu'}
+                          <p className="text-[9px] ml-2.5 font-medium truncate" style={{ color: statusColor }}>
+                            {statusLabel}
                           </p>
                         </div>
                       );
