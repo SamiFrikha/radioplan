@@ -77,10 +77,9 @@ const MonPlanning: React.FC = () => {
   const handleConflictClick = (slot: ScheduleSlot) => {
     if (slot.type === SlotType.CONSULTATION) {
       setSelectedConsultSlot(slot);
-    } else if (slot.type === SlotType.ACTIVITY) {
+    } else {
       setSelectedActivitySlot(slot);
     }
-    // RCP conflicts from leave days: not common, ignore for now
   };
 
   const handleResolvedConflictClick = (slot: ScheduleSlot, replacementDoctorId: string | null) => {

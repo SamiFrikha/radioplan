@@ -250,7 +250,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
     for (const monday of mondays) {
       const generated = generateScheduleForWeek(
         monday, template, unavailabilities, doctors,
-        activityDefinitions, rcpTypes, false, {}, rcpAttendance, rcpExceptions,
+        activityDefinitions, rcpTypes, false, {}, {}, rcpExceptions,
       );
       for (const slot of generated) {
         const isVisible =
@@ -395,6 +395,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                     className={`min-h-[72px] sm:min-h-[90px] rounded-none p-1 transition-colors flex flex-col
                       ${isCurrentMonth && !isWeekend ? 'cursor-pointer hover:bg-muted' : 'cursor-default'}
                       ${isWeekend || !isCurrentMonth ? 'opacity-30 bg-muted' : 'bg-surface'}
+                      ${holiday && isCurrentMonth && !isWeekend ? 'bg-red-50/60 border-t-2 border-red-300' : ''}
                       ${isToday ? 'ring-2 ring-inset ring-primary' : ''}
                       ${isSelected ? 'ring-2 ring-inset ring-primary bg-primary/10' : ''}
                     `}>
@@ -438,9 +439,19 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                             <>
                               {visible.map((s: any) => {
                                 const ov = manualOverrides[s.id] ?? '';
-                                const isClosed = ov === '__CLOSED__';
-                                const rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
-                                const isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                                let isClosed = false;
+                                let rawReplacerId = '';
+                                let isReplaced = false;
+                                if (s.type === SlotType.RCP) {
+                                  const attendance = rcpAttendance[s.id] || {};
+                                  const presentOthers = Object.entries(attendance).filter(([id, status]) => id !== doctorId && status === 'PRESENT');
+                                  isReplaced = presentOthers.length > 0;
+                                  rawReplacerId = isReplaced ? presentOthers[0][0] : '';
+                                } else {
+                                  isClosed = ov === '__CLOSED__';
+                                  rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+                                  isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                                }
                                 const isResolved = isClosed || isReplaced;
                                 const dotColor = isResolved ? '#059669' : '#D97706';
                                 const actName = s.subType || s.location
@@ -464,7 +475,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                       </div>
                     ) : (
                       <div className="flex flex-col flex-1">
-                        {morningSlots.length > 0 && (
+                        {!holiday && morningSlots.length > 0 && (
                           <div className="space-y-0.5">
                             {morningSlots.slice(0, 2).map((s: any) => {
                               const rcpStatus = s.type === SlotType.RCP ? getRcpStatus(s, doctorId, rcpAttendance) : null;
@@ -493,10 +504,10 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                             )}
                           </div>
                         )}
-                        {morningSlots.length > 0 && afternoonSlots.length > 0 && (
+                        {!holiday && morningSlots.length > 0 && afternoonSlots.length > 0 && (
                           <div className="border-t border-border my-0.5" />
                         )}
-                        {afternoonSlots.length > 0 && (
+                        {!holiday && afternoonSlots.length > 0 && (
                           <div className="space-y-0.5">
                             {afternoonSlots.slice(0, 2).map((s: any) => {
                               const rcpStatus = s.type === SlotType.RCP ? getRcpStatus(s, doctorId, rcpAttendance) : null;
@@ -595,9 +606,19 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                         <p className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Activités impactées</p>
                         {impacted.map((s: any) => {
                           const ov = manualOverrides[s.id] ?? '';
-                          const isClosed = ov === '__CLOSED__';
-                          const rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
-                          const isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                          let isClosed = false;
+                          let rawReplacerId = '';
+                          let isReplaced = false;
+                          if (s.type === SlotType.RCP) {
+                            const attendance = rcpAttendance[s.id] || {};
+                            const presentOthers = Object.entries(attendance).filter(([id, status]) => id !== doctorId && status === 'PRESENT');
+                            isReplaced = presentOthers.length > 0;
+                            rawReplacerId = isReplaced ? presentOthers[0][0] : '';
+                          } else {
+                            isClosed = ov === '__CLOSED__';
+                            rawReplacerId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+                            isReplaced = ov !== '' && !isClosed && rawReplacerId !== doctorId;
+                          }
                           const replacerDoctor = isReplaced ? doctors.find((d: any) => d.id === rawReplacerId) : null;
                           const isResolved = isClosed || isReplaced;
                           const statusColor = isResolved ? '#059669' : '#D97706';
