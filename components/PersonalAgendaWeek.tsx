@@ -4,7 +4,7 @@ import { useSwipe } from '../hooks/useSwipe';
 import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
-import { generateScheduleForWeek } from '../services/scheduleService';
+import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleService';
 import { DayOfWeek, Period, SlotType } from '../types';
 import { Badge } from '../src/components/ui';
 import { getDoctorHexColor } from './DoctorBadge';
@@ -339,14 +339,26 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
           const dayNumber = date.getDate();
           const dayName = DAY_LABELS[day];
           const monthShort = date.toLocaleDateString('fr-FR', { month: 'short' });
+          const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+          const holiday = isFrenchHoliday(dateStr);
           if (allSlots.length === 0) return null;
           return (
             <div key={day}>
               {/* Day header — Medical Diary style */}
               <div className="flex items-center gap-3 mb-2">
                 {isToday ? (
-                  <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-white tabular-nums">{dayNumber}</span>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div className="w-9 h-9 rounded-full bg-gradient-primary flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-white tabular-nums">{dayNumber}</span>
+                    </div>
+                    {holiday && <span className="text-[8px] text-red-400 truncate max-w-[40px] text-center leading-tight">{holiday.name.substring(0, 10)}</span>}
+                  </div>
+                ) : holiday ? (
+                  <div className="flex flex-col items-center gap-0.5">
+                    <div className="w-9 h-9 rounded-full bg-red-50 border-2 border-red-300 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-medium text-red-600 tabular-nums">{dayNumber}</span>
+                    </div>
+                    <span className="text-[8px] text-red-400 truncate max-w-[40px] text-center leading-tight">{holiday.name.substring(0, 10)}</span>
                   </div>
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
@@ -500,14 +512,33 @@ const PersonalAgendaWeek: React.FC<Props> = ({ weekOffset, onOffsetChange, onCon
           {days.map(({ day, date, dateStr, isToday, periods }) => (
             <div key={day} className="flex flex-col gap-1">
               {/* Day header */}
-              <div className={`text-center rounded-card py-1.5 px-1 ${isToday ? 'bg-gradient-primary' : 'bg-muted'}`}>
-                <p className={`text-xs font-bold uppercase tracking-wide ${isToday ? 'text-white' : 'text-text-muted'}`}>
-                  {DAY_LABELS[day]}
-                </p>
-                <p className={`text-sm font-semibold ${isToday ? 'text-white' : 'text-text-base'}`}>
-                  {date.getDate()}
-                </p>
-              </div>
+              {(() => {
+                const holiday = isFrenchHoliday(dateStr);
+                if (isToday) {
+                  return (
+                    <div className="text-center rounded-card py-1.5 px-1 bg-gradient-primary">
+                      <p className="text-xs font-bold uppercase tracking-wide text-white">{DAY_LABELS[day]}</p>
+                      <p className="text-sm font-semibold text-white">{date.getDate()}</p>
+                      {holiday && <p className="text-[8px] text-white/80 truncate">{holiday.name.substring(0, 12)}</p>}
+                    </div>
+                  );
+                }
+                if (holiday) {
+                  return (
+                    <div className="text-center rounded-card py-1.5 px-1 bg-red-50 border border-red-200">
+                      <p className="text-xs font-bold uppercase tracking-wide text-red-500">{DAY_LABELS[day]}</p>
+                      <p className="text-sm font-semibold text-red-600">{date.getDate()}</p>
+                      <p className="text-[8px] text-red-400 truncate">{holiday.name.substring(0, 12)}</p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="text-center rounded-card py-1.5 px-1 bg-muted">
+                    <p className="text-xs font-bold uppercase tracking-wide text-text-muted">{DAY_LABELS[day]}</p>
+                    <p className="text-sm font-semibold text-text-base">{date.getDate()}</p>
+                  </div>
+                );
+              })()}
 
               {/* AM / PM slots */}
               {periods.map(({ period, slots: rawSlots, conflictSlots }) => {
