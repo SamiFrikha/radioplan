@@ -31,9 +31,13 @@
 
 ### Contexte
 Quand un médecin est en congé, les activités initialement prévues sur ce créneau doivent rester visibles avec leur statut de remplacement. Les données de statut sont dérivées de `manualOverrides` :
-- Clé absente / vide → **Non résolu**
+- Clé absente **ou** valeur vide `''` → **Non résolu** (les deux cas sont équivalents)
 - `'__CLOSED__'` → **Fermé**
 - `doctorId` ou `'auto:doctorId'` → **Remplacé par Dr. X** (nom récupéré depuis `doctors`)
+
+**Cas particulier — jour férié ET congé :** le header du jour garde le style "férié" (rouge). Dans la colonne, le badge "Congé" reste affiché normalement — les deux informations ne se cumulent pas visuellement puisqu'un jour férié n'a généralement aucun slot.
+
+**Cas secondaryDoctorIds :** si le médecin est assigné en secondaire (`secondaryDoctorIds`), le mini-modal de détail indique "Médecin secondaire absent" plutôt que "Médecin absent" pour clarifier son rôle.
 
 ### PersonalAgendaWeek — enrichissement des `conflictSlots`
 
@@ -60,13 +64,19 @@ Chaque carte `conflictSlot` affiche :
 - Bouton "Fermer"
 - Style : overlay + `max-w-sm` centré, même pattern que le popup de détail mois
 
-**Nouveau prop `PersonalAgendaWeek` :**
+**Nouveaux props `PersonalAgendaWeek` :**
 ```typescript
 onConflictClick?: (slot: ScheduleSlot) => void;
 onResolvedConflictClick?: (slot: ScheduleSlot, replacementDoctorId: string | null) => void;
 ```
 
 ### PersonalAgendaMonth — vue mois
+
+**Nouveaux props `PersonalAgendaMonth` :**
+```typescript
+onConflictClick?: (slot: ScheduleSlot) => void;
+onResolvedConflictClick?: (slot: ScheduleSlot, replacementDoctorId: string | null) => void;
+```
 
 **Cellule en congé :**
 Sous le badge "Congé" existant, ajouter des micro-indicateurs par demi-journée impactée (max 2 visible, +N si plus) :
@@ -99,22 +109,27 @@ Un médecin absent voit son conflit d'activité (ex. Unity) affiché comme "rés
 
 ### Fix (Profile.tsx ~ligne 1944)
 
+**Note :** Profile.tsx ligne ~1947 extrait déjà `resolvedDoctorId`. Le bloc complet à remplacer (lignes 1944–1948) :
+
 **Avant :**
 ```typescript
+const rawOverride = manualOverrides[conflict.slotId] ?? '';
 const isResolved = rawOverride !== '' && rawOverride !== '__CLOSED__';
+const isClosed = rawOverride === '__CLOSED__';
+const resolvedDoctorId = rawOverride.startsWith('auto:') ? rawOverride.substring(5) : rawOverride;
+const resolvedDoctor = isResolved ? doctors.find(d => d.id === resolvedDoctorId) : null;
 ```
 
 **Après :**
 ```typescript
-const resolvedDoctorId = rawOverride.startsWith('auto:') 
-  ? rawOverride.substring(5) 
-  : rawOverride;
-const isResolved = rawOverride !== '' 
-  && rawOverride !== '__CLOSED__' 
-  && resolvedDoctorId !== conflict.doctorId;
+const rawOverride = manualOverrides[conflict.slotId] ?? '';
+const isClosed = rawOverride === '__CLOSED__';
+const resolvedDoctorId = rawOverride.startsWith('auto:') ? rawOverride.substring(5) : rawOverride;
+const isResolved = rawOverride !== '' && !isClosed && resolvedDoctorId !== conflict.doctorId;
+const resolvedDoctor = isResolved ? doctors.find(d => d.id === resolvedDoctorId) : null;
 ```
 
-**Effet :** si l'override désigne le médecin absent lui-même, le conflit reste "non résolu", cliquable, et le médecin peut désigner un vrai remplaçant.
+**Effet :** si l'override désigne le médecin absent lui-même, le conflit reste "non résolu", cliquable, et le médecin peut désigner un vrai remplaçant. Élimine aussi le risque de double déclaration `const resolvedDoctorId`.
 
 ---
 
