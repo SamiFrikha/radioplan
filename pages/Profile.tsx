@@ -1942,9 +1942,9 @@ const Profile: React.FC = () => {
 
                                         // Resolution detection
                                         const rawOverride = manualOverrides[conflict.slotId] ?? '';
-                                        const isResolved = rawOverride !== '' && rawOverride !== '__CLOSED__';
                                         const isClosed = rawOverride === '__CLOSED__';
                                         const resolvedDoctorId = rawOverride.startsWith('auto:') ? rawOverride.substring(5) : rawOverride;
+                                        const isResolved = rawOverride !== '' && !isClosed && resolvedDoctorId !== conflict.doctorId;
                                         const resolvedDoctor = isResolved ? doctors.find(d => d.id === resolvedDoctorId) : null;
 
                                         return (
