@@ -236,7 +236,10 @@ const MonPlanning: React.FC = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-text-muted">Activité</span>
                   <span className="font-semibold text-text-base">
-                    {slot.subType || slot.location || 'Activité'}
+                    {slot.subType || slot.location || (
+                      slot.type === SlotType.CONSULTATION ? 'Consultation' :
+                      slot.type === SlotType.RCP ? 'RCP' : 'Activité'
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">

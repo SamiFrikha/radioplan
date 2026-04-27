@@ -15,8 +15,8 @@ interface Props {
   onConsultClick?: (slot: any) => void;
   onRcpClick?: (slot: any) => void;
   onActivityClick?: (slot: any) => void;
-  onConflictClick?: (slot: any) => void;           // NEW
-  onResolvedConflictClick?: (slot: any, replacementDoctorId: string | null) => void;  // NEW
+  onConflictClick?: (slot: any) => void;
+  onResolvedConflictClick?: (slot: any, replacementDoctorId: string | null) => void;
 }
 
 const DAY_ORDER = [DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY];
@@ -96,7 +96,7 @@ const RCP_CARD_STYLE = {
 const PersonalAgendaWeek: React.FC<Props> = ({
   weekOffset, onOffsetChange,
   onConsultClick, onRcpClick, onActivityClick,
-  onConflictClick, onResolvedConflictClick,  // NEW
+  onConflictClick, onResolvedConflictClick,
 }) => {
   const {
     doctors, template, unavailabilities,
@@ -167,6 +167,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
           // Slots that were assigned to the doctor on this leave day — used to show what
           // happened to each (closed, unresolved, etc.)
           const conflictSlots = rawSchedule.filter(s =>
+            !s.isCancelled &&
             s.day === day && s.period === period &&
             (s.assignedDoctorId === doctorId || s.secondaryDoctorIds?.includes(doctorId!))
           );
