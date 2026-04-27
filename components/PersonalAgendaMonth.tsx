@@ -3,7 +3,7 @@ import React, { useMemo, useContext, useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays, XCircle } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
-import { generateScheduleForWeek } from '../services/scheduleService';
+import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleService';
 import { SlotType, Period } from '../types';
 import { getDoctorHexColor } from './DoctorBadge';
 
@@ -339,6 +339,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
               {/* Day cells for this week */}
               {week.map((date, di) => {
                 const key = toKey(date);
+                const holiday = isFrenchHoliday(key);
                 const allSlots = scheduleByDate[key] ?? [];
                 // Filter out WEEKLY activities — shown in banner above
                 const slots = allSlots.filter((s: any) => {
@@ -394,10 +395,17 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                     <div className={`mb-0.5 ${
                       isToday
                         ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary text-white flex items-center justify-center mx-auto text-[10px] sm:text-xs font-bold'
-                        : 'text-xs sm:text-sm text-center font-medium text-text-base'
+                        : holiday
+                          ? 'text-xs sm:text-sm text-center font-medium text-red-600'
+                          : 'text-xs sm:text-sm text-center font-medium text-text-base'
                     }`}>
                       {date.getDate()}
                     </div>
+                    {holiday && isCurrentMonth && !isWeekend && (
+                      <div className="text-[8px] text-red-400 text-center leading-tight truncate mb-0.5">
+                        {holiday.name.substring(0, 10)}
+                      </div>
+                    )}
 
                     {onLeave && isCurrentMonth && !isWeekend ? (
                       <div
