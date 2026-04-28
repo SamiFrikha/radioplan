@@ -50,16 +50,32 @@ Deno.serve(async () => {
         const dateStr = toDateStr(slotDate);
         const slotId = `${slot.id}-${dateStr}`;
 
-        // Skip if already confirmed
-        const { data: present } = await supabase
-          .from('rcp_attendance').select('id').eq('slot_id', slotId).eq('status', 'PRESENT').limit(1);
-        if (present && present.length > 0) continue;
+        // Load all attendance records for this slot in one query
+        const { data: attendance, error: attendanceErr } = await supabase
+          .from('rcp_attendance')
+          .select('doctor_id, status')
+          .eq('slot_id', slotId);
+
+        if (attendanceErr) {
+          console.error(`[rcp-reminders] Error checking attendance for ${slotId}:`, attendanceErr.message);
+          continue;
+        }
+
+        // Skip entire slot if any doctor already confirmed PRÉSENT
+        const hasPresent = (attendance ?? []).some((r: any) => r.status === 'PRESENT');
+        if (hasPresent) continue;
+
+        // Set of doctors who already declared any status (PRÉSENT or ABSENT)
+        const decidedDocIds = new Set((attendance ?? []).map((r: any) => r.doctor_id));
 
         const assignedIds: string[] = slot.doctor_ids?.length
           ? slot.doctor_ids
           : [slot.default_doctor_id, ...(slot.secondary_doctor_ids ?? [])].filter(Boolean);
 
         for (const docId of assignedIds) {
+          // Skip doctors who already declared their status (ABSENT ou PRÉSENT)
+          if (decidedDocIds.has(docId)) continue;
+
           const prof = (profiles ?? []).find((p: any) => p.doctor_id === docId);
           if (!prof) continue;
 

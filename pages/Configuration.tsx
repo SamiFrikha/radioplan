@@ -119,9 +119,12 @@ const Configuration: React.FC = () => {
 
     // RCP Auto-assignment Config State
     const [rcpAutoConfigs, setRcpAutoConfigs] = useState<RcpAutoConfig[]>([]);
-    const [autoConfigDay, setAutoConfigDay] = useState('Vendredi');
-    const [autoConfigTime, setAutoConfigTime] = useState('14:00');
-    const [autoConfigMode, setAutoConfigMode] = useState<'8weeks' | 'permanent'>('8weeks');
+    const [autoConfigDay, setAutoConfigDayState] = useState(() => sessionStorage.getItem('rcp_autoConfigDay') || 'Vendredi');
+    const setAutoConfigDay = (v: string) => { sessionStorage.setItem('rcp_autoConfigDay', v); setAutoConfigDayState(v); };
+    const [autoConfigTime, setAutoConfigTimeState] = useState(() => sessionStorage.getItem('rcp_autoConfigTime') || '14:00');
+    const setAutoConfigTime = (v: string) => { sessionStorage.setItem('rcp_autoConfigTime', v); setAutoConfigTimeState(v); };
+    const [autoConfigMode, setAutoConfigModeState] = useState<'8weeks' | 'permanent'>(() => (sessionStorage.getItem('rcp_autoConfigMode') as '8weeks' | 'permanent') || '8weeks');
+    const setAutoConfigMode = (v: '8weeks' | 'permanent') => { sessionStorage.setItem('rcp_autoConfigMode', v); setAutoConfigModeState(v); };
     const [autoConfigStartDate, setAutoConfigStartDate] = useState<string>('');
     const [savingAutoConfig, setSavingAutoConfig] = useState(false);
     const [launchWeekDate, setLaunchWeekDate] = useState<string>('');
