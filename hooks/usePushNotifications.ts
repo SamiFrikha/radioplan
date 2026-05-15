@@ -57,6 +57,42 @@ export function usePushNotifications(userId: string | undefined): UsePushNotific
     return () => document.removeEventListener('visibilitychange', syncPermission);
   }, [standalone]);
 
+  // Listen for pushsubscriptionchange message from the service worker.
+  // When the browser rotates the push token, the SW sends this message
+  // so we can re-subscribe transparently and update the DB.
+  useEffect(() => {
+    if (!userId || !('serviceWorker' in navigator)) return;
+
+    const onSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PUSH_SUBSCRIPTION_CHANGED') {
+        // Re-subscribe silently (no user gesture needed for renewals)
+        navigator.serviceWorker.ready.then(async (registration) => {
+          const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string;
+          if (!vapidPublicKey) return;
+          try {
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            });
+            const { endpoint } = subscription;
+            const keys = subscription.toJSON().keys as { p256dh: string; auth: string };
+            if (!keys?.p256dh || !keys?.auth) return;
+            const { supabase } = await import('../services/supabaseClient');
+            await supabase.from('push_subscriptions').upsert(
+              { user_id: userId, endpoint, p256dh: keys.p256dh, auth: keys.auth },
+              { onConflict: 'user_id,endpoint' }
+            );
+          } catch (err) {
+            console.warn('[Push] Auto-renew subscription failed:', err);
+          }
+        });
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', onSwMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onSwMessage);
+  }, [userId]);
+
   const subscribe = async () => {
     if (!userId) return;
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return;

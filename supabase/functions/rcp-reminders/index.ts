@@ -20,12 +20,16 @@ Deno.serve(async () => {
   const in24h = new Date(now.getTime() + 24 * 3600_000);
   const in25h = new Date(now.getTime() + 25 * 3600_000);
 
+  // Fetch configs in 12h window that haven't had their 12h reminder sent yet
   const { data: configs12h } = await supabase
     .from('rcp_auto_config').select('*').is('executed_at', null)
+    .is('reminder_12h_sent_at', null)
     .gte('deadline_at', in12h.toISOString()).lte('deadline_at', in13h.toISOString());
 
+  // Fetch configs in 24h window that haven't had their 24h reminder sent yet
   const { data: configs24h } = await supabase
     .from('rcp_auto_config').select('*').is('executed_at', null)
+    .is('reminder_24h_sent_at', null)
     .gte('deadline_at', in24h.toISOString()).lte('deadline_at', in25h.toISOString());
 
   const [{ data: templateSlots }, { data: profiles }] = await Promise.all([
@@ -36,10 +40,12 @@ Deno.serve(async () => {
   const sendReminders = async (
     configs: any[],
     type: 'RCP_REMINDER_24H' | 'RCP_REMINDER_12H',
-    hoursLabel: number
+    hoursLabel: number,
+    sentAtColumn: 'reminder_24h_sent_at' | 'reminder_12h_sent_at'
   ) => {
     for (const cfg of configs) {
       const weekStart = new Date(cfg.week_start_date + 'T00:00:00Z');
+      let sentCount = 0;
 
       for (const slot of (templateSlots ?? [])) {
         const dayOffset = DAY_OFFSETS[slot.day];
@@ -73,7 +79,6 @@ Deno.serve(async () => {
           : [slot.default_doctor_id, ...(slot.secondary_doctor_ids ?? [])].filter(Boolean);
 
         for (const docId of assignedIds) {
-          // Skip doctors who already declared their status (ABSENT ou PRÉSENT)
           if (decidedDocIds.has(docId)) continue;
 
           const prof = (profiles ?? []).find((p: any) => p.doctor_id === docId);
@@ -86,13 +91,24 @@ Deno.serve(async () => {
             body: `Rappel : vous êtes assigné au RCP${slot.sub_type ? ` "${slot.sub_type}"` : ''} du ${dateStr}. Confirmez votre présence ou déclarez une absence avant le tirage automatique dans ${hoursLabel}h.`,
             data: { slotId, date: dateStr },
           });
+          sentCount++;
         }
+      }
+
+      // Mark config as reminded (idempotent — won't re-send on next cron tick)
+      if (sentCount >= 0) {
+        await supabase
+          .from('rcp_auto_config')
+          .update({ [sentAtColumn]: now.toISOString() })
+          .eq('id', cfg.id);
       }
     }
   };
 
-  await sendReminders(configs12h ?? [], 'RCP_REMINDER_12H', 12);
-  await sendReminders(configs24h ?? [], 'RCP_REMINDER_24H', 24);
+  await sendReminders(configs12h ?? [], 'RCP_REMINDER_12H', 12, 'reminder_12h_sent_at');
+  await sendReminders(configs24h ?? [], 'RCP_REMINDER_24H', 24, 'reminder_24h_sent_at');
 
-  return new Response(JSON.stringify({ ok: true }));
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 });

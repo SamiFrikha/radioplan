@@ -16,10 +16,25 @@ webpush.setVapidDetails(
 );
 
 Deno.serve(async (req) => {
-  const { user_id, title, body, data } = await req.json();
+  const { user_id, type, title, body, data } = await req.json();
 
   if (!user_id || !title) {
     return new Response(JSON.stringify({ error: 'user_id and title required' }), { status: 400 });
+  }
+
+  // Check user's notification preferences before sending push
+  // Missing key or null defaults to enabled (opt-out model)
+  if (type) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('notification_preferences')
+      .eq('id', user_id)
+      .single();
+
+    const prefs: Record<string, boolean> = profile?.notification_preferences ?? {};
+    if (prefs[type] === false) {
+      return new Response(JSON.stringify({ sent: 0, failed: 0, reason: 'preference_disabled' }));
+    }
   }
 
   // Fetch all push subscriptions for this user
@@ -37,7 +52,8 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ sent: 0, failed: 0, reason: 'no subscriptions' }));
   }
 
-  const payload = JSON.stringify({ title, body: body ?? '', data: data ?? {} });
+  // Include type in payload so sw.js can build a unique tag per notification type + slot
+  const payload = JSON.stringify({ title, body: body ?? '', type: type ?? '', data: data ?? {} });
   let sent = 0;
   let failed = 0;
 
@@ -49,10 +65,10 @@ Deno.serve(async (req) => {
       );
       sent++;
     } catch (err: any) {
-      // HTTP 410 = subscription expired or revoked — delete it
-      if (err.statusCode === 410) {
+      // HTTP 410 = subscription expired/revoked, 404 = endpoint unknown — delete both
+      if (err.statusCode === 410 || err.statusCode === 404) {
         await supabase.from('push_subscriptions').delete().eq('id', sub.id);
-        console.log(`Deleted expired subscription ${sub.id}`);
+        console.log(`Deleted stale subscription ${sub.id} (HTTP ${err.statusCode})`);
       } else {
         console.error(`Push failed for subscription ${sub.id}:`, err.message);
         failed++;

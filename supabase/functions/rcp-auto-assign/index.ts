@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown> = {};
+  try { body = await req.json(); } catch { /* pg_cron may send empty body */ }
 
   // --- checkPending mode: called by pg_cron every 5 min ---
   if (body.checkPending || body.action === 'checkPending') {
