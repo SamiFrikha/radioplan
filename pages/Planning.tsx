@@ -241,7 +241,7 @@ const Planning: React.FC = () => {
             const slotBg = (s?: typeof schedule[0]) => {
                 if (!s || s.isClosed) return '#F1F5F9';
                 if (s.type === SlotType.CONSULTATION) return '#EEF4FF';
-                if (s.type === SlotType.RCP)          return '#F5F0FF';
+                if (s.type === SlotType.RCP)          return '#ECFEFF';
                 const n = (s.subType || '').toLowerCase();
                 if (n.includes('astreinte')) return '#FFF0EE';
                 if (n.includes('workflow'))  return '#ECFDF5';
@@ -251,7 +251,7 @@ const Planning: React.FC = () => {
             const slotAccent = (s?: typeof schedule[0]) => {
                 if (!s || s.isClosed) return '#CBD5E1';
                 if (s.type === SlotType.CONSULTATION) return '#3B6FD4';
-                if (s.type === SlotType.RCP)          return '#7C3AED';
+                if (s.type === SlotType.RCP)          return '#0891B2';
                 const n = (s.subType || '').toLowerCase();
                 if (n.includes('astreinte')) return '#DC4E3A';
                 if (n.includes('workflow'))  return '#0F766E';
@@ -430,7 +430,7 @@ const Planning: React.FC = () => {
                 const LY = PH - M - 22;
                 const dLegendItems = [
                     { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
-                    { accent: '#7C3AED', bg: '#F5F0FF', label: 'RCP' },
+                    { accent: '#0891B2', bg: '#ECFEFF', label: 'RCP' },
                     { accent: '#DC4E3A', bg: '#FFF0EE', label: 'Astreinte' },
                     { accent: '#0F766E', bg: '#ECFDF5', label: 'Workflow' },
                     { accent: '#6D28D9', bg: '#F3F0FF', label: 'Unity' },
@@ -672,7 +672,7 @@ const Planning: React.FC = () => {
             const LY = PH - M - 22;
             const legendItems = [
                 { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
-                { accent: '#7C3AED', bg: '#F5F0FF', label: 'RCP' },
+                { accent: '#0891B2', bg: '#ECFEFF', label: 'RCP' },
                 { accent: '#DC4E3A', bg: '#FFF0EE', label: 'Astreinte' },
                 { accent: '#0F766E', bg: '#ECFDF5', label: 'Workflow' },
                 { accent: '#6D28D9', bg: '#F3F0FF', label: 'Unity' },
@@ -824,8 +824,8 @@ const Planning: React.FC = () => {
                 bgClass = '';
                 borderClass = '';
                 slotInlineStyle = {
-                    backgroundColor: 'rgba(124,58,237,0.10)',
-                    borderLeftColor: '#7C3AED',
+                    backgroundColor: 'rgba(8,145,178,0.10)',
+                    borderLeftColor: '#0891B2',
                 };
             } else if (slot.type === SlotType.CONSULTATION) {
                 bgClass = '';
