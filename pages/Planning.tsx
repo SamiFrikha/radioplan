@@ -3,7 +3,7 @@ import { AppContext } from '../App';
 import { DayOfWeek, Period, SlotType, ScheduleSlot } from '../types';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import { AlertCircle, ChevronLeft, ChevronRight, Calendar, UserCheck, Users, LayoutGrid, Printer, Loader2, ImageIcon, Lock, Ban, Settings, Palette, Eye, ShieldAlert, X } from 'lucide-react';
-import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts } from '../services/scheduleService';
+import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts, isAbsent } from '../services/scheduleService';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { getDoctorHexColor } from '../components/DoctorBadge';
@@ -707,6 +707,25 @@ const Planning: React.FC = () => {
 
     const renderDoctorCell = (doctor: any, day: DayOfWeek, period: Period) => {
         const date = getDateForDayOfWeek(currentWeekStart, day);
+
+        // Absence prioritaire sur tout le reste
+        if (isAbsent(doctor, date, period, unavailabilities)) {
+            const u = unavailabilities.find(u =>
+                u.doctorId === doctor.id &&
+                date >= u.startDate &&
+                date <= u.endDate &&
+                (u.period === 'ALL_DAY' || u.period === period)
+            );
+            const reason = u?.reason ?? 'Absent';
+            return (
+                <div className="bg-red-50 border border-red-200 h-full flex items-center justify-center px-1">
+                    <span className="text-red-600 text-xs font-semibold truncate max-w-full">
+                        {reason.length > 20 ? reason.slice(0, 20) + '…' : reason}
+                    </span>
+                </div>
+            );
+        }
+
         const slots = schedule.filter(s =>
             s.date === date &&
             s.period === period &&
@@ -728,7 +747,6 @@ const Planning: React.FC = () => {
                         if (s.type === SlotType.RCP) variant = 'blue';
                         if (s.type === SlotType.ACTIVITY) variant = 'amber';
                     }
-
                     return (
                         <Badge key={s.id} variant={variant} className="text-[10px] px-1 py-0.5 truncate">
                             <span className="font-bold mr-1">
