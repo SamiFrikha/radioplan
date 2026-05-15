@@ -375,7 +375,7 @@ const Planning: React.FC = () => {
                                 pdf.rect(cellX, rowY, DCELL_W, DROW_H, 'FD');
                                 fill('#DC2626'); pdf.rect(cellX, rowY, 2.5, DROW_H, 'F');
                                 pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#DC2626');
-                                const r = reason.length > 18 ? reason.slice(0, 17) + '…' : reason;
+                                const r = reason.length > 18 ? reason.slice(0, 17) + '…' : reason; // tighter than UI (20): PDF cell is narrower
                                 pdf.text(r, cellX + DCELL_W/2, rowY + DROW_H/2 + 2.3, { align: 'center' });
                                 return;
                             }
