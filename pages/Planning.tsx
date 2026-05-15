@@ -411,8 +411,8 @@ const Planning: React.FC = () => {
                     });
                 });
 
-                // 4. Légende + footer
-                const LY = DTABLE_Y + DN_ROWS * DROW_H + 6;
+                // 4. Légende + footer — pinned so LY+20 stays within PH
+                const LY = PH - M - 22;
                 const dLegendItems = [
                     { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
                     { accent: '#7C3AED', bg: '#F5F0FF', label: 'RCP' },
@@ -653,8 +653,8 @@ const Planning: React.FC = () => {
                 });
             });
 
-            // ── 4. Legend + footer ────────────────────────────────────────────
-            const LY = TABLE_Y + N_ROWS * ROW_H + 6;
+            // ── 4. Legend + footer — pinned so LY+20 stays within PH ────────
+            const LY = PH - M - 22;
             const legendItems = [
                 { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
                 { accent: '#7C3AED', bg: '#F5F0FF', label: 'RCP' },
@@ -919,7 +919,8 @@ const Planning: React.FC = () => {
         const slots = schedule.filter(s =>
             s.date === date &&
             s.period === period &&
-            s.assignedDoctorId === doctor.id
+            s.assignedDoctorId === doctor.id &&
+            !s.isCancelled
         );
 
         const isHoliday = isFrenchHoliday(date);
