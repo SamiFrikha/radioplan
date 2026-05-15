@@ -99,7 +99,15 @@ const ReplacementActions: React.FC<{
             setRcpAttendance({ ...rcpAttendance, [slotId]: newMap });
             console.log('[BELL] 2️⃣ rcpAttendance updated ✅', newMap);
           } else {
-            setManualOverrides({ ...manualOverrides, [slotId]: currentDoctorId });
+            // Fetch fresh state from DB before merging to avoid overwriting all
+            // assignments if this component rendered before settings loaded (race condition).
+            const { data: freshSettings } = await supabase
+              .from('app_settings')
+              .select('manual_overrides')
+              .eq('id', 1)
+              .single();
+            const freshOverrides = (freshSettings?.manual_overrides as Record<string, string>) ?? {};
+            setManualOverrides({ ...freshOverrides, [slotId]: currentDoctorId });
             console.log('[BELL] 2️⃣ manualOverrides updated ✅', { [slotId]: currentDoctorId });
           }
         } else {
