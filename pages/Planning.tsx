@@ -259,6 +259,196 @@ const Planning: React.FC = () => {
                 return '#F59E0B';
             };
 
+            // ── Vue par médecin ───────────────────────────────────────────────
+            const generateDoctorViewPDF = () => {
+                const DOC_W  = 70;
+                const DPER_W = 32;
+                const DCELL_W = (PW - 2*M - DOC_W - DPER_W) / days.length;
+                const DTITLE_H = 36;
+                const DHDR_H   = 20;
+                const DN_ROWS  = doctors.length * 2;
+                const DDATA_H  = PH - 2*M - DTITLE_H - DHDR_H;
+                const DROW_H   = DDATA_H / DN_ROWS;
+                const DTABLE_X = M + DOC_W + DPER_W;
+                const DTABLE_Y = M + DTITLE_H + DHDR_H;
+
+                // 1. Titre
+                fill('#4F46E5');
+                pdf.rect(M, M, PW - 2*M, 3, 'F');
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(15); tc('#0F172A');
+                pdf.text('PLANNING RADIOTHÉRAPIE — VUE PAR MÉDECIN', M, M + 18);
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); tc('#64748B');
+                pdf.text(formatWeekRange(currentWeekStart), M, M + 30);
+                pdf.setFontSize(8); tc('#94A3B8');
+                pdf.text(
+                    `Généré le ${new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' })}`,
+                    PW - M, M + 18, { align: 'right' }
+                );
+
+                // 2. En-têtes colonnes
+                fill('#0F172A'); stroke('#1E293B'); pdf.setLineWidth(0.4);
+                pdf.rect(M, M + DTITLE_H, DOC_W + DPER_W, DHDR_H, 'FD');
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5); tc('#FFFFFF');
+                pdf.text('Médecin / Créneau', M + (DOC_W + DPER_W)/2, M + DTITLE_H + DHDR_H/2 + 2.5, { align: 'center' });
+
+                days.forEach((day, di) => {
+                    const dateStr    = getDateForDayOfWeek(currentWeekStart, day);
+                    const holiday    = isFrenchHoliday(dateStr);
+                    const [, mo, dd] = dateStr.split('-');
+                    const x = DTABLE_X + di * DCELL_W;
+                    fill(holiday ? '#FEF2F2' : '#1E293B');
+                    stroke(holiday ? '#FECACA' : '#334155');
+                    pdf.rect(x, M + DTITLE_H, DCELL_W, DHDR_H, 'FD');
+                    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9);
+                    tc(holiday ? '#DC2626' : '#FFFFFF');
+                    pdf.text(`${day}  ${dd}/${mo}`, x + DCELL_W/2, M + DTITLE_H + DHDR_H/2 + 3, { align: 'center' });
+                });
+
+                // 3. Lignes de données
+                doctors.forEach((doc, ri) => {
+                    const rowY0 = DTABLE_Y + ri * 2 * DROW_H;
+                    const rowY1 = DTABLE_Y + (ri * 2 + 1) * DROW_H;
+                    const stripBg = ri % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+
+                    // Colonne médecin (span 2 lignes)
+                    fill('#F1F5F9'); stroke('#CBD5E1'); pdf.setLineWidth(0.5);
+                    pdf.rect(M, rowY0, DOC_W, DROW_H * 2, 'FD');
+
+                    const docHex = getDoctorHexColor(doc.color) || '#64748B';
+                    const { r: dr, g: dg, b: db } = hexRgb(docHex);
+                    const CR = 5;
+                    const CX = M + CR + 4;
+                    const CY = rowY0 + DROW_H / 2;
+                    pdf.setFillColor(dr, dg, db);
+                    pdf.ellipse(CX, CY, CR, CR, 'F');
+                    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(4.5); tc('#FFFFFF');
+                    pdf.text(doc.name.substring(0, 2).toUpperCase(), CX, CY + 1.6, { align: 'center' });
+
+                    const nameX = CX + CR + 3;
+                    let dName = doc.name;
+                    pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7);
+                    while (pdf.getTextWidth(dName) > DOC_W - nameX + M - 2 && dName.length > 3) dName = dName.slice(0, -1);
+                    if (dName !== doc.name) dName += '…';
+                    tc('#0F172A');
+                    pdf.text(dName, nameX, CY + 2.5);
+
+                    // Séparateur entre médecins
+                    if (ri < doctors.length - 1) {
+                        fill('#E2E8F0');
+                        pdf.rect(M, rowY1 + DROW_H - 0.8, PW - 2*M, 1.6, 'F');
+                    }
+
+                    [Period.MORNING, Period.AFTERNOON].forEach((period, pi) => {
+                        const rowY = pi === 0 ? rowY0 : rowY1;
+
+                        // Colonne créneau
+                        fill('#F8FAFC'); stroke('#E2E8F0'); pdf.setLineWidth(0.35);
+                        pdf.rect(M + DOC_W, rowY, DPER_W, DROW_H, 'FD');
+                        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6.5); tc('#64748B');
+                        pdf.text(
+                            period === Period.MORNING ? 'Matin' : 'Après-m.',
+                            M + DOC_W + DPER_W/2, rowY + DROW_H/2 + 2.3, { align: 'center' }
+                        );
+
+                        if (pi === 0) {
+                            stroke('#E2E8F0'); pdf.setLineWidth(0.3);
+                            pdf.line(M + DOC_W, rowY + DROW_H, PW - M, rowY + DROW_H);
+                        }
+
+                        // Cellules jours
+                        days.forEach((day, di) => {
+                            const cellX   = DTABLE_X + di * DCELL_W;
+                            const dateStr = getDateForDayOfWeek(currentWeekStart, day);
+
+                            fill(stripBg); stroke('#E2E8F0'); pdf.setLineWidth(0.3);
+                            pdf.rect(cellX, rowY, DCELL_W, DROW_H, 'FD');
+
+                            if (isAbsent(doc, dateStr, period, unavailabilities)) {
+                                const u = unavailabilities.find(u =>
+                                    u.doctorId === doc.id &&
+                                    dateStr >= u.startDate &&
+                                    dateStr <= u.endDate &&
+                                    (u.period === 'ALL_DAY' || u.period === period)
+                                );
+                                const reason = u?.reason ?? 'Absent';
+                                fill('#FEE2E2'); stroke('#FECACA');
+                                pdf.rect(cellX, rowY, DCELL_W, DROW_H, 'FD');
+                                fill('#DC2626'); pdf.rect(cellX, rowY, 2.5, DROW_H, 'F');
+                                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#DC2626');
+                                const r = reason.length > 18 ? reason.slice(0, 17) + '…' : reason;
+                                pdf.text(r, cellX + DCELL_W/2, rowY + DROW_H/2 + 2.3, { align: 'center' });
+                                return;
+                            }
+
+                            const slot = schedule.find(s =>
+                                s.date === dateStr &&
+                                s.period === period &&
+                                s.assignedDoctorId === doc.id &&
+                                !s.isCancelled
+                            );
+
+                            if (!slot) return;
+
+                            const bg     = slotBg(slot);
+                            const accent = slotAccent(slot);
+                            fill(bg); stroke('#E2E8F0');
+                            pdf.rect(cellX, rowY, DCELL_W, DROW_H, 'FD');
+                            fill(accent); pdf.rect(cellX, rowY, 2.5, DROW_H, 'F');
+
+                            const abbr = slot.type === SlotType.CONSULTATION ? 'CS'
+                                : slot.type === SlotType.RCP ? 'RCP' : 'ACT';
+                            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#0F172A');
+                            pdf.text(abbr, cellX + 5, rowY + DROW_H/2 + 2.3);
+
+                            if (slot.location) {
+                                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); tc('#475569');
+                                let loc = slot.location;
+                                while (pdf.getTextWidth(loc) > DCELL_W - 18 && loc.length > 2) loc = loc.slice(0, -1);
+                                if (loc !== slot.location) loc += '…';
+                                pdf.text(loc, cellX + 16, rowY + DROW_H/2 + 2.3);
+                            }
+                        });
+                    });
+                });
+
+                // 4. Légende + footer
+                const LY = DTABLE_Y + DN_ROWS * DROW_H + 6;
+                const dLegendItems = [
+                    { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
+                    { accent: '#7C3AED', bg: '#F5F0FF', label: 'RCP' },
+                    { accent: '#DC4E3A', bg: '#FFF0EE', label: 'Astreinte' },
+                    { accent: '#0F766E', bg: '#ECFDF5', label: 'Workflow' },
+                    { accent: '#6D28D9', bg: '#F3F0FF', label: 'Unity' },
+                    { accent: '#F59E0B', bg: '#FFFBEB', label: 'Activité' },
+                    { accent: '#DC2626', bg: '#FEE2E2', label: 'Absent / Congé' },
+                ];
+                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#64748B');
+                pdf.text('LÉGENDE :', M, LY + 5.5);
+                let lx = M + 44;
+                dLegendItems.forEach(({ accent, bg, label }) => {
+                    fill(bg); stroke(accent); pdf.setLineWidth(0.5);
+                    pdf.rect(lx, LY, 10, 8, 'FD');
+                    fill(accent); pdf.rect(lx, LY, 2.5, 8, 'F');
+                    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); tc('#0F172A');
+                    pdf.text(label, lx + 12, LY + 5.5);
+                    lx += pdf.getTextWidth(label) + 20;
+                });
+
+                stroke('#E2E8F0'); pdf.setLineWidth(0.5);
+                pdf.line(M, LY + 14, PW - M, LY + 14);
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); tc('#CBD5E1');
+                pdf.text('RadioPlan AI — document généré automatiquement', M, LY + 20);
+                pdf.text(formatWeekRange(currentWeekStart), PW - M, LY + 20, { align: 'right' });
+
+                pdf.save(`Planning_Medecins_${currentWeekStart.toISOString().split('T')[0]}.pdf`);
+            };
+
+            // ── Dispatch selon la vue active ─────────────────────────────────
+            if (viewMode === 'DOCTOR') {
+                generateDoctorViewPDF();
+                return;
+            }
+
             // ── layout ────────────────────────────────────────────────────────
             const TITLE_H = 36;   // title block height
             const HDR_H   = 20;   // day-column header height
