@@ -17,104 +17,137 @@ Le planning global dispose d'une vue par médecin (`viewMode === 'DOCTOR'`) qui 
 ### Données disponibles
 
 - `unavailabilities: Unavailability[]` — déjà dans le contexte Planning (ligne 18)
-- `isAbsent(doctor, dateStr, period, unavailabilities)` — dans `scheduleService.ts`, à ajouter à l'import ligne 6
-- `Unavailability.reason` — texte libre décrivant le motif (congé, maladie, formation…)
+- `isAbsent(doctor, dateStr, period, unavailabilities)` — dans `scheduleService.ts`
+- `Unavailability.reason` — texte libre (congé, maladie, formation…)
 - `Unavailability.period` — `'ALL_DAY' | 'Matin' | 'Après-midi'`
 
 ### Import requis
 
-Ajouter `isAbsent` à l'import existant ligne 6 de `Planning.tsx` :
+Ajouter `isAbsent` à l'import existant ligne 6 :
 ```ts
 import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectConflicts, isAbsent } from '../services/scheduleService';
 ```
 
-### Logique
+### Modification de `renderDoctorCell` (ligne 708)
 
-Dans `renderDoctorCell(doc, day, period)` (`pages/Planning.tsx`, ~ligne 726) :
+**Ordre de priorité des rendus (du plus prioritaire au moins prioritaire) :**
+1. Absent → cellule rouge + raison
+2. Jour férié sans slot → cellule "Férié" (comportement actuel)
+3. Slot(s) présent(s) → badges normaux
+4. Vide → fond gris
 
-La variable `date` (date string ISO) est déjà calculée en début de fonction via :
+**Implémentation :** Insérer le bloc absence **avant** la garde `isHoliday` (ligne 716). Le nouveau corps de la fonction :
+
 ```ts
-const date = getDateForDayOfWeek(currentWeekStart, day); // ligne 709
+const renderDoctorCell = (doctor: any, day: DayOfWeek, period: Period) => {
+    const date = getDateForDayOfWeek(currentWeekStart, day);
+
+    // 1. Absence (prioritaire sur tout le reste)
+    if (isAbsent(doctor, date, period, unavailabilities)) {
+        const u = unavailabilities.find(u =>
+            u.doctorId === doctor.id &&
+            date >= u.startDate &&
+            date <= u.endDate &&
+            (u.period === 'ALL_DAY' || u.period === period)
+        );
+        const reason = u?.reason ?? 'Absent';
+        return (
+            <div className="bg-red-50 border border-red-200 h-full flex items-center justify-center px-1">
+                <span className="text-red-600 text-xs font-semibold truncate max-w-full">
+                    {reason.length > 20 ? reason.slice(0, 20) + '…' : reason}
+                </span>
+            </div>
+        );
+    }
+
+    const slots = schedule.filter(s =>
+        s.date === date && s.period === period && s.assignedDoctorId === doctor.id
+    );
+
+    // 2. Jour férié (garde existante, inchangée)
+    const isHoliday = isFrenchHoliday(date);
+    if (isHoliday && slots.length === 0) {
+        return <div className="bg-danger/5 h-full text-[10px] text-danger/40 flex items-center justify-center">Férié</div>;
+    }
+
+    // 3. Vide
+    if (slots.length === 0) return <div className="bg-muted h-full"></div>;
+
+    // 4. Slots
+    return (
+        <div className="flex flex-col gap-1 p-1">
+            {slots.map(s => {
+                let variant: 'gray' | 'blue' | 'amber' = 'gray';
+                if (colorMode === 'ACTIVITY') {
+                    if (s.type === SlotType.RCP) variant = 'blue';
+                    if (s.type === SlotType.ACTIVITY) variant = 'amber';
+                }
+                return (
+                    <Badge key={s.id} variant={variant} className="text-[10px] px-1 py-0.5 truncate">
+                        <span className="font-bold mr-1">
+                            {s.type === SlotType.CONSULTATION ? 'CS' : s.type === SlotType.RCP ? 'RCP' : 'ACT'}
+                        </span>
+                        {s.location}
+                    </Badge>
+                );
+            })}
+        </div>
+    );
+};
 ```
 
-Priorité de rendu (ordre décroissant) :
-1. **Absent** → cellule rouge avec raison (prioritaire sur jour férié)
-2. **Slot présent** → rendu normal
-3. **Vide** → cellule vide normale
-
-Insertion du check absence **avant** le rendu des slots :
-```ts
-if (isAbsent(doc, date, period, unavailabilities)) {
-  const unaNav = unavailabilities.find(u =>
-    u.doctorId === doc.id &&
-    date >= u.startDate &&
-    date <= u.endDate &&
-    (u.period === 'ALL_DAY' || u.period === period)
-  );
-  return <AbsenceCellUI reason={unaNav?.reason ?? 'Absent'} />;
-}
-```
-
-### Apparence de la cellule absente (UI)
-
-| Propriété | Valeur |
-|---|---|
-| Fond | `#FEF2F2` (Tailwind `bg-red-50`) |
-| Bordure | `border border-red-200` |
-| Texte | `reason` tronqué à 20 caractères, `text-red-600 text-xs font-semibold` |
-| Hauteur | Identique aux cellules normales |
-| Portée | Uniquement la période concernée (`Matin` ou `Après-midi`) ; si `ALL_DAY` → les deux (gérée nativement par `isAbsent`) |
-
-### Priorité : absent vs jour férié
-
-Si un médecin est marqué absent sur un jour férié, la cellule affiche **l'absence** (rouge + raison). Le rendu jour férié n'est affiché que si le médecin n'est pas absent.
+Note : le filtre `slots` est déplacé avant la garde `isHoliday` pour que cette garde puisse vérifier `slots.length === 0`.
 
 ---
 
 ## Fonctionnalité 2 : PDF adaptatif selon la vue active
 
-### Dispatch
+### Emplacement de `generateDoctorViewPDF()`
 
-Au début de `handleDownloadPDF()` (`pages/Planning.tsx`, ~ligne 220), avant le bloc jsPDF existant :
+La fonction est définie **à l'intérieur de `handleDownloadPDF()`**, juste après les helpers locaux (`hexRgb`, `fill`, `stroke`, `tc`, `slotBg`, `slotAccent`) et **avant** le dispatch. Elle ferme sur tous ces helpers et sur les variables du composant.
 
+Structure dans `handleDownloadPDF()` :
 ```ts
-if (viewMode === 'DOCTOR') {
-  generateDoctorViewPDF();
-  return;
-}
-// ... code existant vue par poste inchangé
+const handleDownloadPDF = () => {
+    try {
+        setIsGeneratingPdf(true);
+        const pdf = new jsPDF('l', 'pt', 'a4');
+        const PW = 841.89, PH = 595.28, M = 20;
+
+        // helpers existants (hexRgb, fill, stroke, tc, slotBg, slotAccent) — inchangés
+
+        // ── Nouvelle fonction, définie ICI, ferme sur pdf, fill, stroke, tc, slotBg, etc.
+        const generateDoctorViewPDF = () => {
+            // ... voir ci-dessous
+        };
+
+        // ── Dispatch
+        if (viewMode === 'DOCTOR') {
+            generateDoctorViewPDF();
+            return;
+        }
+
+        // ... code existant vue par poste inchangé ...
+    }
+};
 ```
 
-### Fonction `generateDoctorViewPDF()`
-
-Définie juste avant `handleDownloadPDF()`, fermeture sur les variables du composant (`doctors`, `schedule`, `days`, `unavailabilities`, `currentWeekStart`…).
-
-#### Setup jsPDF
-
-Identique à la vue poste :
-```ts
-const pdf = new jsPDF('l', 'pt', 'a4');
-const PW = 841.89, PH = 595.28, M = 20;
-// helpers hexRgb / fill / stroke / tc — copie identique
-```
+### Layout de `generateDoctorViewPDF()`
 
 #### Colonnes
 
-| Colonne | Largeur |
+| Constante | Valeur |
 |---|---|
-| `Médecin` | 70 pt |
-| `Créneau` | 32 pt |
-| Chaque jour (×5) | `(PW - 2*M - 70 - 32) / days.length` |
+| `DOC_W` | 70 pt (colonne Médecin) |
+| `PER_W` | 32 pt (colonne Créneau) |
+| `CELL_W` | `(PW - 2*M - DOC_W - PER_W) / days.length` |
+| `TITLE_H` | 36 (identique vue poste) |
+| `HDR_H` | 20 (identique vue poste) |
 
 #### Hauteur de ligne
 
 ```ts
-const TITLE_H = 36;
-const HDR_H   = 20;
-const DOC_W   = 70;   // colonne Médecin
-const PER_W   = 32;   // colonne Créneau
-const CELL_W  = (PW - 2*M - DOC_W - PER_W) / days.length;
-const N_ROWS  = doctors.length * 2;          // 2 périodes par médecin
+const N_ROWS  = doctors.length * 2;
 const DATA_H  = PH - 2*M - TITLE_H - HDR_H;
 const ROW_H   = DATA_H / N_ROWS;
 const TABLE_X = M + DOC_W + PER_W;
@@ -123,55 +156,60 @@ const TABLE_Y = M + TITLE_H + HDR_H;
 
 #### En-tête
 
-- Titre : `PLANNING RADIOTHÉRAPIE — VUE PAR MÉDECIN` (même style bleu `#4F46E5` bande + `#0F172A` texte)
-- Sous-titre : semaine + date range, identique vue poste
-- En-têtes colonnes jours : noms + dates (jours fériés en rouge, même logique `isFrenchHoliday`)
+- Bande bleue `#4F46E5` (3pt, identique vue poste)
+- Titre : `PLANNING RADIOTHÉRAPIE — VUE PAR MÉDECIN`, font bold 15pt, `#0F172A`
+- Sous-titre : semaine + `formatWeekRange(currentWeekStart)`, font normal 9pt, `#475569`
+- En-têtes colonnes jours : noms + dates ; jours fériés surlignés en rouge (même logique `isFrenchHoliday`)
 
 #### Lignes de données
 
-Pour chaque médecin (`doctors.map(doc => ...)`), 2 lignes :
+Pour chaque médecin, 2 lignes itérées sur `['Matin', 'Après-midi']` :
 
-**Colonne Médecin :**
-- Ligne Matin : disque coloré (couleur `getDoctorHexColor(doc.color)`, rayon 5pt) + nom du médecin (font bold 7pt)
-- Ligne Après-midi : cellule vide (pas de répétition du nom)
+**Colonne Médecin (`x = M`, largeur `DOC_W`) :**
+- Sur la ligne Matin uniquement : disque coloré `getDoctorHexColor(doc.color)` rayon 5pt + nom médecin (font bold 7pt, `#0F172A`)
+- Sur la ligne Après-midi : cellule vide
 
-**Colonne Créneau :** `Matin` / `AM` (6pt gris `#64748B`)
+**Colonne Créneau (`x = M + DOC_W`, largeur `PER_W`) :**
+- `Matin` (ligne Matin) / `Après-m.` (ligne Après-midi), font normal 6pt, `#64748B`
 
-**Cellules jour :**
+**Cellules jour (`x = TABLE_X + colIndex * CELL_W`) :**
 
-| État | Fond | Texte |
-|---|---|---|
-| Absent | `#FEE2E2` | Raison (`reason`) en `#DC2626`, 7pt, centré |
-| Slot présent | Même palette `slotBg()` que vue poste | Abréviation type + lieu, 7pt |
-| Vide | `#F8FAFC` | — |
+| État | Fond | Texte | Couleur texte |
+|---|---|---|---|
+| Absent | `#FEE2E2` | `reason` (≤20 chars), 7pt, centré | `#DC2626` |
+| Slot présent | `slotBg(slot)` (même palette vue poste) | abbr type + lieu, 7pt | accent `slotAccent(slot)` |
+| Vide | `#F8FAFC` | — | — |
 
-**Logique cellule (PDF) :**
+**Logique cellule (pseudo-code) :**
 ```ts
 const dateStr = getDateForDayOfWeek(currentWeekStart, day);
-const absent  = isAbsent(doc, dateStr, period, unavailabilities);
-if (absent) {
-  const u = unavailabilities.find(u =>
-    u.doctorId === doc.id &&
-    dateStr >= u.startDate && dateStr <= u.endDate &&
-    (u.period === 'ALL_DAY' || u.period === period)
-  );
-  // draw #FEE2E2 cell + u.reason text in #DC2626
+if (isAbsent(doc, dateStr, period, unavailabilities)) {
+    const u = unavailabilities.find(u =>
+        u.doctorId === doc.id && dateStr >= u.startDate && dateStr <= u.endDate &&
+        (u.period === 'ALL_DAY' || u.period === period)
+    );
+    // draw cell: fill #FEE2E2, text u?.reason ?? 'Absent' in #DC2626
 } else {
-  const slot = schedule.find(s => s.date === dateStr && s.period === period && s.assignedDoctorId === doc.id);
-  // draw slot or empty cell
+    const slot = schedule.find(s =>
+        s.date === dateStr && s.period === period && s.assignedDoctorId === doc.id
+    );
+    // draw cell: fill slotBg(slot) or #F8FAFC, text abbr+location
 }
 ```
 
 #### Légende bas de page
 
-Même légende que vue poste + entrée supplémentaire à la fin :
-- `■ Absent / Congé` en `#DC2626`
+Même structure que vue poste (`legendItems.forEach(...)`) avec entrée supplémentaire à la fin :
+```ts
+{ accent: '#DC2626', bg: '#FEE2E2', label: 'Absent / Congé' }
+```
+
+Rendu identique aux autres entrées : rectangle `bg` + bande gauche `accent` + label texte.
 
 #### Nommage fichier
 
 ```ts
-const dateLabel = currentWeekStart.toISOString().split('T')[0];
-pdf.save(`Planning_Medecins_${dateLabel}.pdf`);
+pdf.save(`Planning_Medecins_${currentWeekStart.toISOString().split('T')[0]}.pdf`);
 ```
 
 ---
@@ -180,7 +218,7 @@ pdf.save(`Planning_Medecins_${dateLabel}.pdf`);
 
 | Fichier | Modification |
 |---|---|
-| `pages/Planning.tsx` | Import `isAbsent` ajouté ligne 6 ; `renderDoctorCell()` : check absence + cellule rouge avant rendu normal ; `handleDownloadPDF()` : dispatch + nouvelle `generateDoctorViewPDF()` |
+| `pages/Planning.tsx` | Import `isAbsent` ajouté ligne 6 ; `renderDoctorCell()` réécrit avec check absence prioritaire ; `handleDownloadPDF()` : `generateDoctorViewPDF()` définie à l'intérieur + dispatch `if (viewMode === 'DOCTOR')` |
 
 ## Fichiers non modifiés
 
