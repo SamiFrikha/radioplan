@@ -363,6 +363,18 @@ const Planning: React.FC = () => {
                             fill(stripBg); stroke('#E2E8F0'); pdf.setLineWidth(0.3);
                             pdf.rect(cellX, rowY, DCELL_W, DROW_H, 'FD');
 
+                            // Jour férié — prioritaire sur tout
+                            const cellHoliday = isFrenchHoliday(dateStr);
+                            if (cellHoliday) {
+                                fill('#FFFBEB'); stroke('#FDE68A');
+                                pdf.rect(cellX, rowY, DCELL_W, DROW_H, 'FD');
+                                fill('#F59E0B'); pdf.rect(cellX, rowY, 2.5, DROW_H, 'F');
+                                pdf.setFont('helvetica', 'bold'); pdf.setFontSize(6); tc('#D97706');
+                                const hn = cellHoliday.name.length > 14 ? cellHoliday.name.slice(0, 13) + '…' : cellHoliday.name;
+                                pdf.text(hn, cellX + DCELL_W/2, rowY + DROW_H/2 + 2.3, { align: 'center' });
+                                return;
+                            }
+
                             if (isAbsent(doc, dateStr, period, unavailabilities)) {
                                 const u = unavailabilities.find(u =>
                                     u.doctorId === doc.id &&
@@ -901,7 +913,18 @@ const Planning: React.FC = () => {
     const renderDoctorCell = (doctor: any, day: DayOfWeek, period: Period) => {
         const date = getDateForDayOfWeek(currentWeekStart, day);
 
-        // Absence prioritaire sur tout le reste
+        // Jours fériés prioritaires sur tout (absences, créneaux)
+        const holiday = isFrenchHoliday(date);
+        if (holiday) {
+            return (
+                <div className="h-full w-full bg-amber-50 border border-amber-200 flex flex-col items-center justify-center px-1">
+                    <span className="text-amber-600 text-[9px] font-bold uppercase tracking-wide">Férié</span>
+                    <span className="text-amber-500 text-[8px] text-center leading-tight truncate max-w-full">{holiday.name}</span>
+                </div>
+            );
+        }
+
+        // Absences
         if (isAbsent(doctor, date, period, unavailabilities)) {
             const u = unavailabilities.find(u =>
                 u.doctorId === doctor.id &&
@@ -925,11 +948,6 @@ const Planning: React.FC = () => {
             s.assignedDoctorId === doctor.id &&
             !s.isCancelled
         );
-
-        const isHoliday = isFrenchHoliday(date);
-        if (isHoliday && slots.length === 0) {
-            return <div className="bg-danger/5 h-full text-[10px] text-danger/40 flex items-center justify-center">Férié</div>;
-        }
 
         if (slots.length === 0) return <div className="bg-muted h-full"></div>;
 
