@@ -267,7 +267,7 @@ const Planning: React.FC = () => {
                 const DTITLE_H = 36;
                 const DHDR_H   = 20;
                 const DN_ROWS  = doctors.length * 2;
-                const DDATA_H  = PH - 2*M - DTITLE_H - DHDR_H;
+                const DDATA_H  = PH - 2*M - DTITLE_H - DHDR_H - 30; // reserve 30pt for legend+footer
                 const DROW_H   = DDATA_H / DN_ROWS;
                 const DTABLE_X = M + DOC_W + DPER_W;
                 const DTABLE_Y = M + DTITLE_H + DHDR_H;
@@ -399,13 +399,16 @@ const Planning: React.FC = () => {
                                 : slot.type === SlotType.RCP ? 'RCP' : 'ACT';
                             pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#0F172A');
                             pdf.text(abbr, cellX + 5, rowY + DROW_H/2 + 2.3);
+                            const abbrW = pdf.getTextWidth(abbr);
 
-                            if (slot.location) {
+                            const label = slot.type === SlotType.ACTIVITY && slot.subType ? slot.subType : slot.location;
+                            if (label) {
+                                const locX = cellX + 5 + abbrW + 2;
                                 pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6); tc('#475569');
-                                let loc = slot.location;
-                                while (pdf.getTextWidth(loc) > DCELL_W - 18 && loc.length > 2) loc = loc.slice(0, -1);
-                                if (loc !== slot.location) loc += '…';
-                                pdf.text(loc, cellX + 16, rowY + DROW_H/2 + 2.3);
+                                let loc = label;
+                                while (pdf.getTextWidth(loc) > DCELL_W - (locX - cellX) - 2 && loc.length > 2) loc = loc.slice(0, -1);
+                                if (loc !== label) loc += '…';
+                                pdf.text(loc, locX, rowY + DROW_H/2 + 2.3);
                             }
                         });
                     });
