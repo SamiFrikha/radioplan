@@ -1,6 +1,6 @@
 // components/PersonalAgendaMonth.tsx
 import React, { useMemo, useContext, useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays, XCircle, Lock } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleService';
@@ -735,14 +735,25 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                         </div>
                       );
                     })()}
-                    {onRcpClick && s.type === SlotType.RCP && (
-                      <button
-                        onClick={() => { onRcpClick(s); setSelectedDate(null); }}
-                        className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
-                      >
-                        Confirmer ma présence
-                      </button>
-                    )}
+                    {onRcpClick && s.type === SlotType.RCP && (() => {
+                      const lockedByOther = Object.entries(rcpAttendance[s.id] ?? {})
+                        .some(([id, st]) => id !== doctorId && st === 'PRESENT');
+                      const myStatus = rcpAttendance[s.id]?.[doctorId ?? ''];
+                      const isLocked = lockedByOther && !myStatus;
+                      return isLocked ? (
+                        <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                          <Lock size={13} className="text-amber-600 shrink-0" />
+                          <p className="text-xs text-amber-700">Présence déjà couverte — vous pouvez uniquement déclarer votre absence.</p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { onRcpClick(s); setSelectedDate(null); }}
+                          className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
+                        >
+                          {myStatus === 'PRESENT' ? 'Modifier ma présence' : myStatus === 'ABSENT' ? 'Modifier ma déclaration' : 'Confirmer ma présence'}
+                        </button>
+                      );
+                    })()}
                     {onActivityClick && s.type === SlotType.ACTIVITY && (
                       <button
                         onClick={() => { onActivityClick(s); setSelectedDate(null); }}

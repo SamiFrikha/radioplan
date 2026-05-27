@@ -1,7 +1,7 @@
 // components/PersonalAgendaWeek.tsx
 import React, { useMemo, useContext, useRef } from 'react';
 import { useSwipe } from '../hooks/useSwipe';
-import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, XCircle, Lock } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleService';
@@ -109,11 +109,18 @@ const PersonalAgendaWeek: React.FC<Props> = ({
   // Returns RCP confirmation status for the current doctor on a given slot
   const getRcpStatus = (slot: any): 'UNCONFIRMED' | 'PRESENT' | 'ABSENT' | 'NONE' => {
     if (slot.type !== SlotType.RCP) return 'NONE';
-    // Check explicit attendance first — takes priority over isUnconfirmed flag
     if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'PRESENT') return 'PRESENT';
     if (doctorId && rcpAttendance[slot.id]?.[doctorId] === 'ABSENT') return 'ABSENT';
     if (slot.isUnconfirmed) return 'UNCONFIRMED';
     return 'NONE';
+  };
+
+  // True when another doctor has confirmed PRESENT and I haven't declared yet
+  const isLockedByOther = (slot: any): boolean => {
+    if (!doctorId) return false;
+    const myStatus = rcpAttendance[slot.id]?.[doctorId];
+    if (myStatus) return false;
+    return Object.entries(rcpAttendance[slot.id] ?? {}).some(([id, st]) => id !== doctorId && st === 'PRESENT');
   };
 
   const weekStart = useMemo(() => {
@@ -620,6 +627,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
                         // RCP — inline styles for guaranteed color rendering
                         if (slot.type === SlotType.RCP) {
                           const rcpStatus = getRcpStatus(slot);
+                          const locked = isLockedByOther(slot);
                           const s = RCP_CARD_STYLE[rcpStatus];
                           return (
                             <div key={slot.id}
@@ -627,10 +635,15 @@ const PersonalAgendaWeek: React.FC<Props> = ({
                               style={{ ...s.bg, ...s.borderC }}
                               title={slot.subType || slot.location}
                               onClick={() => onRcpClick?.(slot)}>
-                              {/* Status badge row — shown for UNCONFIRMED, PRESENT and ABSENT */}
-                              {rcpStatus !== 'NONE' && (
+                              {/* Status badge row */}
+                              {(rcpStatus !== 'NONE' || locked) && (
                                 <div className="flex items-center gap-0.5 mb-0.5" style={s.text}>
-                                  {rcpStatus === 'UNCONFIRMED' ? (
+                                  {locked ? (
+                                    <>
+                                      <Lock size={8} className="shrink-0" style={{ color: '#D97706' }} />
+                                      <span className="text-[8px] font-bold uppercase tracking-wide" style={{ color: '#D97706' }}>Couvert</span>
+                                    </>
+                                  ) : rcpStatus === 'UNCONFIRMED' ? (
                                     <>
                                       <AlertTriangle size={8} className="shrink-0" />
                                       <span className="text-[8px] font-bold uppercase tracking-wide">À confirmer</span>
