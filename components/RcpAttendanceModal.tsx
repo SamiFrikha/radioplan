@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { X, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Loader2, Lock } from 'lucide-react';
 import { ScheduleSlot } from '../types';
 import { AppContext } from '../App';
 import { supabase } from '../services/supabaseClient';
@@ -11,10 +11,19 @@ interface Props {
 }
 
 const RcpAttendanceModal: React.FC<Props> = ({ slot, doctorId, onClose }) => {
-  const { rcpAttendance, setRcpAttendance } = useContext(AppContext);
+  const { rcpAttendance, setRcpAttendance, doctors } = useContext(AppContext);
   const [loading, setLoading] = useState<'PRESENT' | 'ABSENT' | null>(null);
 
   const currentStatus = rcpAttendance[slot.id]?.[doctorId] ?? null;
+
+  // Find if another doctor (not me) is already confirmed PRESENT
+  const otherPresentEntry = Object.entries(rcpAttendance[slot.id] ?? {})
+    .find(([id, status]) => id !== doctorId && status === 'PRESENT');
+  const otherPresentDoctor = otherPresentEntry
+    ? doctors.find(d => d.id === otherPresentEntry[0])
+    : null;
+  // Block PRESENT only if someone else is already confirmed and I haven't confirmed myself yet
+  const presentLocked = !!otherPresentEntry && currentStatus !== 'PRESENT';
 
   const handleChoice = async (status: 'PRESENT' | 'ABSENT') => {
     setLoading(status);
@@ -92,15 +101,27 @@ const RcpAttendanceModal: React.FC<Props> = ({ slot, doctorId, onClose }) => {
           </p>
         )}
 
+        {presentLocked && (
+          <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+            <Lock size={13} className="text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-700">
+              <span className="font-semibold">{otherPresentDoctor?.name ?? 'Un médecin'}</span> a déjà confirmé sa présence — vous pouvez uniquement déclarer votre absence.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button
-            onClick={() => handleChoice('PRESENT')}
-            disabled={!!loading}
-            className="flex-1 py-3 rounded-btn font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: '#059669' }}
+            onClick={() => !presentLocked && handleChoice('PRESENT')}
+            disabled={!!loading || presentLocked}
+            className="flex-1 py-3 rounded-btn font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: presentLocked ? '#94A3B8' : '#059669' }}
+            title={presentLocked ? 'Présence déjà couverte par un autre médecin' : ''}
           >
             {loading === 'PRESENT' ? (
               <Loader2 size={16} className="animate-spin" />
+            ) : presentLocked ? (
+              <Lock size={16} />
             ) : (
               <CheckCircle2 size={16} />
             )}
