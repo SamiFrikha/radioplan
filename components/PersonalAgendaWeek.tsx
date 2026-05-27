@@ -195,14 +195,23 @@ const PersonalAgendaWeek: React.FC<Props> = ({
       const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
       const isToday = dateStr === todayStr;
 
+      // Day-level: any absence on this day (used for day header display)
       const onLeave = unavailabilities.some(u =>
         u.doctorId === doctorId &&
         dateStr >= u.startDate && dateStr <= u.endDate
       );
 
+      // Per-period: respects ALL_DAY / MORNING / AFTERNOON granularity
+      const isOnLeavePeriod = (p: Period) => unavailabilities.some(u =>
+        u.doctorId === doctorId &&
+        dateStr >= u.startDate && dateStr <= u.endDate &&
+        (!u.period || u.period === 'ALL_DAY' || u.period === p)
+      );
+
       const periods = PERIODS.map(period => {
-        if (onLeave) {
-          // Slots that were assigned to the doctor on this leave day — used to show what
+        const onLeavePeriod = isOnLeavePeriod(period);
+        if (onLeavePeriod) {
+          // Slots that were assigned to the doctor on this leave period — used to show what
           // happened to each (closed, unresolved, etc.)
           const conflictSlots = rawSchedule.filter(s =>
             !s.isCancelled &&
