@@ -253,9 +253,17 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
         activityDefinitions, rcpTypes, false, {}, {}, rcpExceptions,
       );
       for (const slot of generated) {
+        // Activities are assigned exclusively via manualOverrides — check them here
+        const activityOverrideMatch = slot.type === SlotType.ACTIVITY && (() => {
+          const ov = manualOverrides[slot.id];
+          if (!ov || ov === '__CLOSED__') return false;
+          const assignedId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+          return assignedId === doctorId;
+        })();
         const isVisible =
           slot.assignedDoctorId === doctorId ||
           slot.secondaryDoctorIds?.includes(doctorId) ||
+          activityOverrideMatch ||
           (slot.type === SlotType.RCP && (
             rcpAttendance[slot.id]?.[doctorId] === 'PRESENT' ||
             rcpAttendance[slot.id]?.[doctorId] === 'ABSENT'
@@ -267,7 +275,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
       }
     }
     return result;
-  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, weeks]);
+  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, weeks, manualOverrides]);
 
   const scheduleByDate = useMemo(() => {
     const result: Record<string, any[]> = {};
@@ -735,12 +743,12 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                         Confirmer ma présence
                       </button>
                     )}
-                    {onActivityClick && s.type === SlotType.ACTIVITY && s.assignedDoctorId === doctorId && (
+                    {onActivityClick && s.type === SlotType.ACTIVITY && (
                       <button
                         onClick={() => { onActivityClick(s); setSelectedDate(null); }}
                         className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
                       >
-                        Voir les détails
+                        Demander un remplacement
                       </button>
                     )}
                     {onConsultClick && s.type === SlotType.CONSULTATION && s.assignedDoctorId === doctorId && (

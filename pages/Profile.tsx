@@ -323,11 +323,13 @@ const AbsenceRow: React.FC<{
                 <div className="font-bold text-text-base">{abs.reason}</div>
                 <div className="text-xs text-text-muted mt-0.5">
                     {fmtDate(abs.startDate)} → {fmtDate(abs.endDate)}
-                    {abs.period && abs.period !== 'ALL_DAY' && (
-                        <span className="ml-2 text-[10px] bg-muted text-text-muted px-1 rounded">
-                            {abs.period === 'MORNING' ? 'Matin' : 'Après-midi'}
-                        </span>
-                    )}
+                    <span className="ml-2 text-[10px] bg-muted text-text-muted px-1 rounded">
+                        {(!abs.period || abs.period === 'ALL_DAY')
+                            ? 'Journée entière'
+                            : abs.period === Period.MORNING
+                                ? 'Matin'
+                                : 'Après-midi'}
+                    </span>
                 </div>
             </div>
             {canDelete ? (
