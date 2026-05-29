@@ -1,6 +1,6 @@
 // components/PersonalAgendaMonth.tsx
 import React, { useMemo, useContext, useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays, XCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays, XCircle, Lock } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleService';
@@ -253,9 +253,17 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
         activityDefinitions, rcpTypes, false, {}, {}, rcpExceptions,
       );
       for (const slot of generated) {
+        // Activities are assigned exclusively via manualOverrides — check them here
+        const activityOverrideMatch = slot.type === SlotType.ACTIVITY && (() => {
+          const ov = manualOverrides[slot.id];
+          if (!ov || ov === '__CLOSED__') return false;
+          const assignedId = ov.startsWith('auto:') ? ov.substring(5) : ov;
+          return assignedId === doctorId;
+        })();
         const isVisible =
           slot.assignedDoctorId === doctorId ||
           slot.secondaryDoctorIds?.includes(doctorId) ||
+          activityOverrideMatch ||
           (slot.type === SlotType.RCP && (
             rcpAttendance[slot.id]?.[doctorId] === 'PRESENT' ||
             rcpAttendance[slot.id]?.[doctorId] === 'ABSENT'
@@ -267,7 +275,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
       }
     }
     return result;
-  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, weeks]);
+  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, weeks, manualOverrides]);
 
   const scheduleByDate = useMemo(() => {
     const result: Record<string, any[]> = {};
@@ -727,20 +735,31 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                         </div>
                       );
                     })()}
-                    {onRcpClick && s.type === SlotType.RCP && (
-                      <button
-                        onClick={() => { onRcpClick(s); setSelectedDate(null); }}
-                        className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
-                      >
-                        Confirmer ma présence
-                      </button>
-                    )}
-                    {onActivityClick && s.type === SlotType.ACTIVITY && s.assignedDoctorId === doctorId && (
+                    {onRcpClick && s.type === SlotType.RCP && (() => {
+                      const lockedByOther = Object.entries(rcpAttendance[s.id] ?? {})
+                        .some(([id, st]) => id !== doctorId && st === 'PRESENT');
+                      const myStatus = rcpAttendance[s.id]?.[doctorId ?? ''];
+                      const isLocked = lockedByOther && !myStatus;
+                      return isLocked ? (
+                        <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                          <Lock size={13} className="text-amber-600 shrink-0" />
+                          <p className="text-xs text-amber-700">Présence déjà couverte — vous pouvez uniquement déclarer votre absence.</p>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { onRcpClick(s); setSelectedDate(null); }}
+                          className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
+                        >
+                          {myStatus === 'PRESENT' ? 'Modifier ma présence' : myStatus === 'ABSENT' ? 'Modifier ma déclaration' : 'Confirmer ma présence'}
+                        </button>
+                      );
+                    })()}
+                    {onActivityClick && s.type === SlotType.ACTIVITY && (
                       <button
                         onClick={() => { onActivityClick(s); setSelectedDate(null); }}
                         className="mt-2 w-full text-sm font-semibold py-2 rounded-lg bg-primary/10 text-primary border border-primary/25 hover:bg-primary/20 transition-colors"
                       >
-                        Voir les détails
+                        Demander un remplacement
                       </button>
                     )}
                     {onConsultClick && s.type === SlotType.CONSULTATION && s.assignedDoctorId === doctorId && (

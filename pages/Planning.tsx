@@ -469,9 +469,11 @@ const Planning: React.FC = () => {
             const HDR_H   = 20;   // day-column header height
             const LOC_W   = 52;   // "Lieu" column width (spans 2 rows)
             const PER_W   = 32;   // "Créneau" column width (Matin / Après-m.)
-            const CELL_W  = (PW - 2*M - LOC_W - PER_W) / days.length; // one col per day
-            const N_ROWS  = displayRows.length * 2;                    // 2 periods per loc
-            const DATA_H  = PH - 2*M - TITLE_H - HDR_H;
+            const CELL_W      = (PW - 2*M - LOC_W - PER_W) / days.length; // one col per day
+            const N_ROWS      = displayRows.length * 2;                    // 2 periods per loc
+            const CONGE_ROW_H = 24;   // height of the congés row
+            const LEGEND_SPACE = 32;  // space reserved for legend + footer
+            const DATA_H  = PH - 2*M - TITLE_H - HDR_H - CONGE_ROW_H - LEGEND_SPACE;
             const ROW_H   = DATA_H / N_ROWS;
             const TABLE_X = M + LOC_W + PER_W;     // x where day columns start
             const TABLE_Y = M + TITLE_H + HDR_H;   // y where data rows start
@@ -668,8 +670,41 @@ const Planning: React.FC = () => {
                 });
             });
 
-            // ── 4. Legend + footer — pinned so LY+20 stays within PH ────────
-            const LY = PH - M - 22;
+            // ── 4. Congés row ─────────────────────────────────────────────────
+            const CONGE_Y = TABLE_Y + DATA_H;
+
+            fill('#FEF2F2'); stroke('#FECACA'); pdf.setLineWidth(0.5);
+            pdf.rect(M, CONGE_Y, LOC_W + PER_W, CONGE_ROW_H, 'FD');
+            pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7); tc('#DC2626');
+            pdf.text('Congés', M + (LOC_W + PER_W) / 2, CONGE_Y + CONGE_ROW_H / 2 + 2.5, { align: 'center' });
+
+            days.forEach((day, di) => {
+                const dateStr = getDateForDayOfWeek(currentWeekStart, day);
+                const holiday = isFrenchHoliday(dateStr);
+                const absentDocs = holiday ? [] : doctors.filter(doc =>
+                    isAbsent(doc, dateStr, Period.MORNING, unavailabilities) ||
+                    isAbsent(doc, dateStr, Period.AFTERNOON, unavailabilities)
+                );
+                const cellX = TABLE_X + di * CELL_W;
+                fill('#FEF2F2'); stroke('#FECACA'); pdf.setLineWidth(0.35);
+                pdf.rect(cellX, CONGE_Y, CELL_W, CONGE_ROW_H, 'FD');
+                if (absentDocs.length > 0) {
+                    tc('#DC2626');
+                    absentDocs.forEach((doc, idx) => {
+                        const y = CONGE_Y + 7 + idx * 7;
+                        if (y < CONGE_Y + CONGE_ROW_H - 1) {
+                            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6);
+                            pdf.text(doc.name, cellX + CELL_W / 2, y, { align: 'center' });
+                        }
+                    });
+                } else {
+                    tc('#94A3B8'); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
+                    pdf.text('—', cellX + CELL_W / 2, CONGE_Y + CONGE_ROW_H / 2 + 2.5, { align: 'center' });
+                }
+            });
+
+            // ── 5. Legend + footer ────────────────────────────────────────────
+            const LY = CONGE_Y + CONGE_ROW_H + 4;
             const legendItems = [
                 { accent: '#3B6FD4', bg: '#EEF4FF', label: 'Consultation' },
                 { accent: '#0891B2', bg: '#ECFEFF', label: 'RCP' },
@@ -1248,35 +1283,62 @@ const Planning: React.FC = () => {
                         <tbody>
                             {viewMode === 'ROOM' ? (
                                 // ROOM VIEW
-                                displayRows.map((loc, index) => (
-                                    <React.Fragment key={loc}>
-                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
-                                            <td rowSpan={2} className={`sticky left-0 z-sticky p-1 md:p-3 border-r border-b border-border text-[9px] md:text-xs text-center font-bold shadow-card
-                                                ${postes.includes(loc) ? 'bg-surface text-text-base' : 'bg-warning/10 text-warning-text'}
-                                            `}>
-                                                <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
-                                            </td>
-                                            {days.map(day => (
-                                                <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
-                                                    <div className="absolute top-0 left-0 right-0 bg-warning/10 text-[9px] px-1 text-warning-text uppercase font-bold tracking-wider z-0 border-b border-warning/20">Matin</div>
-                                                    <div className="pt-4 h-full">
-                                                        {renderCell(day, Period.MORNING, loc)}
-                                                    </div>
+                                <>
+                                    {displayRows.map((loc, index) => (
+                                        <React.Fragment key={loc}>
+                                            <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
+                                                <td rowSpan={2} className={`sticky left-0 z-sticky p-1 md:p-3 border-r border-b border-border text-[9px] md:text-xs text-center font-bold shadow-card
+                                                    ${postes.includes(loc) ? 'bg-surface text-text-base' : 'bg-warning/10 text-warning-text'}
+                                                `}>
+                                                    <span className="text-[8px] md:text-[10px] leading-tight break-words">{loc}</span>
                                                 </td>
-                                            ))}
-                                        </tr>
-                                        <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
-                                            {days.map(day => (
-                                                <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
-                                                    <div className="absolute top-0 left-0 right-0 bg-primary/10 text-[9px] px-1 text-primary-text uppercase font-bold tracking-wider z-0 border-b border-primary/20">A.Midi</div>
-                                                    <div className="pt-4 h-full">
-                                                        {renderCell(day, Period.AFTERNOON, loc)}
-                                                    </div>
+                                                {days.map(day => (
+                                                    <td key={`${day}-matin`} className={`border-r border-b border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
+                                                        <div className="absolute top-0 left-0 right-0 bg-warning/10 text-[9px] px-1 text-warning-text uppercase font-bold tracking-wider z-0 border-b border-warning/20">Matin</div>
+                                                        <div className="pt-4 h-full">
+                                                            {renderCell(day, Period.MORNING, loc)}
+                                                        </div>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                            <tr className="border-b border-border/50 hover:bg-primary/[0.02] transition-colors">
+                                                {days.map(day => (
+                                                    <td key={`${day}-apres-midi`} className={`border-r border-b-2 border-border relative ${rowHeightClass} align-top p-0 overflow-hidden`}>
+                                                        <div className="absolute top-0 left-0 right-0 bg-primary/10 text-[9px] px-1 text-primary-text uppercase font-bold tracking-wider z-0 border-b border-primary/20">A.Midi</div>
+                                                        <div className="pt-4 h-full">
+                                                            {renderCell(day, Period.AFTERNOON, loc)}
+                                                        </div>
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        </React.Fragment>
+                                    ))}
+                                    <tr className="border-t-2 border-red-200 bg-red-50/40">
+                                        <td className="sticky left-0 z-sticky p-1 md:p-2 border-r border-red-200 bg-red-50 text-center font-bold text-[9px] md:text-xs text-red-600 shadow-card">
+                                            Congés
+                                        </td>
+                                        {days.map(day => {
+                                            const dateStr = getDateForDayOfWeek(currentWeekStart, day);
+                                            const absentDocs = doctors.filter(doc =>
+                                                isAbsent(doc, dateStr, Period.MORNING, unavailabilities) ||
+                                                isAbsent(doc, dateStr, Period.AFTERNOON, unavailabilities)
+                                            );
+                                            return (
+                                                <td key={day} className="border-r border-red-200 p-1 align-top min-h-[28px]">
+                                                    {absentDocs.length === 0 ? (
+                                                        <span className="text-text-muted text-[10px]">—</span>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-0.5">
+                                                            {absentDocs.map(doc => (
+                                                                <span key={doc.id} className="text-red-600 font-medium text-[10px] leading-tight block">{doc.name}</span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </td>
-                                            ))}
-                                        </tr>
-                                    </React.Fragment>
-                                ))
+                                            );
+                                        })}
+                                    </tr>
+                                </>
                             ) : (
                                 // DOCTOR VIEW
                                 doctors.map(doc => (

@@ -6,7 +6,7 @@ import {
     Calendar, Save, Trash2, UserCheck,
     Briefcase, Edit, Bell, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, AlertTriangle, Clock, RotateCcw,
-    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut, Camera
+    Plus, Loader2, Tag, Users, Shield, Database, ChevronDown, LogOut, Camera, Lock
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
 import { markReplacementResolved, getMyReplacementRequests } from '../services/replacementService';
@@ -323,11 +323,13 @@ const AbsenceRow: React.FC<{
                 <div className="font-bold text-text-base">{abs.reason}</div>
                 <div className="text-xs text-text-muted mt-0.5">
                     {fmtDate(abs.startDate)} → {fmtDate(abs.endDate)}
-                    {abs.period && abs.period !== 'ALL_DAY' && (
-                        <span className="ml-2 text-[10px] bg-muted text-text-muted px-1 rounded">
-                            {abs.period === 'MORNING' ? 'Matin' : 'Après-midi'}
-                        </span>
-                    )}
+                    <span className="ml-2 text-[10px] bg-muted text-text-muted px-1 rounded">
+                        {(!abs.period || abs.period === 'ALL_DAY')
+                            ? 'Journée entière'
+                            : abs.period === Period.MORNING
+                                ? 'Matin'
+                                : 'Après-midi'}
+                    </span>
                 </div>
             </div>
             {canDelete ? (
@@ -1690,9 +1692,11 @@ const Profile: React.FC = () => {
                                                             <>
                                                                 {/* Lock: confirmed by colleague */}
                                                                 {lockedByOther && (
-                                                                    <div className="mb-3 text-xs text-primary bg-primary/5 rounded-btn-sm px-3 py-1.5 flex items-center gap-1.5">
-                                                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                                                                        Confirmé par {lockedDoctor?.name || 'un collègue'}
+                                                                    <div className="mb-3 flex items-start gap-2 px-3 py-2 rounded-btn-sm bg-amber-50 border border-amber-200">
+                                                                        <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                                                        <p className="text-xs text-amber-700">
+                                                                            <span className="font-semibold">{lockedDoctor?.name || 'Un collègue'}</span> a déjà confirmé sa présence — vous pouvez uniquement déclarer votre absence.
+                                                                        </p>
                                                                     </div>
                                                                 )}
 

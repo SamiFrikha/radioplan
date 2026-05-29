@@ -839,9 +839,9 @@ export const generateScheduleForWeek = (
                     // MATCH! Create slot.
                     const generatedId = `manual-rcp-${rcpDef.id}-${instance.id}`;
 
-                    // Determine Period based on Time
+                    // Determine Period based on Time (morning = before 14h, afternoon = 14h+)
                     const hour = parseInt(instance.time.split(':')[0], 10);
-                    const period = hour < 13 ? Period.MORNING : Period.AFTERNOON;
+                    const period = hour < 14 ? Period.MORNING : Period.AFTERNOON;
 
                     // Map JS Day (0=Sun) to Enum
                     const dayMap = [null, DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, null];
