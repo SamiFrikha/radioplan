@@ -61,7 +61,14 @@ Deno.serve(async (req) => {
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-        payload
+        payload,
+        {
+          // High urgency tells Apple/FCM to deliver immediately instead of
+          // batching for power saving — critical for time-sensitive RCP alerts.
+          urgency: 'high',
+          // Keep the push queued up to 1h if the device is offline, then drop it.
+          TTL: 3600,
+        }
       );
       sent++;
     } catch (err: any) {

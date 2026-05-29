@@ -1,5 +1,6 @@
 // src/sw.js — Service Worker for RadioPlan PWA
-// v4 — Workbox precaching (injected by vite-plugin-pwa) + custom strategies
+// v5 — Workbox precaching (injected by vite-plugin-pwa) + custom strategies
+//      Push: unique tag per notification so batched RCP alerts no longer collapse silently.
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 
@@ -7,7 +8,7 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-const CACHE_NAME = 'radioplan-v6';
+const CACHE_NAME = 'radioplan-v7';
 
 // ─── Install: activate immediately ───────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -36,14 +37,23 @@ self.addEventListener('push', (event) => {
     data = { title: 'RadioPlan', body: event.data?.text() ?? '' };
   }
 
+  // Unique tag per notification type + slot. Previously every push used the same
+  // static tag with renotify:false, so a batch of RCP notifications (one per slot)
+  // collapsed into a single SILENT replacement — the user was alerted for at most
+  // one and never noticed the rest. A per-notification tag keeps distinct events
+  // independent; renotify:true re-alerts even when an identical-tag update arrives.
+  const tag =
+    [data.type, data.data?.slotId].filter(Boolean).join('-') ||
+    `radioplan-${Date.now()}`;
+
   event.waitUntil(
     self.registration.showNotification(data.title ?? 'RadioPlan', {
       body: data.body ?? '',
       icon: '/radioplan/icon-192.png',
       badge: '/radioplan/badge-96.png',
       data: data.data ?? {},
-      tag: 'radioplan-notification',
-      renotify: false,
+      tag,
+      renotify: true,
     }).catch(err => console.warn('[SW] showNotification failed:', err))
   );
 });
