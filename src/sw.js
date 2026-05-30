@@ -1,6 +1,7 @@
 // src/sw.js — Service Worker for RadioPlan PWA
-// v5 — Workbox precaching (injected by vite-plugin-pwa) + custom strategies
+// v6 — Workbox precaching (injected by vite-plugin-pwa) + custom strategies
 //      Push: unique tag per notification so batched RCP alerts no longer collapse silently.
+//      Rotation: notify clients on pushsubscriptionchange so the DB endpoint stays current.
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 
@@ -8,7 +9,7 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-const CACHE_NAME = 'radioplan-v7';
+const CACHE_NAME = 'radioplan-v8';
 
 // ─── Install: activate immediately ───────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -126,13 +127,24 @@ self.addEventListener('fetch', (event) => {
 });
 
 // ─── Push subscription rotated by browser ────────────────────────────────────
+// Re-subscribe in the SW AND tell every open client so it can persist the new
+// endpoint in the DB. Without the postMessage, the browser ends up with a fresh
+// subscription the server never learns about — the old endpoint then 410s, gets
+// deleted server-side, and the user silently stops receiving pushes.
 self.addEventListener('pushsubscriptionchange', (event) => {
-  if (!event.oldSubscription) return;
   event.waitUntil(
     self.registration.pushManager
-      .subscribe(event.oldSubscription.options)
-      .then(() => console.log('[SW] Push subscription rotated successfully'))
+      .subscribe(
+        event.oldSubscription?.options ?? { userVisibleOnly: true }
+      )
       .catch(err => console.warn('[SW] Failed to resubscribe:', err))
+      .finally(() =>
+        self.clients
+          .matchAll({ type: 'window', includeUncontrolled: true })
+          .then(clients =>
+            clients.forEach(c => c.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGED' }))
+          )
+      )
   );
 });
 
