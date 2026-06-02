@@ -20,6 +20,14 @@ export interface ActivityLogEntry {
 
 const STORAGE_KEY = 'radioplan_activity_logs';
 
+// Format an ISO date (YYYY-MM-DD) as DD/MM/YYYY for log descriptions.
+// Returns the input unchanged if it's not a valid ISO date.
+export function fmtLogDate(iso: string | null | undefined): string {
+    if (!iso) return '';
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : iso;
+}
+
 // Helpers for localStorage fallback
 function getLocalLogs(): ActivityLogEntry[] {
     try {

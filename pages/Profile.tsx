@@ -21,7 +21,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import AbsenceConflictsModal from '../components/AbsenceConflictsModal';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import RcpExceptionModal from '../components/RcpExceptionModal';
-import { activityLogService } from '../services/activityLogService';
+import { activityLogService, fmtLogDate } from '../services/activityLogService';
 
 const NOTIF_ICON: Record<string, string> = {
     RCP_AUTO_ASSIGNED: '🎲', RCP_SLOT_FILLED: '✅', RCP_REMINDER_24H: '⏰',
@@ -998,7 +998,12 @@ const Profile: React.FC = () => {
             period: absencePeriod,
             reason: reason === 'AUTRE' ? customReason : reason,
         });
-        void profileAddLog('ABSENCE_DECLARE', `Absence déclarée du ${savedStartDate} au ${savedEndDate}`, {
+        const declarePeriodLabel = savedPeriod === 'ALL_DAY' ? 'journée entière' : savedPeriod;
+        const declareReason = reason === 'AUTRE' ? customReason : reason;
+        const declareRange = savedStartDate === savedEndDate
+            ? `le ${fmtLogDate(savedStartDate)}`
+            : `du ${fmtLogDate(savedStartDate)} au ${fmtLogDate(savedEndDate)}`;
+        void profileAddLog('ABSENCE_DECLARE', `Absence déclarée ${declareRange} — ${declarePeriodLabel}${declareReason ? ` · motif : ${declareReason}` : ''}`, {
             category: 'ABSENCE', targetDate: savedStartDate,
         });
         setCustomReason("");
@@ -1035,7 +1040,11 @@ const Profile: React.FC = () => {
         const abs = unavailabilities.find((a: any) => a.id === id);
         removeUnavailability(id);
         if (abs) {
-            await profileAddLog('ABSENCE_DELETE', `Absence supprimée (${abs.startDate} → ${abs.endDate})`, {
+            const delPeriodLabel = abs.period === 'ALL_DAY' ? 'journée entière' : abs.period;
+            const delRange = abs.startDate === abs.endDate
+                ? `le ${fmtLogDate(abs.startDate)}`
+                : `du ${fmtLogDate(abs.startDate)} au ${fmtLogDate(abs.endDate)}`;
+            await profileAddLog('ABSENCE_DELETE', `Absence supprimée ${delRange} — ${delPeriodLabel}${abs.reason ? ` · motif : ${abs.reason}` : ''}`, {
                 category: 'ABSENCE', targetDate: abs.startDate,
             });
         }

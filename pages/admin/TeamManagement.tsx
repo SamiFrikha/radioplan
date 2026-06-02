@@ -311,7 +311,7 @@ const TeamManagement: React.FC = () => {
                     userEmail: profile?.email || '',
                     userName: (profile as any).doctor_name || profile?.email || '',
                     action: 'DOCTOR_CREATE',
-                    description: `Médecin ${doctorData.name} créé`,
+                    description: `Compte ${doctorData.name} créé — ${formData.email}, rôle « ${getSelectedRoleName() || '—'} »`,
                     weekKey: '',
                     category: 'CONFIG',
                     doctorName: doctorData.name,
@@ -382,12 +382,18 @@ const TeamManagement: React.FC = () => {
             }
 
             if (doctorData) {
+                const oldRole = roles.find(r => r.id === editingUser.role_id)?.name;
+                const newRole = roles.find(r => r.id === formData.roleId)?.name;
+                const changes: string[] = [];
+                if (oldRole !== newRole) changes.push(`rôle « ${oldRole ?? '—'} » → « ${newRole ?? '—'} »`);
+                if (formData.password) changes.push('mot de passe réinitialisé');
+                const detail = changes.length ? ` : ${changes.join(', ')}` : ' (aucune modification)';
                 await activityLogService.addLog({
                     userId: profile?.id || '',
                     userEmail: profile?.email || '',
                     userName: (profile as any).doctor_name || profile?.email || '',
                     action: 'DOCTOR_UPDATE',
-                    description: `Médecin ${doctorData.name} mis à jour`,
+                    description: `Compte ${doctorData.name} (${editingUser.email}) mis à jour${detail}`,
                     weekKey: '',
                     category: 'CONFIG',
                     doctorName: doctorData.name,
@@ -614,12 +620,33 @@ const TeamManagement: React.FC = () => {
 
             setSuccess('Profil médecin mis à jour !');
 
+            const arrEq = (a: any[] = [], b: any[] = []) =>
+                a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
+            const actNames = (ids: string[] = []) =>
+                ids.map(id => activityDefinitions.find(a => a.id === id)?.name ?? id).join(', ') || 'aucune';
+            const changes: string[] = [];
+            if (editingDoctor.name !== doctorFormData.name)
+                changes.push(`nom « ${editingDoctor.name} » → « ${doctorFormData.name} »`);
+            if ((editingDoctor.color || '') !== (doctorFormData.color || ''))
+                changes.push('couleur modifiée');
+            if (!arrEq(editingDoctor.specialty, doctorFormData.selectedSpecialties))
+                changes.push(`spécialités → ${doctorFormData.selectedSpecialties.join(', ') || 'aucune'}`);
+            if (!arrEq(editingDoctor.excludedDays, doctorFormData.excludedDays))
+                changes.push(`jours exclus → ${doctorFormData.excludedDays.join(', ') || 'aucun'}`);
+            if (JSON.stringify(editingDoctor.excludedHalfDays || []) !== JSON.stringify(doctorFormData.excludedHalfDays || []))
+                changes.push('demi-journées exclues modifiées');
+            if (!arrEq(editingDoctor.excludedActivities, doctorFormData.excludedActivities))
+                changes.push(`activités exclues → ${actNames(doctorFormData.excludedActivities)}`);
+            if (!arrEq(editingDoctor.excludedSlotTypes, doctorFormData.excludedSlotTypes))
+                changes.push(`types de créneaux exclus → ${doctorFormData.excludedSlotTypes.join(', ') || 'aucun'}`);
+            const detail = changes.length ? ` : ${changes.join(' · ')}` : ' (aucune modification)';
+
             await activityLogService.addLog({
                 userId: profile?.id || '',
                 userEmail: profile?.email || '',
                 userName: (profile as any).doctor_name || profile?.email || '',
                 action: 'DOCTOR_UPDATE',
-                description: `Médecin ${doctorFormData.name} mis à jour`,
+                description: `Médecin ${doctorFormData.name} mis à jour${detail}`,
                 weekKey: '',
                 category: 'CONFIG',
                 doctorName: doctorFormData.name,

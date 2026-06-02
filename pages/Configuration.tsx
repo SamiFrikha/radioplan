@@ -8,7 +8,7 @@ import { DoctorBadge, getDoctorHexColor } from '../components/DoctorBadge';
 import { getRcpAutoConfigs, upsertRcpAutoConfig, triggerAutoAssignNow, cancelWeekAutoAssign, deleteRcpAutoConfig, deleteAllRcpAutoConfigs } from '../services/rcpAutoConfigService';
 import { useAuth } from '../context/AuthContext';
 import { Card, CardHeader, CardTitle, CardBody, Button, Badge } from '../src/components/ui';
-import { activityLogService } from '../services/activityLogService';
+import { activityLogService, fmtLogDate } from '../services/activityLogService';
 
 
 const Configuration: React.FC = () => {
@@ -39,8 +39,6 @@ const Configuration: React.FC = () => {
         setConfigRcpViewMode,
         configRcpFullscreen,
         setConfigRcpFullscreen,
-        countingPeriods,
-        createNewCountingPeriod,
         manualOverrides,
         setManualOverrides
     } = useContext(AppContext);
@@ -253,7 +251,15 @@ const Configuration: React.FC = () => {
             userEmail: profile?.email || '',
             userName: (profile as any).doctor_name || profile?.email || '',
             action: 'TEMPLATE_UPDATE',
-            description: `Template de planning mis à jour`,
+            description: (() => {
+                const tabLabel = activeTab === SlotType.CONSULTATION ? 'Consultations'
+                    : activeTab === SlotType.ACTIVITY ? 'Activités'
+                    : activeTab === SlotType.RCP ? 'RCP' : String(activeTab);
+                const delta = tempTemplate.length - template.length;
+                const deltaPart = delta === 0 ? 'aucun ajout/suppression'
+                    : delta > 0 ? `+${delta} créneau(x)` : `${delta} créneau(x)`;
+                return `Template de planning mis à jour — onglet ${tabLabel} (${tempTemplate.length} créneaux au total · ${deltaPart})`;
+            })(),
             weekKey: '',
             category: 'CONFIG',
         });
@@ -390,7 +396,11 @@ const Configuration: React.FC = () => {
                 userEmail: profile?.email || '',
                 userName: (profile as any).doctor_name || profile?.email || '',
                 action: 'SETTINGS_UPDATE',
-                description: `Paramètres de configuration mis à jour`,
+                description: (() => {
+                    const modeLabel = autoConfigMode === 'permanent' ? 'permanent (52 semaines)' : 'ponctuel (8 semaines)';
+                    const startPart = autoConfigStartDate ? `, à partir du ${fmtLogDate(autoConfigStartDate)}` : '';
+                    return `Tirage automatique RCP configuré — ${modeLabel}, deadline ${autoConfigDay} à ${autoConfigTime}${startPart}`;
+                })(),
                 weekKey: '',
                 category: 'CONFIG',
             });

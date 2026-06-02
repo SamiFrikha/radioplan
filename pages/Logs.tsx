@@ -45,21 +45,24 @@ const fmtDate = (dateStr: string) => {
 };
 
 /**
- * Enrichit la description en intégrant la date métier (targetDate) directement dans le texte :
- * - Si la description contient déjà la date en format ISO (YYYY-MM-DD) → remplace par JJ/MM/AAAA
- * - Sinon, si targetDate est défini → ajoute " du JJ/MM/AAAA" à la fin
+ * Enrichit la description en intégrant la date métier directement dans le texte :
+ * - Reformate TOUTE date ISO (YYYY-MM-DD) présente dans la description en JJ/MM/AAAA
+ * - Si targetDate est défini et n'apparaît nulle part → ajoute " du JJ/MM/AAAA" à la fin
  */
 const enrichDescription = (entry: ActivityLogEntry): string => {
-    if (!entry.targetDate) return entry.description;
-    const raw = entry.targetDate;           // YYYY-MM-DD
-    const formatted = fmtDate(raw);         // JJ/MM/AAAA
-    if (entry.description.includes(raw)) {
-        return entry.description.replace(raw, formatted);
+    // Reformate toutes les dates ISO présentes dans le texte (corrige les descriptions
+    // contenant plusieurs dates, ex. "du 2026-09-07 au 2026-09-08").
+    let text = entry.description.replace(
+        /\b(\d{4})-(\d{2})-(\d{2})\b/g,
+        (_, y, m, d) => `${d}/${m}/${y}`
+    );
+    if (entry.targetDate) {
+        const formatted = fmtDate(entry.targetDate);
+        if (!text.includes(formatted)) {
+            text = `${text} du ${formatted}`;
+        }
     }
-    if (entry.description.includes(formatted)) {
-        return entry.description; // déjà formaté
-    }
-    return `${entry.description} du ${formatted}`;
+    return text;
 };
 
 const LogsPage: React.FC = () => {

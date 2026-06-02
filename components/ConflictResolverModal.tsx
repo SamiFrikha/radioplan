@@ -225,8 +225,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
 
             setRequestSent(true);
             const targetDoc = doctors.find(d => d.id === targetDoctorId);
+            const requesterDoc = doctors.find(d => d.id === conflictDoctorId);
+            const activityLabel = effectiveSlot.subType ?? effectiveSlot.location;
             await modalAddLog('REPLACEMENT_REQUEST',
-                `Demande de remplacement envoyée à ${targetDoc?.name || 'médecin inconnu'}`,
+                `Demande de remplacement envoyée à ${targetDoc?.name || 'médecin inconnu'} pour remplacer ${requesterDoc?.name ?? 'un médecin'} — ${activityLabel} (${effectiveSlot.period})`,
                 { category: 'REMPLACEMENT', targetDate: effectiveSlot.date }
             );
         } catch (e) {
@@ -254,7 +256,9 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                 doctor_id: doctorToRemove,
                 status: 'ABSENT',
             });
-            await modalAddLog('RCP_ABSENT', `Absent au RCP du ${effectiveSlot.date} via résolution`, {
+            const removedDoc = doctors.find(d => d.id === doctorToRemove);
+            const rcpLabel = effectiveSlot.subType ?? effectiveSlot.location;
+            await modalAddLog('RCP_ABSENT', `${removedDoc?.name ?? 'Médecin'} déclaré absent au RCP « ${rcpLabel} » (${effectiveSlot.period}) via résolution de conflit`, {
                 category: 'RCP', targetDate: effectiveSlot.date,
             });
         } catch (e) {
@@ -295,8 +299,11 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
                 console.log(`[RCP] Remplacement exceptionnel : Dr ${rcpDirectDoctorId} hors affectation initiale`);
             }
             const newDoc = doctors.find(d => d.id === rcpDirectDoctorId);
+            const replacedDoc = doctors.find(d => d.id === doctorToRemove);
+            const rcpLabel = effectiveSlot.subType ?? effectiveSlot.location;
+            const replPart = replacedDoc ? ` en remplacement de ${replacedDoc.name}` : '';
             await modalAddLog('CONFLICT_RESOLVE',
-                `Conflit résolu — ${newDoc?.name || rcpDirectDoctorId} assigné`,
+                `Conflit résolu — ${newDoc?.name || rcpDirectDoctorId} assigné${replPart} au RCP « ${rcpLabel} » (${effectiveSlot.period})`,
                 { category: 'PLANNING', targetDate: effectiveSlot.date }
             );
         } catch (e) {
@@ -310,8 +317,11 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     const handleResolve = async (slotId: string, newDoctorId: string) => {
         if (newDoctorId) {
             const newDoc = doctors.find(d => d.id === newDoctorId);
+            const prevDoc = doctors.find(d => d.id === slot?.assignedDoctorId);
+            const activityLabel = slot?.subType ?? slot?.location ?? '';
+            const replPart = prevDoc && prevDoc.id !== newDoctorId ? ` en remplacement de ${prevDoc.name}` : '';
             await modalAddLog('CONFLICT_RESOLVE',
-                `Conflit résolu — ${newDoc?.name || newDoctorId} assigné`,
+                `Conflit résolu — ${newDoc?.name || newDoctorId} assigné${replPart} — ${activityLabel} (${slot?.day} ${slot?.period})`,
                 { category: 'PLANNING', targetDate: slot?.date }
             );
         }
@@ -319,8 +329,10 @@ const ConflictResolverModal: React.FC<Props> = ({ slot, conflict, doctors, slots
     };
 
     const handleCloseSlotWithLog = async (slotId: string) => {
+        const removedDoc = doctors.find(d => d.id === slot?.assignedDoctorId);
+        const whoPart = removedDoc ? ` — ${removedDoc.name} retiré` : '';
         await modalAddLog('SLOT_CLOSE',
-            `Créneau fermé (${slot?.location || ''} ${slot?.period || ''})`,
+            `Créneau fermé : ${slot?.location || ''} (${slot?.day || ''} ${slot?.period || ''})${whoPart}`,
             { category: 'PLANNING', targetDate: slot?.date }
         );
         onCloseSlot(slotId);

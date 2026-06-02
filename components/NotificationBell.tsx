@@ -84,9 +84,15 @@ const ReplacementActions: React.FC<{
           userEmail: profile?.email || '',
           userName: (profile as any).doctor_name || profile?.email || '',
           action: 'REPLACEMENT_ACCEPT',
-          description: `Demande de remplacement acceptée`,
+          description: (() => {
+            const requesterName = doctors.find(d => d.id === requesterDoctorId)?.name ?? 'un médecin';
+            const what = activityName ? ` — ${activityName}` : (slotType ? ` — ${slotType}` : '');
+            const per = period ? ` (${period})` : '';
+            return `Remplacement accepté : ${currentDoctorName ?? 'vous'} remplace ${requesterName}${what}${per}`;
+          })(),
           weekKey: '',
           category: 'REMPLACEMENT',
+          targetDate: slotDate,
         });
 
         if (slotId) {
@@ -135,9 +141,15 @@ const ReplacementActions: React.FC<{
           userEmail: profile?.email || '',
           userName: (profile as any).doctor_name || profile?.email || '',
           action: 'REPLACEMENT_REJECT',
-          description: `Demande de remplacement refusée`,
+          description: (() => {
+            const requesterName = doctors.find(d => d.id === requesterDoctorId)?.name ?? 'un médecin';
+            const what = activityName ? ` — ${activityName}` : (slotType ? ` — ${slotType}` : '');
+            const per = period ? ` (${period})` : '';
+            return `Remplacement refusé : ${currentDoctorName ?? 'vous'} a refusé la demande de ${requesterName}${what}${per}`;
+          })(),
           weekKey: '',
           category: 'REMPLACEMENT',
+          targetDate: slotDate,
         });
       }
 

@@ -182,12 +182,14 @@ const Planning: React.FC = () => {
         if (newDoctorId && newDoctorId !== "") {
             const slot = schedule.find(s => s.id === slotId);
             const assignedDoc = doctors.find(d => d.id === newDoctorId);
+            const prevDoc = doctors.find(d => d.id === slot?.assignedDoctorId);
+            const replPart = prevDoc && prevDoc.id !== newDoctorId ? ` (remplace ${prevDoc.name})` : '';
             await activityLogService.addLog({
                 userId: profile?.id || '',
                 userEmail: profile?.email || '',
                 userName: (profile as any).doctor_name || profile?.email || '',
                 action: 'PLANNING_ASSIGN',
-                description: `${assignedDoc?.name || newDoctorId} assigné — ${slot?.location || ''} (${slot?.day || ''} ${slot?.period || ''})`,
+                description: `${assignedDoc?.name || newDoctorId} assigné — ${slot?.location || ''} (${slot?.day || ''} ${slot?.period || ''})${replPart}`,
                 weekKey: currentWeekKey,
                 category: 'PLANNING',
                 targetDate: slot?.date,

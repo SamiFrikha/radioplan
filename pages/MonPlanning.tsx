@@ -34,12 +34,15 @@ const MonPlanning: React.FC = () => {
     setSelectedConsultSlot(null);
 
     const currentDoctor = doctors.find(d => d.id === profile?.doctor_id);
+    const newDoc = doctors.find(d => d.id === newDoctorId);
+    const prevDoc = doctors.find(d => d.id === slot?.assignedDoctorId);
+    const replPart = prevDoc && prevDoc.id !== newDoctorId ? ` (remplace ${prevDoc.name})` : '';
     await activityLogService.addLog({
       userId: profile?.id || '',
       userEmail: profile?.email || '',
       userName: currentDoctor?.name || '',
       action: 'CONSULT_MODIFY',
-      description: `Consultation modifiée (${slot?.location || ''})`,
+      description: `Consultation ${slot?.location || ''} (${slot?.day || ''} ${slot?.period || ''}) → ${newDoc?.name ?? 'non assignée'}${replPart}`,
       weekKey: '',
       category: 'PLANNING',
       targetDate: slot?.date,
@@ -57,12 +60,16 @@ const MonPlanning: React.FC = () => {
     setSelectedActivitySlot(null);
 
     const currentDoctor = doctors.find(d => d.id === profile?.doctor_id);
+    const newDoc = doctors.find(d => d.id === newDoctorId);
+    const prevDoc = doctors.find(d => d.id === slot?.assignedDoctorId);
+    const replPart = prevDoc && prevDoc.id !== newDoctorId ? ` (remplace ${prevDoc.name})` : '';
+    const activityLabel = slot?.location || (slot as any)?.activityId || '';
     await activityLogService.addLog({
       userId: profile?.id || '',
       userEmail: profile?.email || '',
       userName: currentDoctor?.name || '',
       action: 'ACTIVITY_MODIFY',
-      description: `Activité modifiée (${slot?.location || (slot as any)?.activityId || ''})`,
+      description: `Activité ${activityLabel} (${slot?.day || ''} ${slot?.period || ''}) → ${newDoc?.name ?? 'non assignée'}${replPart}`,
       weekKey: '',
       category: 'PLANNING',
       targetDate: slot?.date,
