@@ -5,6 +5,7 @@ import {
   getISOWeekNumber,
   templateRcpOccurs,
   unavailableDoctorSet,
+  busyDoctorSetFromActivities,
   resolveAssignedIds,
   periodFromTime,
   weekRange,
@@ -37,6 +38,8 @@ const drawForSlot = async (
   unavail: Unavail[],
   profiles: any[],
   results: any[],
+  overrides: Record<string, string>,
+  blockingActivityIds: Set<string>,
 ) => {
   const { slotId, dateStr, period, assignedIds, subType } = slot;
 
@@ -60,8 +63,12 @@ const drawForSlot = async (
   // Doctors unavailable that day/period (handles half-days).
   const unavailableOnDay = unavailableDoctorSet(unavail, dateStr, period);
 
+  // Doctors already assigned to a blocking activity (astreinte, UNITY, …) on the
+  // same half-day — they cannot also cover this RCP.
+  const busyOnActivity = busyDoctorSetFromActivities(overrides, blockingActivityIds, dateStr, period);
+
   const available = assignedIds.filter(
-    (docId) => !absentIds.has(docId) && !unavailableOnDay.has(docId)
+    (docId) => !absentIds.has(docId) && !unavailableOnDay.has(docId) && !busyOnActivity.has(docId)
   );
 
   if (available.length === 0) {
@@ -150,6 +157,8 @@ Deno.serve(async (req) => {
     { data: profiles },
     { data: rcpDefs },
     { data: rcpExceptions },
+    { data: appSettings },
+    { data: activities },
   ] = await Promise.all([
     supabase.from('schedule_templates')
       .select('id, day, period, doctor_ids, default_doctor_id, secondary_doctor_ids, type, sub_type, location, frequency')
@@ -163,11 +172,20 @@ Deno.serve(async (req) => {
       .select('id, name, frequency, week_parity, monthly_week_number'),
     supabase.from('rcp_exceptions')
       .select('rcp_template_id, original_date, is_cancelled'),
+    supabase.from('app_settings').select('manual_overrides').limit(1).maybeSingle(),
+    supabase.from('activities').select('id, allow_double_booking'),
   ]);
 
   const defs = (rcpDefs ?? []) as RcpDef[];
   const unavail = (unavailabilities ?? []) as Unavail[];
   const results: any[] = [];
+
+  // Activity assignments (astreinte, UNITY, …) live in app_settings.manual_overrides.
+  // A doctor already on a *blocking* activity that half-day is unavailable for the RCP.
+  const overrides = (appSettings?.manual_overrides ?? {}) as Record<string, string>;
+  const blockingActivityIds = new Set<string>(
+    (activities ?? []).filter((a: any) => a.allow_double_booking === false).map((a: any) => a.id)
+  );
 
   // ── 1. TEMPLATE-BASED RCPs ────────────────────────────────────────────────
   for (const slot of (templateSlots ?? [])) {
@@ -193,7 +211,7 @@ Deno.serve(async (req) => {
         assignedIds: resolveAssignedIds(slot),
         subType: slot.sub_type ?? null,
       },
-      unavail, profiles ?? [], results,
+      unavail, profiles ?? [], results, overrides, blockingActivityIds,
     );
   }
 
@@ -216,7 +234,7 @@ Deno.serve(async (req) => {
           assignedIds: inst.doctor_ids ?? [],
           subType: null,
         },
-        unavail, profiles ?? [], results,
+        unavail, profiles ?? [], results, overrides, blockingActivityIds,
       );
     }
   }

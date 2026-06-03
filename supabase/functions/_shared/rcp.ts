@@ -109,6 +109,33 @@ export const periodFromTime = (time: string | null | undefined): string => {
   return hour < 14 ? 'Matin' : 'Après-midi';
 };
 
+// Set of doctor IDs already assigned to a *blocking* activity (astreinte, UNITY,
+// etc.) on a given date + period. These assignments live in
+// app_settings.manual_overrides as `act-<activityId>-<YYYY-MM-DD>-<period>` → value,
+// where value is a doctorId, an `auto:<doctorId>` prefixed choice, or `__CLOSED__`.
+// Only activities whose id is in `blockingActivityIds` (allow_double_booking = false)
+// make a doctor unavailable. The activityId may contain dashes (UUID), so we match
+// on the fixed `-<date>-<period>` suffix rather than splitting on '-'.
+export const busyDoctorSetFromActivities = (
+  overrides: Record<string, string> | null | undefined,
+  blockingActivityIds: Set<string>,
+  dateStr: string,
+  slotPeriod: string,
+): Set<string> => {
+  const s = new Set<string>();
+  if (!overrides) return s;
+  const suffix = `-${dateStr}-${slotPeriod}`;
+  for (const [slotId, value] of Object.entries(overrides)) {
+    if (!slotId.startsWith('act-') || !slotId.endsWith(suffix)) continue;
+    if (!value || value === '__CLOSED__') continue;
+    const activityId = slotId.slice(4, slotId.length - suffix.length);
+    if (!blockingActivityIds.has(activityId)) continue;
+    const doctorId = value.startsWith('auto:') ? value.slice(5) : value;
+    if (doctorId) s.add(doctorId);
+  }
+  return s;
+};
+
 // The Monday→Friday date range (as YYYY-MM-DD strings) for a week start.
 export const weekRange = (weekStart: Date): { startStr: string; endStr: string } => {
   const end = new Date(weekStart);

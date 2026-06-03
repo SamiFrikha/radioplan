@@ -5,6 +5,7 @@ import {
   getISOWeekNumber,
   templateRcpOccurs,
   unavailableDoctorSet,
+  busyDoctorSetFromActivities,
   resolveAssignedIds,
   periodFromTime,
   weekRange,
@@ -33,6 +34,8 @@ const notifySlot = async (
   profiles: any[],
   type: ReminderType,
   hoursLabel: number,
+  overrides: Record<string, string>,
+  blockingActivityIds: Set<string>,
 ) => {
   if (assignedIds.length === 0) return;
 
@@ -51,10 +54,12 @@ const notifySlot = async (
 
   const decidedDocIds = new Set((attendance ?? []).map((r: any) => r.doctor_id));
   const unavailableOnDay = unavailableDoctorSet(weekUnavail, dateStr, slotPeriod);
+  const busyOnActivity = busyDoctorSetFromActivities(overrides, blockingActivityIds, dateStr, slotPeriod);
 
   for (const docId of assignedIds) {
     if (decidedDocIds.has(docId)) continue;     // already declared PRÉSENT/ABSENT
     if (unavailableOnDay.has(docId)) continue;  // unavailable that day/period
+    if (busyOnActivity.has(docId)) continue;    // on a blocking activity (astreinte, UNITY, …)
 
     const prof = profiles.find((p: any) => p.doctor_id === docId);
     if (!prof) continue;
@@ -94,6 +99,8 @@ Deno.serve(async () => {
     { data: profiles },
     { data: rcpDefs },
     { data: rcpExceptions },
+    { data: appSettings },
+    { data: activities },
   ] = await Promise.all([
     supabase.from('schedule_templates')
       .select('id, day, period, doctor_ids, default_doctor_id, secondary_doctor_ids, type, sub_type, location, frequency')
@@ -103,9 +110,18 @@ Deno.serve(async () => {
       .select('id, name, frequency, week_parity, monthly_week_number'),
     supabase.from('rcp_exceptions')
       .select('rcp_template_id, original_date, is_cancelled'),
+    supabase.from('app_settings').select('manual_overrides').limit(1).maybeSingle(),
+    supabase.from('activities').select('id, allow_double_booking'),
   ]);
 
   const defs = (rcpDefs ?? []) as RcpDef[];
+
+  // Activity assignments (astreinte, UNITY, …) live in app_settings.manual_overrides.
+  // Doctors already on a *blocking* activity that half-day shouldn't be reminded.
+  const overrides = (appSettings?.manual_overrides ?? {}) as Record<string, string>;
+  const blockingActivityIds = new Set<string>(
+    (activities ?? []).filter((a: any) => a.allow_double_booking === false).map((a: any) => a.id)
+  );
 
   const sendReminders = async (
     configs: any[],
@@ -152,6 +168,7 @@ Deno.serve(async () => {
           resolveAssignedIds(slot), slot.sub_type,
           unavail, profiles ?? [],
           type, hoursLabel,
+          overrides, blockingActivityIds,
         );
       }
 
@@ -172,6 +189,7 @@ Deno.serve(async () => {
             inst.doctor_ids ?? [], null,
             unavail, profiles ?? [],
             type, hoursLabel,
+            overrides, blockingActivityIds,
           );
         }
       }
