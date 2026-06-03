@@ -341,9 +341,22 @@ const Dashboard: React.FC = () => {
         // Non-admin doctors only see conflicts that concern their own slots.
         // Admins and users without a linked doctor profile see everything.
         const isAdminUser = profile?.role === 'admin' || profile?.role_name === 'Admin';
-        const relevantConflicts = (!isAdminUser && profile?.doctor_id)
+        const scopedConflicts = (!isAdminUser && profile?.doctor_id)
             ? conflicts.filter(c => c.doctorId === profile.doctor_id)
             : conflicts;
+
+        // A double-booking is detected as a mirror pair (one entry per slot) so the
+        // calendar grid can highlight both slots. In this alert list that surfaces as
+        // the same message twice, so collapse to one alert per doctor + half-day +
+        // conflict type. Distinct conflicts on other days/periods keep their own key.
+        const seenConflictKeys = new Set<string>();
+        const relevantConflicts = scopedConflicts.filter(c => {
+            const slot = schedule.find(s => s.id === c.slotId);
+            const key = `${c.type}-${c.doctorId}-${slot?.date ?? 'unknown'}-${slot?.period ?? 'unknown'}`;
+            if (seenConflictKeys.has(key)) return false;
+            seenConflictKeys.add(key);
+            return true;
+        });
 
         let absentees = [];
         if (viewMode === 'DAY') {
