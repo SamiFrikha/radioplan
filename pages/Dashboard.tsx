@@ -11,6 +11,16 @@ import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConf
 import { getDoctorHexColor } from '../components/DoctorBadge';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
 
+// Format a Date as YYYY-MM-DD using LOCAL components. Using toISOString() here
+// would shift the date by one day in positive-UTC timezones (e.g. Paris UTC+2),
+// because slot dates are generated from local components (getDateForDayOfWeek).
+const toLocalDateStr = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const shortName = (name: string): string => {
   const parts = name.split(' ');
   if (parts.length <= 1) return name;
@@ -127,8 +137,8 @@ const Dashboard: React.FC = () => {
             // Only Mon–Fri of the displayed week
             const weekEndDate = new Date(currentWeekStart);
             weekEndDate.setDate(weekEndDate.getDate() + 4);
-            const ws = currentWeekStart.toISOString().split('T')[0];
-            const we = weekEndDate.toISOString().split('T')[0];
+            const ws = toLocalDateStr(currentWeekStart);
+            const we = toLocalDateStr(weekEndDate);
             visibleSlots = schedule.filter(s => s.date >= ws && s.date <= we);
         }
         return detectConflicts(visibleSlots, unavailabilities, doctors, activityDefinitions, consultationHours);
@@ -319,10 +329,10 @@ const Dashboard: React.FC = () => {
             }).length;
         } else {
             // In Week view, count doctors who are available for at least part of the week (not absent M-F)
-            const weekStartStr = currentWeekStart.toISOString().split('T')[0];
+            const weekStartStr = toLocalDateStr(currentWeekStart);
             const weekEnd = new Date(currentWeekStart);
             weekEnd.setDate(weekEnd.getDate() + 4);
-            const weekEndStr = weekEnd.toISOString().split('T')[0];
+            const weekEndStr = toLocalDateStr(weekEnd);
 
             presentDoctorsCount = doctors.filter(d => {
                 const absentWholeWeek = unavailabilities.some(u =>
@@ -365,8 +375,8 @@ const Dashboard: React.FC = () => {
         } else {
             const weekEnd = new Date(currentWeekStart);
             weekEnd.setDate(weekEnd.getDate() + 4);
-            const weekStartStr = currentWeekStart.toISOString().split('T')[0];
-            const weekEndStr = weekEnd.toISOString().split('T')[0];
+            const weekStartStr = toLocalDateStr(currentWeekStart);
+            const weekEndStr = toLocalDateStr(weekEnd);
 
             absentees = unavailabilities.filter(u => {
                 return (u.startDate <= weekEndStr && u.endDate >= weekStartStr);
