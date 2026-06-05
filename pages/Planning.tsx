@@ -25,7 +25,8 @@ const Planning: React.FC = () => {
         effectiveHistory, // Use effectiveHistory instead of shiftHistory for equity calculations
         rcpAttendance,
         rcpExceptions,
-        validatedWeeks
+        validatedWeeks,
+        consultationHours
     } = useContext(AppContext);
 
     // --- AUTH & ACCESS CONTROL ---
@@ -142,8 +143,8 @@ const Planning: React.FC = () => {
     }, [currentWeekStart, template, unavailabilities, doctors, activityDefinitions, rcpTypes, effectiveHistory, rcpAttendance, rcpExceptions, manualOverrides, isCurrentWeekValidated]);
 
     const conflicts = useMemo(() => {
-        return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions);
-    }, [schedule, unavailabilities, doctors, activityDefinitions]);
+        return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions, consultationHours);
+    }, [schedule, unavailabilities, doctors, activityDefinitions, consultationHours]);
 
 
     const [selectedConflictSlot, setSelectedConflictSlot] = useState<ScheduleSlot | null>(null);

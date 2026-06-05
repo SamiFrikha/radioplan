@@ -11,7 +11,7 @@ import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import NotificationBell from './components/NotificationBell';
 import { DEFAULT_TEMPLATE, INITIAL_DOCTORS, INITIAL_ACTIVITIES } from './constants';
-import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, ActivityDefinition, RcpDefinition, AppContextType, ShiftHistory, ManualOverrides, RcpAttendance, RcpException, GlobalBackupData } from './types';
+import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, ActivityDefinition, RcpDefinition, AppContextType, ShiftHistory, ManualOverrides, RcpAttendance, RcpException, GlobalBackupData, ConsultationHours } from './types';
 import { detectConflicts, generateScheduleForWeek, computeHistoryFromDate, getDateForDayOfWeek } from './services/scheduleService';
 import { useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -30,7 +30,7 @@ import { unavailabilityService } from './services/unavailabilityService';
 import { rcpService } from './services/rcpService';
 import { scheduleApiService } from './services/scheduleApiService';
 import { backupService } from './services/backupService';
-import { settingsService } from './services/settingsService';
+import { settingsService, DEFAULT_CONSULTATION_HOURS } from './services/settingsService';
 
 // Handles automatic redirect when Supabase fires PASSWORD_RECOVERY event
 const RecoveryRedirect: React.FC = () => {
@@ -145,6 +145,7 @@ const App: React.FC = () => {
     const [rcpAttendance, setRcpAttendance] = useState<RcpAttendance>({});
     const [rcpExceptions, setRcpExceptions] = useState<RcpException[]>([]);
     const [activitiesStartDate, setActivitiesStartDate] = useState<string | null>(null);
+    const [consultationHours, setConsultationHoursState] = useState<ConsultationHours>(DEFAULT_CONSULTATION_HOURS);
     const [validatedWeeks, setValidatedWeeks] = useState<string[]>([]); // Weeks that are locked/validated
     const [shiftHistory, setShiftHistory] = useState<ShiftHistory>({});
 
@@ -276,6 +277,7 @@ const App: React.FC = () => {
                     setActivitiesStartDate(settings.activitiesStartDate);
                     setValidatedWeeks(settings.validatedWeeks || []);
                     setManualOverrides(settings.manualOverrides || {});
+                    setConsultationHoursState(settings.consultationHours || DEFAULT_CONSULTATION_HOURS);
                 }
 
                 dataLoadedRef.current = true; // Mark as loaded
@@ -402,8 +404,8 @@ const App: React.FC = () => {
     // Real-time conflict detection
     const conflicts = useMemo(() => {
         if (!schedule || schedule.length === 0) return [];
-        return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions);
-    }, [schedule, unavailabilities, doctors, activityDefinitions]);
+        return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions, consultationHours);
+    }, [schedule, unavailabilities, doctors, activityDefinitions, consultationHours]);
 
     // --- ACTIONS ---
 
@@ -639,6 +641,11 @@ const App: React.FC = () => {
         await settingsService.update({ activitiesStartDate: date });
     }
 
+    const setConsultationHours = async (hours: ConsultationHours) => {
+        setConsultationHoursState(hours);
+        await settingsService.update({ consultationHours: hours });
+    }
+
     // Week validation functions
     const validateWeek = async (weekKey: string) => {
         if (!validatedWeeks.includes(weekKey)) {
@@ -737,6 +744,7 @@ const App: React.FC = () => {
             addRcpType, updateRcpDefinition, removeRcpType, renameRcpType, shiftHistory, effectiveHistory, manualOverrides,
             setManualOverrides: setManualOverridesWrapper, importConfiguration, rcpAttendance, setRcpAttendance: setRcpAttendanceWrapper,
             rcpExceptions, addRcpException, removeRcpException, activitiesStartDate, setActivitiesStartDate: updateActivitiesStartDate,
+            consultationHours, setConsultationHours,
             validatedWeeks, validateWeek, unvalidateWeek,
             activitiesWeekOffset, setActivitiesWeekOffset,
             activitiesActiveTab, setActivitiesActiveTab,

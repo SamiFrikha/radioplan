@@ -1,9 +1,15 @@
 import { supabase } from './supabaseClient';
-import { ManualOverrides } from '../types';
+import { ManualOverrides, ConsultationHours } from '../types';
+
+// Default consultation half-day time ranges (used when not configured yet).
+export const DEFAULT_CONSULTATION_HOURS: ConsultationHours = {
+    morning:   { start: '08:30', end: '13:00' },
+    afternoon: { start: '14:00', end: '18:00' },
+};
 
 // Settings service to persist global app settings
 export const settingsService = {
-    async get(): Promise<{ postes: string[], activitiesStartDate: string | null, validatedWeeks: string[], manualOverrides: ManualOverrides }> {
+    async get(): Promise<{ postes: string[], activitiesStartDate: string | null, validatedWeeks: string[], manualOverrides: ManualOverrides, consultationHours: ConsultationHours }> {
         const { data, error } = await supabase
             .from('app_settings')
             .select('*')
@@ -16,7 +22,8 @@ export const settingsService = {
                 postes: ['Box 1', 'Box 2', 'Box 3'],
                 activitiesStartDate: null,
                 validatedWeeks: [],
-                manualOverrides: {}
+                manualOverrides: {},
+                consultationHours: DEFAULT_CONSULTATION_HOURS
             };
         }
 
@@ -24,16 +31,18 @@ export const settingsService = {
             postes: data?.postes || ['Box 1', 'Box 2', 'Box 3'],
             activitiesStartDate: data?.activities_start_date || null,
             validatedWeeks: data?.validated_weeks || [],
-            manualOverrides: data?.manual_overrides || {}
+            manualOverrides: data?.manual_overrides || {},
+            consultationHours: data?.consultation_hours || DEFAULT_CONSULTATION_HOURS
         };
     },
 
-    async update(settings: { postes?: string[], activitiesStartDate?: string | null, validatedWeeks?: string[], manualOverrides?: ManualOverrides }): Promise<void> {
+    async update(settings: { postes?: string[], activitiesStartDate?: string | null, validatedWeeks?: string[], manualOverrides?: ManualOverrides, consultationHours?: ConsultationHours }): Promise<void> {
         const updateData: any = {};
         if (settings.postes !== undefined) updateData.postes = settings.postes;
         if (settings.activitiesStartDate !== undefined) updateData.activities_start_date = settings.activitiesStartDate;
         if (settings.validatedWeeks !== undefined) updateData.validated_weeks = settings.validatedWeeks;
         if (settings.manualOverrides !== undefined) updateData.manual_overrides = settings.manualOverrides;
+        if (settings.consultationHours !== undefined) updateData.consultation_hours = settings.consultationHours;
 
         // Try to upsert using id = 1 as the singleton pattern
         const { error } = await supabase

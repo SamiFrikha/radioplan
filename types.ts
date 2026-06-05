@@ -76,6 +76,22 @@ export interface ActivityDefinition {
   color: string;
   isSystem?: boolean; // If true, cannot be deleted (e.g. Astreinte basic)
   equityGroup?: string; // Group for combined equity calculation (e.g., 'unity_astreinte', 'workflow')
+  // Configurable time ranges per half-day, used for real time-overlap conflict detection.
+  // Format "HH:MM". Only meaningful for blocking activities (Astreinte, UNITY).
+  morningStart?: string | null;
+  morningEnd?: string | null;
+  afternoonStart?: string | null;
+  afternoonEnd?: string | null;
+}
+
+// Global half-day time ranges for consultations, used for time-overlap conflict detection.
+export interface TimeRange {
+  start: string; // "HH:MM"
+  end: string;   // "HH:MM"
+}
+export interface ConsultationHours {
+  morning: TimeRange;
+  afternoon: TimeRange;
 }
 
 // NEW: Rich structure for manual RCP instances
@@ -292,6 +308,8 @@ export interface AppContextType {
   removeRcpException: (templateId: string, originalDate: string) => void; // NEW helper
   activitiesStartDate: string | null; // NEW: Date from which to start counting equity
   setActivitiesStartDate: (date: string | null) => void; // NEW
+  consultationHours: ConsultationHours; // Global consultation half-day time ranges
+  setConsultationHours: (hours: ConsultationHours) => void;
   validatedWeeks: string[]; // NEW: List of validated week keys
   validateWeek: (weekKey: string) => void; // NEW
   unvalidateWeek: (weekKey: string) => void; // NEW

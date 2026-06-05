@@ -40,10 +40,13 @@ const Configuration: React.FC = () => {
         configRcpFullscreen,
         setConfigRcpFullscreen,
         manualOverrides,
-        setManualOverrides
+        setManualOverrides,
+        consultationHours,
+        setConsultationHours
     } = useContext(AppContext);
 
     const { profile } = useAuth();
+    const isAdmin = profile?.role === 'admin' || profile?.role_name === 'Admin';
 
     const tableContainerRef = useRef<HTMLDivElement>(null);
     const isSavingRef = useRef(false);
@@ -124,6 +127,24 @@ const Configuration: React.FC = () => {
     const [autoConfigMode, setAutoConfigModeState] = useState<'8weeks' | 'permanent'>(() => (sessionStorage.getItem('rcp_autoConfigMode') as '8weeks' | 'permanent') || '8weeks');
     const setAutoConfigMode = (v: '8weeks' | 'permanent') => { sessionStorage.setItem('rcp_autoConfigMode', v); setAutoConfigModeState(v); };
     const [autoConfigStartDate, setAutoConfigStartDate] = useState<string>('');
+
+    // Derive the displayed draw day/time from the ACTUAL saved deadlines, not the
+    // hard-coded sessionStorage defaults (which wrongly showed "Vendredi 14h").
+    // Runs only when the config list (re)loads — never fights the user mid-edit.
+    useEffect(() => {
+        if (rcpAutoConfigs.length === 0) return;
+        const ref = rcpAutoConfigs.find(c => !c.executedAt) || rcpAutoConfigs[0];
+        if (!ref?.deadlineAt) return;
+        const d = new Date(ref.deadlineAt);
+        if (isNaN(d.getTime())) return;
+        const DAY_NAMES = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+        const dayName = DAY_NAMES[d.getDay()];
+        const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        if (['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].includes(dayName)) {
+            setAutoConfigDayState(dayName);
+        }
+        setAutoConfigTimeState(timeStr);
+    }, [rcpAutoConfigs]);
     const [savingAutoConfig, setSavingAutoConfig] = useState(false);
     const [launchWeekDate, setLaunchWeekDate] = useState<string>('');
     const [cancellingWeek, setCancellingWeek] = useState<string | null>(null);
@@ -984,6 +1005,58 @@ const Configuration: React.FC = () => {
                                 <button onClick={handleAddPoste} disabled={!newPosteName} className="bg-primary text-white p-1.5 rounded-r hover:bg-primary/90 h-10 flex items-center">
                                     <PlusCircle className="w-4 h-4" />
                                 </button>
+                            </div>
+                        </div>
+                    </CardBody>
+                </Card>
+            )}
+
+            {activeTab === SlotType.CONSULTATION && editMode && isAdmin && (
+                <Card className="animate-in fade-in slide-in-from-top-2">
+                    <CardBody className="p-4">
+                        <h3 className="font-bold text-text-base mb-1 flex items-center">
+                            <Clock className="w-4 h-4 mr-2" />
+                            Horaires de consultation
+                        </h3>
+                        <p className="text-xs text-text-muted mb-3">
+                            Plages utilisées pour détecter les chevauchements réels (ex : une RCP qui commence après la fin des consultations n'est plus bloquante).
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-6">
+                            <div>
+                                <h4 className="text-xs font-bold text-text-muted uppercase mb-2">Matin</h4>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="time"
+                                        value={consultationHours?.morning?.start || ''}
+                                        onChange={e => setConsultationHours({ ...consultationHours, morning: { ...consultationHours.morning, start: e.target.value } })}
+                                        className="text-sm border border-border rounded-btn h-10 px-2 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                    />
+                                    <span className="text-text-muted text-sm">→</span>
+                                    <input
+                                        type="time"
+                                        value={consultationHours?.morning?.end || ''}
+                                        onChange={e => setConsultationHours({ ...consultationHours, morning: { ...consultationHours.morning, end: e.target.value } })}
+                                        className="text-sm border border-border rounded-btn h-10 px-2 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-text-muted uppercase mb-2">Après-midi</h4>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="time"
+                                        value={consultationHours?.afternoon?.start || ''}
+                                        onChange={e => setConsultationHours({ ...consultationHours, afternoon: { ...consultationHours.afternoon, start: e.target.value } })}
+                                        className="text-sm border border-border rounded-btn h-10 px-2 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                    />
+                                    <span className="text-text-muted text-sm">→</span>
+                                    <input
+                                        type="time"
+                                        value={consultationHours?.afternoon?.end || ''}
+                                        onChange={e => setConsultationHours({ ...consultationHours, afternoon: { ...consultationHours.afternoon, end: e.target.value } })}
+                                        className="text-sm border border-border rounded-btn h-10 px-2 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                                    />
+                                </div>
                             </div>
                         </div>
                     </CardBody>

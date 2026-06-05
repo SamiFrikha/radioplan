@@ -36,7 +36,8 @@ const Dashboard: React.FC = () => {
         dashboardWeekOffset,
         setDashboardWeekOffset,
         addRcpException,
-        validatedWeeks
+        validatedWeeks,
+        consultationHours
     } = useContext(AppContext);
 
     const { profile } = useAuth();
@@ -130,8 +131,8 @@ const Dashboard: React.FC = () => {
             const we = weekEndDate.toISOString().split('T')[0];
             visibleSlots = schedule.filter(s => s.date >= ws && s.date <= we);
         }
-        return detectConflicts(visibleSlots, unavailabilities, doctors, activityDefinitions);
-    }, [schedule, unavailabilities, doctors, activityDefinitions, viewMode, selectedDate, currentWeekStart]);
+        return detectConflicts(visibleSlots, unavailabilities, doctors, activityDefinitions, consultationHours);
+    }, [schedule, unavailabilities, doctors, activityDefinitions, consultationHours, viewMode, selectedDate, currentWeekStart]);
 
     // Detect RCPs falling on holidays in the current month AND next month (based on selected date)
     const rcpsOnHolidays = useMemo(() => {

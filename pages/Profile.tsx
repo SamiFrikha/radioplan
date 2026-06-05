@@ -378,6 +378,7 @@ const Profile: React.FC = () => {
         schedule,
         manualOverrides,
         setManualOverrides,
+        consultationHours,
     } = useContext(AppContext);
 
     const { profile, loading: authLoading, isAdmin, signOut } = useAuth();
@@ -604,9 +605,9 @@ const Profile: React.FC = () => {
     const profileConflicts = useMemo(() => {
         if (!currentDoctor || conflictsRawSchedule.length === 0) return [];
 
-        const allConflicts = detectConflicts(conflictsRawSchedule, unavailabilities, doctors, activityDefinitions);
+        const allConflicts = detectConflicts(conflictsRawSchedule, unavailabilities, doctors, activityDefinitions, consultationHours);
         return allConflicts.filter(c => c.doctorId === currentDoctor.id);
-    }, [currentDoctor, conflictsRawSchedule, unavailabilities, doctors, activityDefinitions]);
+    }, [currentDoctor, conflictsRawSchedule, unavailabilities, doctors, activityDefinitions, consultationHours]);
 
     // Load replacement requests when the tab becomes active
     useEffect(() => {

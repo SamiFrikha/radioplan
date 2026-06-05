@@ -1,5 +1,81 @@
 
-import { ActivityDefinition, Conflict, DayOfWeek, Doctor, Holiday, Period, RcpDefinition, ReplacementSuggestion, ScheduleSlot, ScheduleTemplateSlot, ShiftHistory, SlotType, Unavailability, RcpAttendance, RcpException, ManualOverrides, RcpManualInstance } from '../types';
+import { ActivityDefinition, Conflict, ConsultationHours, DayOfWeek, Doctor, Holiday, Period, RcpDefinition, ReplacementSuggestion, ScheduleSlot, ScheduleTemplateSlot, ShiftHistory, SlotType, Unavailability, RcpAttendance, RcpException, ManualOverrides, RcpManualInstance } from '../types';
+
+// --- Time-overlap helpers for conflict detection ---
+// Default half-day bounds used as fallback when no explicit range is configured.
+// These reproduce the legacy "same half-day = conflict" behavior (morning vs afternoon never overlap).
+const DEFAULT_HALFDAY_BOUNDS: Record<string, { start: string; end: string }> = {
+    [Period.MORNING]:   { start: '00:00', end: '13:59' },
+    [Period.AFTERNOON]: { start: '14:00', end: '23:59' },
+};
+
+const timeToMinutes = (hhmm?: string | null): number | null => {
+    if (!hhmm) return null;
+    const [hStr, mStr] = String(hhmm).split(':');
+    const h = parseInt(hStr, 10);
+    const m = parseInt(mStr ?? '0', 10);
+    if (isNaN(h)) return null;
+    return h * 60 + (isNaN(m) ? 0 : m);
+};
+
+interface SlotInterval { start: number; end: number; isPoint: boolean; }
+
+const defaultIntervalForPeriod = (period: Period): SlotInterval => {
+    const b = DEFAULT_HALFDAY_BOUNDS[period] ?? DEFAULT_HALFDAY_BOUNDS[Period.MORNING];
+    return { start: timeToMinutes(b.start)!, end: timeToMinutes(b.end)!, isPoint: false };
+};
+
+// Effective time interval of a slot, used to compute real overlaps.
+// - RCP => instant point at its start time (no end). Falls back to half-day range if no time.
+// - Activity (Astreinte/UNITY...) => its configured per-half-day range, else default bounds.
+// - Consultation/other => global consultation range for its half-day, else default bounds.
+const getSlotInterval = (
+    slot: ScheduleSlot,
+    activities: ActivityDefinition[],
+    consultationHours?: ConsultationHours | null
+): SlotInterval => {
+    const isMorning = slot.period === Period.MORNING;
+
+    if (slot.type === SlotType.RCP) {
+        const t = timeToMinutes(slot.time);
+        if (t !== null) return { start: t, end: t, isPoint: true };
+        return defaultIntervalForPeriod(slot.period);
+    }
+
+    if (slot.type === SlotType.ACTIVITY) {
+        const act = activities?.find(a => a.id === slot.activityId);
+        const start = act ? (isMorning ? act.morningStart : act.afternoonStart) : null;
+        const end = act ? (isMorning ? act.morningEnd : act.afternoonEnd) : null;
+        const sm = timeToMinutes(start);
+        const em = timeToMinutes(end);
+        if (sm !== null && em !== null) return { start: sm, end: em, isPoint: false };
+        return defaultIntervalForPeriod(slot.period);
+    }
+
+    // Consultation and any other typed slot use the global consultation range.
+    const range = isMorning ? consultationHours?.morning : consultationHours?.afternoon;
+    const sm = timeToMinutes(range?.start);
+    const em = timeToMinutes(range?.end);
+    if (sm !== null && em !== null) return { start: sm, end: em, isPoint: false };
+    return defaultIntervalForPeriod(slot.period);
+};
+
+// A slot belonging to a "Supervision Workflow" activity must never produce a
+// double-booking conflict — workflow supervision runs alongside other activities.
+const isWorkflowSlot = (slot: ScheduleSlot, activities: ActivityDefinition[]): boolean => {
+    if (slot.type !== SlotType.ACTIVITY || !slot.activityId) return false;
+    const act = activities?.find(a => a.id === slot.activityId);
+    return act?.equityGroup === 'workflow';
+};
+
+// Two intervals overlap. A point (RCP instant) overlaps a range when it falls in [start, end).
+// Two points overlap only when identical. Ranges overlap on strict interior intersection.
+const intervalsOverlap = (a: SlotInterval, b: SlotInterval): boolean => {
+    if (a.isPoint && b.isPoint) return a.start === b.start;
+    if (a.isPoint) return a.start >= b.start && a.start < b.end;
+    if (b.isPoint) return b.start >= a.start && b.start < a.end;
+    return a.start < b.end && b.start < a.end;
+};
 
 export const isDateInRange = (dateStr: string, startStr: string, endStr: string) => {
     const d = new Date(dateStr);
@@ -992,7 +1068,8 @@ export const detectConflicts = (
     slots: ScheduleSlot[],
     unavailabilities: Unavailability[],
     doctors: Doctor[],
-    activities: ActivityDefinition[]
+    activities: ActivityDefinition[],
+    consultationHours?: ConsultationHours | null
 ): Conflict[] => {
     const conflicts: Conflict[] = [];
     const doctorSlots: Record<string, ScheduleSlot[]> = {};
@@ -1000,6 +1077,9 @@ export const detectConflicts = (
     if (!doctors) return [];
 
     slots.forEach(slot => {
+        // Supervision Workflow slots are excluded from ALL conflict detection
+        // (no double-booking, no absence, no exclusion warnings).
+        if (isWorkflowSlot(slot, activities)) return;
         const docs = [slot.assignedDoctorId, ...(slot.secondaryDoctorIds || [])].filter(Boolean) as string[];
         docs.forEach(dId => {
             if (!doctorSlots[dId]) doctorSlots[dId] = [];
@@ -1086,7 +1166,14 @@ export const detectConflicts = (
                 const s1 = mySlots[i];
                 const s2 = mySlots[j];
 
-                if (s1.date === s2.date && s1.period === s2.period) {
+                // Real time-overlap check (replaces legacy "same half-day" test).
+                // Falls back to default half-day bounds when ranges aren't configured,
+                // which reproduces the old period-based behavior.
+                const sameDayOverlap = s1.date === s2.date && intervalsOverlap(
+                    getSlotInterval(s1, activities, consultationHours),
+                    getSlotInterval(s2, activities, consultationHours)
+                );
+                if (sameDayOverlap) {
                     const isS1Rcp = s1.type === SlotType.RCP;
                     const isS2Rcp = s2.type === SlotType.RCP;
 

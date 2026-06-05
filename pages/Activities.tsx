@@ -49,7 +49,8 @@ const Activities: React.FC = () => {
         activitiesWeekOffset,
         setActivitiesWeekOffset,
         activitiesActiveTab,
-        setActivitiesActiveTab
+        setActivitiesActiveTab,
+        consultationHours
     } = useContext(AppContext);
 
     const { profile } = useAuth();
@@ -359,8 +360,8 @@ const Activities: React.FC = () => {
     };
 
     const conflicts = useMemo(() => {
-        return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions);
-    }, [schedule, unavailabilities, doctors, activityDefinitions]);
+        return detectConflicts(schedule, unavailabilities, doctors, activityDefinitions, consultationHours);
+    }, [schedule, unavailabilities, doctors, activityDefinitions, consultationHours]);
 
 
     // Use context-based activeTabId to prevent reset on state changes
@@ -1783,6 +1784,56 @@ const Activities: React.FC = () => {
                                     </button>
                                 )}
                             </div>
+
+                            {/* Plages horaires — Astreinte / UNITY seulement */}
+                            {isAdmin && currentActivity.equityGroup === 'unity_astreinte' && (
+                                <div className="bg-surface border border-border rounded-card p-3 md:p-4 shadow-card">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Clock className="w-4 h-4 text-primary" />
+                                        <h3 className="text-sm font-bold text-text-base">Plages horaires</h3>
+                                        <span className="text-xs text-text-muted">— utilisées pour la détection des conflits</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs font-semibold text-text-muted mb-1.5">Matin</p>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="time"
+                                                    value={currentActivity.morningStart || ''}
+                                                    onChange={(e) => updateActivityDefinition({ ...currentActivity, morningStart: e.target.value || null })}
+                                                    className="flex-1 border border-border rounded-btn-sm px-2 py-1.5 text-sm bg-surface focus:ring-1 focus:ring-primary"
+                                                />
+                                                <span className="text-text-muted text-xs">à</span>
+                                                <input
+                                                    type="time"
+                                                    value={currentActivity.morningEnd || ''}
+                                                    onChange={(e) => updateActivityDefinition({ ...currentActivity, morningEnd: e.target.value || null })}
+                                                    className="flex-1 border border-border rounded-btn-sm px-2 py-1.5 text-sm bg-surface focus:ring-1 focus:ring-primary"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-semibold text-text-muted mb-1.5">Après-midi</p>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="time"
+                                                    value={currentActivity.afternoonStart || ''}
+                                                    onChange={(e) => updateActivityDefinition({ ...currentActivity, afternoonStart: e.target.value || null })}
+                                                    className="flex-1 border border-border rounded-btn-sm px-2 py-1.5 text-sm bg-surface focus:ring-1 focus:ring-primary"
+                                                />
+                                                <span className="text-text-muted text-xs">à</span>
+                                                <input
+                                                    type="time"
+                                                    value={currentActivity.afternoonEnd || ''}
+                                                    onChange={(e) => updateActivityDefinition({ ...currentActivity, afternoonEnd: e.target.value || null })}
+                                                    className="flex-1 border border-border rounded-btn-sm px-2 py-1.5 text-sm bg-surface focus:ring-1 focus:ring-primary"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-text-muted mt-2">Laissez vide pour conserver le comportement par défaut (demi-journée complète).</p>
+                                </div>
+                            )}
 
                             {/* CONTENT */}
                             <div className="bg-surface border border-border rounded-card p-2 md:p-4 shadow-card overflow-auto">
