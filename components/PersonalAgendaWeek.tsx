@@ -1,10 +1,11 @@
 // components/PersonalAgendaWeek.tsx
-import React, { useMemo, useContext, useRef } from 'react';
+import React, { useMemo, useContext, useRef, useState, useEffect } from 'react';
 import { useSwipe } from '../hooks/useSwipe';
 import { ChevronLeft, ChevronRight, CalendarDays, AlertTriangle, CheckCircle2, XCircle, Lock } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
-import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleService';
+import { generateScheduleForWeek, isFrenchHoliday, getWeekNumber } from '../services/scheduleService';
+import { getMyReplacementRequests } from '../services/replacementService';
 import { DayOfWeek, Period, SlotType } from '../types';
 import { Badge } from '../src/components/ui';
 import { getDoctorHexColor } from './DoctorBadge';
@@ -154,6 +155,26 @@ const PersonalAgendaWeek: React.FC<Props> = ({
   }, [rawSchedule, manualOverrides]);
 
 
+  // Activity slots (astreinte / unity / …) this doctor originally owned. Once a
+  // replacement is accepted, the manualOverride is rewritten to the replacer and the
+  // doctor's original ownership survives only in `replacement_requests`. We load the
+  // doctor's sent requests so a covered activity keeps showing on their leave days.
+  const [ownedActivitySlotIds, setOwnedActivitySlotIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!doctorId) { setOwnedActivitySlotIds(new Set()); return; }
+    let cancelled = false;
+    getMyReplacementRequests(doctorId)
+      .then(({ sent }) => {
+        if (cancelled) return;
+        const ids = new Set(
+          sent.filter(r => (r.slotId || '').startsWith('act-')).map(r => r.slotId as string)
+        );
+        setOwnedActivitySlotIds(ids);
+      })
+      .catch(err => console.error('[PersonalAgendaWeek] load replacement requests failed', err));
+    return () => { cancelled = true; };
+  }, [doctorId]);
+
   const resolveConflict = (slotId: string, slotType?: string) => {
     const ov = manualOverrides[slotId] ?? '';
     const isClosed = ov === '__CLOSED__';
@@ -212,12 +233,34 @@ const PersonalAgendaWeek: React.FC<Props> = ({
         const onLeavePeriod = isOnLeavePeriod(period);
         if (onLeavePeriod) {
           // Slots that were assigned to the doctor on this leave period — used to show what
-          // happened to each (closed, unresolved, etc.)
-          const conflictSlots = rawSchedule.filter(s =>
+          // happened to each (closed, unresolved, replaced…).
+          //
+          // RCP / consultation carry their assignment in the template, so rawSchedule keeps
+          // `assignedDoctorId` even after resolution — pull those directly.
+          const baseConflicts = rawSchedule.filter(s =>
             !s.isCancelled &&
             s.day === day && s.period === period &&
             (s.assignedDoctorId === doctorId || s.secondaryDoctorIds?.includes(doctorId!))
           );
+          // Activities (astreinte / unity / workflow) are assigned through manualOverrides,
+          // so rawSchedule shows them empty. Take the doctor's activity assignments from
+          // `schedule` (overrides applied), plus any activity they originally owned that has
+          // since been reassigned to a replacement (tracked via replacement_requests).
+          const activityConflicts = schedule.filter(s =>
+            !s.isCancelled &&
+            s.type === SlotType.ACTIVITY &&
+            s.day === day && s.period === period &&
+            (s.assignedDoctorId === doctorId || s.secondaryDoctorIds?.includes(doctorId!))
+          );
+          const reassignedActivities = rawSchedule.filter(s =>
+            !s.isCancelled &&
+            s.type === SlotType.ACTIVITY &&
+            s.day === day && s.period === period &&
+            ownedActivitySlotIds.has(s.id)
+          );
+          const seenIds = new Set<string>();
+          const conflictSlots = [...baseConflicts, ...activityConflicts, ...reassignedActivities]
+            .filter(s => (seenIds.has(s.id) ? false : (seenIds.add(s.id), true)));
           return {
             period,
             slots: [{ id: 'leave-'+dateStr+period, type: 'LEAVE', location: 'Congé', date: dateStr, period }],
@@ -244,7 +287,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
 
       return { day, date, dateStr, isToday, onLeave, periods };
     });
-  }, [schedule, rawSchedule, doctorId, unavailabilities, weekStart, rcpAttendance]);
+  }, [schedule, rawSchedule, doctorId, unavailabilities, weekStart, rcpAttendance, ownedActivitySlotIds]);
 
   // Detect WEEKLY-granularity activities for this doctor in the current week.
   // Derived from `schedule` directly (not from `days`) per spec.
@@ -279,6 +322,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
     const fmt = (d: Date) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
     return `${fmt(weekStart)} — ${end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}`;
   })();
+  const weekNum = getWeekNumber(weekStart);
 
   const [isMobile, setIsMobile] = React.useState(() => window.innerWidth < 768);
   React.useEffect(() => {
@@ -343,6 +387,18 @@ const PersonalAgendaWeek: React.FC<Props> = ({
     return '#94a3b8';
   };
 
+  // Effective start time (minutes) for intra-period ordering.
+  // Slots carry an explicit `time` (e.g. RCP Pneumo at 13:00); those without one
+  // fall back to the period's default start so activities keep their bucket order.
+  const slotStartMinutes = (slot: any): number => {
+    if (slot?.time) {
+      const [h, m] = String(slot.time).split(':').map((n: string) => parseInt(n, 10));
+      return (h || 0) * 60 + (m || 0);
+    }
+    return slot?.period === Period.AFTERNOON ? 14 * 60 : 8 * 60;
+  };
+  const byStartTime = (a: any, b: any) => slotStartMinutes(a) - slotStartMinutes(b);
+
   if (isMobile) {
     return (
       <div className="space-y-4">
@@ -352,6 +408,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
             <ChevronLeft size={18} />
           </button>
           <div className="text-center">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Semaine {weekNum}</p>
             <span className="font-heading font-semibold text-sm text-text-base">{weekLabel}</span>
             {weekOffset === 0 && <p className="text-xs text-primary font-medium">Semaine en cours</p>}
             {weekOffset === 1 && <p className="text-xs text-text-muted">Semaine prochaine</p>}
@@ -438,7 +495,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
                       if (s.type !== SlotType.ACTIVITY) return true;
                       const def = activityDefinitions.find((a: any) => a.id === s.activityId);
                       return def?.granularity !== 'WEEKLY';
-                    });
+                    }).sort(byStartTime);
                     const slotNodes = pSlots.map((slot: any) => {
                       const slotColor = getMobileSlotColor(slot);
                       const label = slot.subType || slot.location || (slot.type === SlotType.CONSULTATION ? 'Consultation' : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
@@ -548,6 +605,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
           <ChevronLeft size={18} />
         </button>
         <div className="text-center">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Semaine {weekNum}</p>
           <p className="text-sm font-semibold text-text-base">{weekLabel}</p>
           {weekOffset === 0 && <p className="text-xs text-primary font-medium">Semaine en cours</p>}
           {weekOffset === 1 && <p className="text-xs text-text-muted">Semaine prochaine</p>}
@@ -624,7 +682,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
                   if (slot.type !== SlotType.ACTIVITY) return true;
                   const actDef = activityDefinitions.find((a: any) => a.id === slot.activityId);
                   return actDef?.granularity !== 'WEEKLY';
-                });
+                }).sort(byStartTime);
                 const periodLabel = period === Period.MORNING ? 'AM' : 'PM';
                 return (
                   <div key={period} className="min-h-[56px]">

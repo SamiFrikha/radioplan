@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/StatCard';
 import ConflictResolverModal from '../components/ConflictResolverModal';
 import RcpExceptionModal from '../components/RcpExceptionModal';
-import { Users, AlertTriangle, Calendar, Activity, Clock, ChevronLeft, ChevronRight, LayoutList, LayoutGrid, UserX, CalendarDays, UserMinus, CalendarX2, MapPin } from 'lucide-react';
+import { Users, AlertTriangle, Calendar, Activity, Clock, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, LayoutList, LayoutGrid, UserX, CalendarDays, UserMinus, CalendarX2, MapPin } from 'lucide-react';
 import { DayOfWeek, Period, SlotType, Doctor, ScheduleSlot, Conflict, RcpException } from '../types';
 import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConflicts, isFrenchHoliday, getFrenchHolidays } from '../services/scheduleService';
 import { getDoctorHexColor } from '../components/DoctorBadge';
@@ -83,6 +83,13 @@ const Dashboard: React.FC = () => {
 
     // RCP Exception Modal (for moving RCPs from holidays)
     const [rcpExceptionSlot, setRcpExceptionSlot] = useState<ScheduleSlot | null>(null);
+
+    // Collapsible alert cards — header (title + count) stays visible, body toggles
+    const [collapsedCards, setCollapsedCards] = useState<Record<string, boolean>>({});
+    const toggleCard = (key: string) => setCollapsedCards(prev => ({ ...prev, [key]: !prev[key] }));
+    const CollapseChevron: React.FC<{ open: boolean }> = ({ open }) => (
+        open ? <ChevronUp className="w-4 h-4 text-text-muted" /> : <ChevronDown className="w-4 h-4 text-text-muted" />
+    );
 
     // Check if current dashboard week is validated/locked in Activities page
     const currentWeekKey = currentWeekStart.toISOString().split('T')[0];
@@ -902,15 +909,19 @@ const Dashboard: React.FC = () => {
 
                     {/* ALERTES */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader onClick={() => toggleCard('alerts')}>
                             <CardTitle>
                                 <span className="flex items-center">
                                     <AlertTriangle className="w-4 h-4 mr-2 text-danger" />
                                     Alertes {viewMode === 'DAY' ? 'du jour' : 'de la semaine'}
                                 </span>
                             </CardTitle>
-                            <Badge variant={stats.filteredConflicts.length > 0 ? 'red' : 'gray'}>{stats.filteredConflicts.length}</Badge>
+                            <span className="flex items-center gap-2">
+                                <Badge variant={stats.filteredConflicts.length > 0 ? 'red' : 'gray'}>{stats.filteredConflicts.length}</Badge>
+                                <CollapseChevron open={!collapsedCards.alerts} />
+                            </span>
                         </CardHeader>
+                        {!collapsedCards.alerts && (
                         <CardBody className="max-h-48 md:max-h-80 overflow-y-auto space-y-2 md:space-y-3">
                             {stats.filteredConflicts.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-20 text-text-muted">
@@ -962,20 +973,25 @@ const Dashboard: React.FC = () => {
                                 })
                             )}
                         </CardBody>
+                        )}
                     </Card>
 
                     {/* RCPs ON HOLIDAYS ALERT — only shown to the referring (lead) doctor */}
                     {rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).length > 0 && (
                         <Card>
-                            <CardHeader>
+                            <CardHeader onClick={() => toggleCard('rcpHolidays')}>
                                 <CardTitle>
                                     <span className="flex items-center">
                                         <CalendarX2 className="w-4 h-4 mr-2 text-warning" />
                                         RCP sur Jour Férié
                                     </span>
                                 </CardTitle>
-                                <Badge variant="amber">{rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).length}</Badge>
+                                <span className="flex items-center gap-2">
+                                    <Badge variant="amber">{rcpsOnHolidays.filter(({ slot }) => profile?.doctor_id && slot.assignedDoctorId === profile.doctor_id).length}</Badge>
+                                    <CollapseChevron open={!collapsedCards.rcpHolidays} />
+                                </span>
                             </CardHeader>
+                            {!collapsedCards.rcpHolidays && (
                             <CardBody>
                                 <p className="text-[10px] text-warning-text mb-3">
                                     Ces RCP tombent sur un jour férié ({selectedDate.toLocaleDateString('fr-FR', { month: 'long' })} & {new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1).toLocaleDateString('fr-FR', { month: 'long' })}). Cliquez pour les déplacer.
@@ -1042,19 +1058,25 @@ const Dashboard: React.FC = () => {
                                     })}
                                 </div>
                             </CardBody>
+                            )}
                         </Card>
                     )}
 
                     {/* NON-POSTED DOCTORS */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader onClick={() => toggleCard('unposted')}>
                             <CardTitle>
                                 <span className="flex items-center">
                                     <UserMinus className="w-4 h-4 mr-2 text-text-muted" />
                                     Médecins Non Postés (Ce jour)
                                 </span>
                             </CardTitle>
+                            <span className="flex items-center gap-2">
+                                <Badge variant="gray">{new Set([...unassignedDoctors[Period.MORNING], ...unassignedDoctors[Period.AFTERNOON]].map(d => d.id)).size}</Badge>
+                                <CollapseChevron open={!collapsedCards.unposted} />
+                            </span>
                         </CardHeader>
+                        {!collapsedCards.unposted && (
                         <CardBody className="space-y-4">
                             <div>
                                 <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">Matin</h4>
@@ -1077,18 +1099,24 @@ const Dashboard: React.FC = () => {
                                 </div>
                             </div>
                         </CardBody>
+                        )}
                     </Card>
 
                     {/* ABSENCES */}
                     <Card>
-                        <CardHeader>
+                        <CardHeader onClick={() => toggleCard('absentees')}>
                             <CardTitle>
                                 <span className="flex items-center">
                                     <UserX className="w-4 h-4 mr-2 text-text-muted" />
                                     Médecins Absents
                                 </span>
                             </CardTitle>
+                            <span className="flex items-center gap-2">
+                                <Badge variant={stats.absentees.length > 0 ? 'amber' : 'gray'}>{stats.absentees.length}</Badge>
+                                <CollapseChevron open={!collapsedCards.absentees} />
+                            </span>
                         </CardHeader>
+                        {!collapsedCards.absentees && (
                         <CardBody className="max-h-40 overflow-y-auto">
                             {stats.absentees.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-text-muted">
@@ -1117,6 +1145,7 @@ const Dashboard: React.FC = () => {
                                 })
                             )}
                         </CardBody>
+                        )}
                     </Card>
                 </div>
 

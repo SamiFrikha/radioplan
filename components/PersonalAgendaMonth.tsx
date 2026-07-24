@@ -1,9 +1,10 @@
 // components/PersonalAgendaMonth.tsx
-import React, { useMemo, useContext, useState, useRef } from 'react';
+import React, { useMemo, useContext, useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, CalendarDays, XCircle, Lock } from 'lucide-react';
 import { AppContext } from '../App';
 import { useAuth } from '../context/AuthContext';
 import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleService';
+import { getMyReplacementRequests } from '../services/replacementService';
 import { SlotType, Period } from '../types';
 import { getDoctorHexColor } from './DoctorBadge';
 
@@ -212,6 +213,25 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+  // Activity slots this doctor originally owned. After a replacement is accepted, the
+  // manualOverride is rewritten to the replacer, so original ownership survives only in
+  // `replacement_requests` — load them so a covered activity keeps showing on leave days.
+  const [ownedActivitySlotIds, setOwnedActivitySlotIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!doctorId) { setOwnedActivitySlotIds(new Set()); return; }
+    let cancelled = false;
+    getMyReplacementRequests(doctorId)
+      .then(({ sent }) => {
+        if (cancelled) return;
+        const ids = new Set(
+          sent.filter(r => (r.slotId || '').startsWith('act-')).map(r => r.slotId as string)
+        );
+        setOwnedActivitySlotIds(ids);
+      })
+      .catch(err => console.error('[PersonalAgendaMonth] load replacement requests failed', err));
+    return () => { cancelled = true; };
+  }, [doctorId]);
+
   const prevMonth = () => { if (month === 0) { setYear(y => y-1); setMonth(11); } else setMonth(m => m-1); };
   const nextMonth = () => { if (month === 11) { setYear(y => y+1); setMonth(0); } else setMonth(m => m+1); };
 
@@ -260,10 +280,21 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
           const assignedId = ov.startsWith('auto:') ? ov.substring(5) : ov;
           return assignedId === doctorId;
         })();
+        // Activity the doctor originally owned but that has since been reassigned to a
+        // replacement (override now points to the replacer). Surfaced only on the doctor's
+        // actual leave days so it appears in the "activités impactées" list, never as a
+        // normal pill on a working day.
+        const ownedReassignedActivity =
+          slot.type === SlotType.ACTIVITY &&
+          ownedActivitySlotIds.has(slot.id) &&
+          unavailabilities.some((u: any) =>
+            u.doctorId === doctorId && slot.date >= u.startDate && slot.date <= u.endDate
+          );
         const isVisible =
           slot.assignedDoctorId === doctorId ||
           slot.secondaryDoctorIds?.includes(doctorId) ||
           activityOverrideMatch ||
+          ownedReassignedActivity ||
           (slot.type === SlotType.RCP && (
             rcpAttendance[slot.id]?.[doctorId] === 'PRESENT' ||
             rcpAttendance[slot.id]?.[doctorId] === 'ABSENT'
@@ -275,7 +306,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
       }
     }
     return result;
-  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, weeks, manualOverrides]);
+  }, [year, month, doctorId, template, unavailabilities, doctors, activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, weeks, manualOverrides, ownedActivitySlotIds]);
 
   const scheduleByDate = useMemo(() => {
     const result: Record<string, any[]> = {};

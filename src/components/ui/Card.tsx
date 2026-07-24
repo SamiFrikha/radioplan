@@ -6,7 +6,7 @@ interface CardProps {
   hover?: boolean;
   onClick?: () => void;
 }
-interface CardHeaderProps { children: React.ReactNode; className?: string; }
+interface CardHeaderProps { children: React.ReactNode; className?: string; onClick?: () => void; }
 interface CardTitleProps  { children: React.ReactNode; as?: 'h2' | 'h3' | 'h4'; className?: string; }
 interface CardBodyProps   { children: React.ReactNode; className?: string; }
 
@@ -29,9 +29,15 @@ export function Card({ children, className = '', hover = false, onClick }: CardP
   );
 }
 
-export function CardHeader({ children, className = '' }: CardHeaderProps) {
+export function CardHeader({ children, className = '', onClick }: CardHeaderProps) {
   return (
-    <div className={`px-5 pt-5 pb-0 flex items-center justify-between ${className}`}>
+    <div
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      className={`px-5 pt-5 pb-0 flex items-center justify-between ${onClick ? 'cursor-pointer select-none' : ''} ${className}`}
+    >
       {children}
     </div>
   );

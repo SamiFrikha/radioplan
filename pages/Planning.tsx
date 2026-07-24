@@ -474,7 +474,20 @@ const Planning: React.FC = () => {
             const PER_W   = 32;   // "Créneau" column width (Matin / Après-m.)
             const CELL_W      = (PW - 2*M - LOC_W - PER_W) / days.length; // one col per day
             const N_ROWS      = displayRows.length * 2;                    // 2 periods per loc
-            const CONGE_ROW_H = 24;   // height of the congés row
+
+            // Congés row — height grows with the busiest day so EVERY absent doctor is
+            // listed. Previously fixed at 24pt, which clipped every name past the 3rd.
+            const congeLineH  = 6.5;
+            const absentDocsByDay = days.map(day => {
+                const dStr = getDateForDayOfWeek(currentWeekStart, day);
+                if (isFrenchHoliday(dStr)) return [] as typeof doctors;
+                return doctors.filter(doc =>
+                    isAbsent(doc, dStr, Period.MORNING, unavailabilities) ||
+                    isAbsent(doc, dStr, Period.AFTERNOON, unavailabilities)
+                );
+            });
+            const maxAbsentCount = Math.max(0, ...absentDocsByDay.map(list => list.length));
+            const CONGE_ROW_H = Math.max(24, 8 + maxAbsentCount * congeLineH + 3);
             const LEGEND_SPACE = 32;  // space reserved for legend + footer
             const DATA_H  = PH - 2*M - TITLE_H - HDR_H - CONGE_ROW_H - LEGEND_SPACE;
             const ROW_H   = DATA_H / N_ROWS;
@@ -682,23 +695,21 @@ const Planning: React.FC = () => {
             pdf.text('Congés', M + (LOC_W + PER_W) / 2, CONGE_Y + CONGE_ROW_H / 2 + 2.5, { align: 'center' });
 
             days.forEach((day, di) => {
-                const dateStr = getDateForDayOfWeek(currentWeekStart, day);
-                const holiday = isFrenchHoliday(dateStr);
-                const absentDocs = holiday ? [] : doctors.filter(doc =>
-                    isAbsent(doc, dateStr, Period.MORNING, unavailabilities) ||
-                    isAbsent(doc, dateStr, Period.AFTERNOON, unavailabilities)
-                );
+                const absentDocs = absentDocsByDay[di];
                 const cellX = TABLE_X + di * CELL_W;
                 fill('#FEF2F2'); stroke('#FECACA'); pdf.setLineWidth(0.35);
                 pdf.rect(cellX, CONGE_Y, CELL_W, CONGE_ROW_H, 'FD');
                 if (absentDocs.length > 0) {
                     tc('#DC2626');
-                    absentDocs.forEach((doc, idx) => {
-                        const y = CONGE_Y + 7 + idx * 7;
-                        if (y < CONGE_Y + CONGE_ROW_H - 1) {
-                            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6);
-                            pdf.text(doc.name, cellX + CELL_W / 2, y, { align: 'center' });
-                        }
+                    pdf.setFont('helvetica', 'normal'); pdf.setFontSize(6);
+                    // Vertically center the full name list within the row
+                    const blockH = absentDocs.length * congeLineH;
+                    let y = CONGE_Y + (CONGE_ROW_H - blockH) / 2 + congeLineH - 1.5;
+                    absentDocs.forEach(doc => {
+                        let name = doc.name;
+                        while (pdf.getTextWidth(name) > CELL_W - 4 && name.length > 3) name = name.slice(0, -1);
+                        pdf.text(name, cellX + CELL_W / 2, y, { align: 'center' });
+                        y += congeLineH;
                     });
                 } else {
                     tc('#94A3B8'); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
