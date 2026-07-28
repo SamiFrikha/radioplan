@@ -2,7 +2,7 @@ import React from 'react';
 import { Phone } from 'lucide-react';
 import { Doctor, DectDisplaySettings, DectSurface } from '../types';
 import {
-    formatDectName, isDectEnabled, isValidDect, resolvePosition, resolveStyle,
+    dectChipText, dectSeparator, isDectEnabled, isValidDect, resolvePosition, resolveStyle,
 } from '../services/dectDisplay';
 
 interface DoctorNameProps {
@@ -13,6 +13,12 @@ interface DoctorNameProps {
     numberClassName?: string;
     /** Tailwind size for the phone icon. Shrink it inside dense planning cells. */
     iconClassName?: string;
+    /**
+     * Drop the number below the md breakpoint, keeping the bare name.
+     * Set on dense grids — planning cells and dashboard lists — where the extra
+     * characters would wrap the name onto several lines on a phone.
+     */
+    hideNumberOnMobile?: boolean;
 }
 
 /**
@@ -23,6 +29,9 @@ interface DoctorNameProps {
  * here rather than in the string formatter, and only this component can draw it.
  * Text-only contexts (the PDF export, labels built with template literals) call
  * `withDect` instead and get 'Tél.' for that style.
+ *
+ * Name and number are separate nodes rather than one formatted string, so the
+ * number can be hidden responsively.
  */
 export const DoctorName: React.FC<DoctorNameProps> = ({
     doctor,
@@ -30,6 +39,7 @@ export const DoctorName: React.FC<DoctorNameProps> = ({
     surface,
     numberClassName = 'text-text-muted font-normal',
     iconClassName = 'w-3 h-3',
+    hideNumberOnMobile = false,
 }) => {
     if (!doctor) return null;
 
@@ -39,21 +49,28 @@ export const DoctorName: React.FC<DoctorNameProps> = ({
 
     const position = resolvePosition(settings);
     const style = resolveStyle(settings);
+    const separator = dectSeparator(style);
 
-    if (style !== 'phone') {
-        return <>{formatDectName(doctor.name, doctor.dect, position, style)}</>;
-    }
+    const number = style === 'phone'
+        ? (
+            <span className={`inline-flex items-center gap-0.5 align-baseline whitespace-nowrap ${numberClassName}`}>
+                <Phone className={`${iconClassName} flex-shrink-0`} aria-hidden="true" />
+                <span>{doctor.dect}</span>
+            </span>
+        )
+        : <span className={`whitespace-nowrap ${numberClassName}`}>{dectChipText(doctor.dect as string, style)}</span>;
 
     const chip = (
-        <span className={`inline-flex items-center gap-0.5 align-baseline whitespace-nowrap ${numberClassName}`}>
-            <Phone className={`${iconClassName} flex-shrink-0`} aria-hidden="true" />
-            <span>{doctor.dect}</span>
+        <span className={hideNumberOnMobile ? 'hidden md:inline' : 'inline'}>
+            {position === 'after' && separator}
+            {number}
+            {position === 'before' && separator}
         </span>
     );
 
     return position === 'after'
-        ? <>{doctor.name}{' '}{chip}</>
-        : <>{chip}{' '}{doctor.name}</>;
+        ? <>{doctor.name}{chip}</>
+        : <>{chip}{doctor.name}</>;
 };
 
 export default DoctorName;

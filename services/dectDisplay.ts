@@ -22,7 +22,7 @@ export const DECT_SURFACES: { key: DectSurface; label: string; description: stri
     {
         key: 'planningGlobal',
         label: 'Planning global',
-        description: 'Vues « Lieu / Créneau » et « Médecin » à l\'écran',
+        description: 'Vues « Lieu / Créneau » et « Médecin » — masqué sur téléphone',
     },
     {
         key: 'planningGlobalPdf',
@@ -37,7 +37,7 @@ export const DECT_SURFACES: { key: DectSurface; label: string; description: stri
     {
         key: 'dashboard',
         label: 'Tableau de bord',
-        description: 'Listes de médecins : conflits, alertes, présences RCP',
+        description: 'Conflits, alertes, présences RCP — masqué sur téléphone',
     },
 ];
 
@@ -96,7 +96,7 @@ export const normalizeDectDisplay = (raw: unknown): DectDisplaySettings => {
  * template literals — get 'Tél.' instead. No Unicode phone glyph is emitted: the
  * UI font renders U+260E as tofu, and jsPDF's WinAnsi fonts cannot draw it at all.
  */
-const renderNumber = (dect: string, style: DectStyle): string => {
+export const dectChipText = (dect: string, style: DectStyle): string => {
     switch (style) {
         case 'brackets': return `[${dect}]`;
         case 'parentheses': return `(${dect})`;
@@ -107,7 +107,7 @@ const renderNumber = (dect: string, style: DectStyle): string => {
 };
 
 /** What sits between the number and the name. */
-const separatorFor = (style: DectStyle): string => {
+export const dectSeparator = (style: DectStyle): string => {
     switch (style) {
         case 'dot': return ' · ';
         case 'dash': return ' — ';
@@ -126,8 +126,8 @@ export const formatDectName = (
     style: DectStyle
 ): string => {
     if (!isValidDect(dect)) return name;
-    const chip = renderNumber(dect as string, style);
-    const sep = separatorFor(style);
+    const chip = dectChipText(dect as string, style);
+    const sep = dectSeparator(style);
     return position === 'after' ? `${name}${sep}${chip}` : `${chip}${sep}${name}`;
 };
 

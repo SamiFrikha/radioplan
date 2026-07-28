@@ -88,6 +88,21 @@ Le point médian et le tiret cadratin sont dans WinAnsi et passent sans traiteme
 | `monPlanning` | noms de remplaçants (`PersonalAgendaWeek`, `PersonalAgendaMonth`), médecin absent et remplaçant dans la modale de détail |
 | `dashboard` | référents et présents RCP, médecin assigné, conflits, absents, médecins non postés |
 
+### Mobile
+
+Sur `planningGlobal` et `dashboard`, le numéro est retiré sous 768 px
+(`hideNumberOnMobile` → `hidden md:inline` sur le seul nœud du numéro).
+
+La colonne figée de la vue Médecin fait `min-w-[80px]` et son texte descend à 8 px
+sur téléphone, contre des lignes de données calées à `h-11` avec `overflow-hidden` :
+y ajouter une icône et cinq chiffres poussait le nom sur trois lignes et le faisait
+déborder de sa cellule. Un DECT sert à appeler depuis un poste fixe, pas à être lu
+sur un téléphone — le masquer y coûte peu.
+
+C'est aussi la raison pour laquelle `<DoctorName>` compose le nom et le numéro en
+deux nœuds distincts au lieu d'une chaîne formatée : une chaîne ne peut pas être
+masquée partiellement.
+
 ### Non couvert, volontairement
 
 Les cellules compactes (8–9 px) qui passent déjà les noms par `shortName()` ou ne

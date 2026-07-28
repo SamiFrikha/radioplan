@@ -940,7 +940,7 @@ const Planning: React.FC = () => {
                                 {doc.name.substring(0, 2)}
                             </div>
                             <div className="font-bold text-[10px] md:text-sm text-text-base leading-tight break-words">
-                                <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2.5 h-2.5" />
+                                <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2.5 h-2.5" hideNumberOnMobile />
                             </div>
                         </div>
 
@@ -949,7 +949,7 @@ const Planning: React.FC = () => {
                                 {secondaryDocs.map((d, i) => (
                                     <React.Fragment key={d?.id ?? i}>
                                         {i === 0 ? '+ ' : ', '}
-                                        <DoctorName doctor={d} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2.5 h-2.5" />
+                                        <DoctorName doctor={d} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2.5 h-2.5" hideNumberOnMobile />
                                     </React.Fragment>
                                 ))}
                             </div>
@@ -1359,7 +1359,7 @@ const Planning: React.FC = () => {
                                                         <div className="flex flex-col gap-0.5">
                                                             {absentDocs.map(doc => (
                                                                 <span key={doc.id} className="text-red-600 font-medium text-[10px] leading-tight block">
-                                                                    <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" numberClassName="text-red-600/70 font-normal" iconClassName="w-2.5 h-2.5" />
+                                                                    <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" numberClassName="text-red-600/70 font-normal" iconClassName="w-2.5 h-2.5" hideNumberOnMobile />
                                                                 </span>
                                                             ))}
                                                         </div>
@@ -1382,7 +1382,7 @@ const Planning: React.FC = () => {
                                                     {doc.name.substring(0, 2)}
                                                 </div>
                                                 <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">
-                                                    <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2 h-2" />
+                                                    <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2 h-2" hideNumberOnMobile />
                                                 </div>
                                             </td>
                                             {days.map(day => (

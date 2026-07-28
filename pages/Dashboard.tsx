@@ -504,7 +504,7 @@ const Dashboard: React.FC = () => {
                                                     .map((d, i) => (
                                                         <React.Fragment key={d!.id}>
                                                             {i > 0 && ', '}
-                                                            <DoctorName doctor={d} settings={dectDisplay} surface="dashboard" />
+                                                            <DoctorName doctor={d} settings={dectDisplay} surface="dashboard" hideNumberOnMobile />
                                                         </React.Fragment>
                                                     ))}
                                             </div>
@@ -525,7 +525,7 @@ const Dashboard: React.FC = () => {
                                                             >
                                                                 {d.name.substring(0, 2)}
                                                             </div>
-                                                            <span className="text-xs font-bold text-text-base"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" /></span>
+                                                            <span className="text-xs font-bold text-text-base"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" hideNumberOnMobile /></span>
                                                         </div>
                                                     );
                                                 })}
@@ -541,7 +541,7 @@ const Dashboard: React.FC = () => {
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="text-sm font-bold text-text-base flex items-center truncate">
-                                                    {doc ? <DoctorName doctor={doc} settings={dectDisplay} surface="dashboard" /> : 'Non assigné'}
+                                                    {doc ? <DoctorName doctor={doc} settings={dectDisplay} surface="dashboard" hideNumberOnMobile /> : 'Non assigné'}
                                                 </div>
                                                 <div className="text-xs text-text-muted">{s.type} {s.subType && `• ${s.subType}`}</div>
                                             </div>
@@ -974,7 +974,7 @@ const Dashboard: React.FC = () => {
                                                         {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'PM'}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm font-medium text-text-base leading-snug">{doc ? <DoctorName doctor={doc} settings={dectDisplay} surface="dashboard" /> : 'Inconnu'}</p>
+                                                <p className="text-sm font-medium text-text-base leading-snug">{doc ? <DoctorName doctor={doc} settings={dectDisplay} surface="dashboard" hideNumberOnMobile /> : 'Inconnu'}</p>
                                                 <p className="text-xs text-text-muted mt-0.5">{conflict.description}</p>
                                                 {locationDetail && (
                                                     <span className="inline-block mt-1 text-[10px] font-medium text-text-muted bg-muted px-2 py-0.5 rounded-btn-sm">
@@ -1058,7 +1058,7 @@ const Dashboard: React.FC = () => {
                                                                     >
                                                                         {d.name.substring(0, 2)}
                                                                     </div>
-                                                                    <span className="text-[9px] text-text-base"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" /></span>
+                                                                    <span className="text-[9px] text-text-base"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" hideNumberOnMobile /></span>
                                                                 </div>
                                                             );
                                                         })}
@@ -1100,7 +1100,7 @@ const Dashboard: React.FC = () => {
                                 <div className="flex flex-wrap gap-1.5">
                                     {unassignedDoctors[Period.MORNING].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.MORNING].map(d => (
-                                            <Badge key={d.id} variant="gray"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" /></Badge>
+                                            <Badge key={d.id} variant="gray"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" hideNumberOnMobile /></Badge>
                                         ))
                                     }
                                 </div>
@@ -1110,7 +1110,7 @@ const Dashboard: React.FC = () => {
                                 <div className="flex flex-wrap gap-1.5">
                                     {unassignedDoctors[Period.AFTERNOON].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.AFTERNOON].map(d => (
-                                            <Badge key={d.id} variant="gray"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" /></Badge>
+                                            <Badge key={d.id} variant="gray"><DoctorName doctor={d} settings={dectDisplay} surface="dashboard" hideNumberOnMobile /></Badge>
                                         ))
                                     }
                                 </div>
@@ -1146,7 +1146,7 @@ const Dashboard: React.FC = () => {
                                         <div key={abs.id} className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
                                             <span className="w-2 h-2 rounded-full bg-warning mt-1.5 flex-shrink-0" aria-hidden="true" />
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium text-text-base leading-snug"><DoctorName doctor={doc} settings={dectDisplay} surface="dashboard" /></p>
+                                                <p className="text-sm font-medium text-text-base leading-snug"><DoctorName doctor={doc} settings={dectDisplay} surface="dashboard" hideNumberOnMobile /></p>
                                                 <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
                                                     {abs.reason}
                                                     {abs.period && abs.period !== 'ALL_DAY' && (
