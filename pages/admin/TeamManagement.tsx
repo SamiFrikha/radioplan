@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability, ExcludedHalfDay, DectSurface, DectDisplaySettings } from '../../types';
+import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability, ExcludedHalfDay, DectSurface, DectDisplaySettings, DectStyle } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { AppContext } from '../../App';
 import { activityLogService } from '../../services/activityLogService';
@@ -9,6 +9,7 @@ import { Users, UserPlus, Edit2, Trash2, X, Save, Key, UserCheck, Mail, Shield, 
 import { Card, CardBody, EmptyState } from '../../src/components/ui';
 import { Badge } from '../../src/components/ui/Badge';
 import { DECT_SURFACES, DECT_POSITIONS, DECT_STYLES, DEFAULT_DECT_DISPLAY, formatDectName, isValidDect, sanitizeDectInput } from '../../services/dectDisplay';
+import { DoctorName } from '../../components/DoctorName';
 
 interface UserData {
     id: string;
@@ -945,6 +946,11 @@ const TeamManagement: React.FC = () => {
     const dectPosition = dectDisplay?.position ?? DEFAULT_DECT_DISPLAY.position;
     const dectStyle = dectDisplay?.style ?? DEFAULT_DECT_DISPLAY.style;
     const selectedDectStyle = DECT_STYLES.find(s => s.key === dectStyle);
+    // Preview renders through <DoctorName> like the real surfaces do, so the phone
+    // icon looks here exactly as it will in the planning. The surface is forced on.
+    const previewSettings = (style: DectStyle): DectDisplaySettings => ({
+        ...DEFAULT_DECT_DISPLAY, ...dectDisplay, style, position: dectPosition, planningGlobal: true,
+    });
 
     const persistDectDisplay = async (next: DectDisplaySettings) => {
         setError('');
@@ -1507,7 +1513,11 @@ const TeamManagement: React.FC = () => {
                         <div className="bg-muted border border-border rounded-lg px-4 py-3.5 mb-5">
                             <div className="text-[11px] uppercase tracking-widest text-text-muted mb-1.5">Aperçu</div>
                             <div className="text-base font-semibold text-text-base mb-4 break-words">
-                                {formatDectName(previewName, previewNumber, dectPosition, dectStyle)}
+                                <DoctorName
+                                    doctor={{ name: previewName, dect: previewNumber }}
+                                    settings={previewSettings(dectStyle)}
+                                    surface="planningGlobal"
+                                />
                             </div>
 
                             {/* Position */}
@@ -1545,9 +1555,12 @@ const TeamManagement: React.FC = () => {
                                                 : 'bg-surface text-text-muted border-border hover:border-text-muted'
                                                 }`}
                                         >
-                                            <span className="font-mono">
-                                                {formatDectName('Nom', previewNumber, dectPosition, style.key)}
-                                            </span>
+                                            <DoctorName
+                                                doctor={{ name: 'Nom', dect: previewNumber }}
+                                                settings={previewSettings(style.key)}
+                                                surface="planningGlobal"
+                                                numberClassName={dectStyle === style.key ? 'text-white/80 font-normal' : 'text-text-muted font-normal'}
+                                            />
                                         </button>
                                     ))}
                                 </div>
@@ -1559,8 +1572,8 @@ const TeamManagement: React.FC = () => {
                                             {dectDisplay?.planningGlobalPdf && (
                                                 <>
                                                     {' '}Rendu PDF :{' '}
-                                                    <span className="font-mono text-text-base">
-                                                        {formatDectName(previewName, previewNumber, dectPosition, dectStyle, true)}
+                                                    <span className="text-text-base">
+                                                        {formatDectName(previewName, previewNumber, dectPosition, dectStyle)}
                                                     </span>
                                                 </>
                                             )}

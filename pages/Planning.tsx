@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { getDoctorHexColor } from '../components/DoctorBadge';
 import { withDect } from '../services/dectDisplay';
+import { DoctorName } from '../components/DoctorName';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
@@ -938,12 +939,19 @@ const Planning: React.FC = () => {
                             >
                                 {doc.name.substring(0, 2)}
                             </div>
-                            <div className="font-bold text-[10px] md:text-sm text-text-base leading-tight break-words">{withDect(doc, dectDisplay, 'planningGlobal')}</div>
+                            <div className="font-bold text-[10px] md:text-sm text-text-base leading-tight break-words">
+                                <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2.5 h-2.5" />
+                            </div>
                         </div>
 
                         {secondaryDocs && secondaryDocs.length > 0 && (
                             <div className="text-xs text-text-muted mt-1 pl-7">
-                                + {secondaryDocs.map(d => withDect(d, dectDisplay, 'planningGlobal')).join(', ')}
+                                {secondaryDocs.map((d, i) => (
+                                    <React.Fragment key={d?.id ?? i}>
+                                        {i === 0 ? '+ ' : ', '}
+                                        <DoctorName doctor={d} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2.5 h-2.5" />
+                                    </React.Fragment>
+                                ))}
                             </div>
                         )}
                         {slot.type === SlotType.ACTIVITY && colorMode === 'DOCTOR' && (
@@ -1350,7 +1358,9 @@ const Planning: React.FC = () => {
                                                     ) : (
                                                         <div className="flex flex-col gap-0.5">
                                                             {absentDocs.map(doc => (
-                                                                <span key={doc.id} className="text-red-600 font-medium text-[10px] leading-tight block">{withDect(doc, dectDisplay, 'planningGlobal')}</span>
+                                                                <span key={doc.id} className="text-red-600 font-medium text-[10px] leading-tight block">
+                                                                    <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" numberClassName="text-red-600/70 font-normal" iconClassName="w-2.5 h-2.5" />
+                                                                </span>
                                                             ))}
                                                         </div>
                                                     )}
@@ -1371,7 +1381,9 @@ const Planning: React.FC = () => {
                                                 >
                                                     {doc.name.substring(0, 2)}
                                                 </div>
-                                                <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">{withDect(doc, dectDisplay, 'planningGlobal')}</div>
+                                                <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">
+                                                    <DoctorName doctor={doc} settings={dectDisplay} surface="planningGlobal" iconClassName="w-2 h-2" />
+                                                </div>
                                             </td>
                                             {days.map(day => (
                                                 <td key={`${day}-matin`} className="border-r border-b border-border relative h-11 align-top p-0 overflow-hidden">

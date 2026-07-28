@@ -56,7 +56,7 @@ export const DECT_STYLES: { key: DectStyle; label: string; note?: string }[] = [
     {
         key: 'phone',
         label: 'Icône téléphone',
-        note: 'Le PDF ne sait pas dessiner ce symbole : il y affiche « Tél. » à la place.',
+        note: 'Une icône ne peut pas être dessinée dans le PDF : il y affiche « Tél. » à la place.',
     },
 ];
 
@@ -89,18 +89,19 @@ export const normalizeDectDisplay = (raw: unknown): DectDisplaySettings => {
 };
 
 /**
- * The number with its visual treatment, e.g. "[12345]" or "☎ 12345".
+ * The number with its visual treatment, e.g. "[12345]" or "Tél. 12345".
  *
- * `pdfSafe` restricts output to WinAnsi, the encoding used by jsPDF's standard
- * fonts. U+260E is outside it and would be dropped or drawn as garbage, so the
- * phone style degrades to its text equivalent in the PDF export only.
+ * The 'phone' style has no text form: its icon is an SVG drawn by <DoctorName>.
+ * Contexts that can only take a string — the jsPDF export, and labels built with
+ * template literals — get 'Tél.' instead. No Unicode phone glyph is emitted: the
+ * UI font renders U+260E as tofu, and jsPDF's WinAnsi fonts cannot draw it at all.
  */
-const renderNumber = (dect: string, style: DectStyle, pdfSafe: boolean): string => {
+const renderNumber = (dect: string, style: DectStyle): string => {
     switch (style) {
         case 'brackets': return `[${dect}]`;
         case 'parentheses': return `(${dect})`;
-        case 'label': return `Tél. ${dect}`;
-        case 'phone': return pdfSafe ? `Tél. ${dect}` : `☎ ${dect}`;
+        case 'label':
+        case 'phone': return `Tél. ${dect}`;
         default: return dect;
     }
 };
@@ -117,28 +118,34 @@ const separatorFor = (style: DectStyle): string => {
 /**
  * Compose a name and a number using the given position/style. Returns the bare
  * name when the number is missing or malformed, so no empty brackets ever appear.
- *
- * Pass `pdfSafe` when the result is drawn by jsPDF rather than the browser.
  */
 export const formatDectName = (
     name: string,
     dect: string | null | undefined,
     position: DectPosition,
-    style: DectStyle,
-    pdfSafe = false
+    style: DectStyle
 ): string => {
     if (!isValidDect(dect)) return name;
-    const chip = renderNumber(dect as string, style, pdfSafe);
+    const chip = renderNumber(dect as string, style);
     const sep = separatorFor(style);
     return position === 'after' ? `${name}${sep}${chip}` : `${chip}${sep}${name}`;
 };
 
-/** The only surface rendered by jsPDF instead of the browser. */
-const PDF_SURFACES: DectSurface[] = ['planningGlobalPdf'];
+/** True when this surface should show the number at all. */
+export const isDectEnabled = (
+    settings: DectDisplaySettings | undefined,
+    surface: DectSurface
+): boolean => settings?.[surface] === true;
+
+export const resolvePosition = (settings: DectDisplaySettings | undefined): DectPosition =>
+    settings?.position ?? DEFAULT_DECT_DISPLAY.position;
+
+export const resolveStyle = (settings: DectDisplaySettings | undefined): DectStyle =>
+    settings?.style ?? DEFAULT_DECT_DISPLAY.style;
 
 /**
- * The doctor's display name for a given surface: formatted with the number when
- * that surface is enabled, bare otherwise.
+ * The doctor's display name as plain text. Use <DoctorName> instead wherever JSX
+ * is possible — only that component can draw the 'phone' style's icon.
  */
 export const withDect = (
     doctor: Pick<Doctor, 'name' | 'dect'> | null | undefined,
@@ -146,9 +153,6 @@ export const withDect = (
     surface: DectSurface
 ): string => {
     if (!doctor) return '';
-    if (settings?.[surface] !== true) return doctor.name;
-    return formatDectName(
-        doctor.name, doctor.dect, settings.position, settings.style,
-        PDF_SURFACES.includes(surface)
-    );
+    if (!isDectEnabled(settings, surface)) return doctor.name;
+    return formatDectName(doctor.name, doctor.dect, resolvePosition(settings), resolveStyle(settings));
 };
