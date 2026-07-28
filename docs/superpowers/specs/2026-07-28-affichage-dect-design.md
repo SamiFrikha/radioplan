@@ -62,15 +62,22 @@ Position × style donne 12 combinaisons :
 | `dot` | `12345 · Dr Dupont` | `Dr Dupont · 12345` |
 | `dash` | `12345 — Dr Dupont` | `Dr Dupont — 12345` |
 | `label` | `Tél. 12345 Dr Dupont` | `Dr Dupont Tél. 12345` |
+| `phone` | `☎ 12345 Dr Dupont` | `Dr Dupont ☎ 12345` |
 
 Un médecin sans numéro valide garde son nom seul — jamais de crochets vides.
 
-### Pourquoi pas d'icône ☎
+### Le cas du style `phone`
 
-Les polices standard de jsPDF encodent en WinAnsi, qui ne contient pas `U+260E`. Un
-symbole téléphone s'afficherait correctement à l'écran mais serait absent ou corrompu
-dans le PDF. Le style `label` (« Tél. ») remplit le même rôle et rend à l'identique
-partout. Le point médian et le tiret cadratin, eux, sont dans WinAnsi et passent.
+Les polices standard de jsPDF encodent en WinAnsi, qui ne contient pas `U+260E`. Le
+symbole téléphone rend correctement dans le navigateur mais serait absent ou corrompu
+dans le PDF.
+
+`formatDectName` prend donc un drapeau `pdfSafe`, positionné par `withDect` pour la
+seule surface `planningGlobalPdf` : ce style y retombe sur `Tél. 12345`. C'est la
+seule divergence de rendu entre surfaces, elle est annoncée dans l'onglet, et
+l'aperçu du rendu PDF y est affiché quand cette surface est activée.
+
+Le point médian et le tiret cadratin sont dans WinAnsi et passent sans traitement.
 
 ## Points d'application
 

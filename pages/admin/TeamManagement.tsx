@@ -944,6 +944,7 @@ const TeamManagement: React.FC = () => {
 
     const dectPosition = dectDisplay?.position ?? DEFAULT_DECT_DISPLAY.position;
     const dectStyle = dectDisplay?.style ?? DEFAULT_DECT_DISPLAY.style;
+    const selectedDectStyle = DECT_STYLES.find(s => s.key === dectStyle);
 
     const persistDectDisplay = async (next: DectDisplaySettings) => {
         setError('');
@@ -1550,6 +1551,22 @@ const TeamManagement: React.FC = () => {
                                         </button>
                                     ))}
                                 </div>
+                                {selectedDectStyle?.note && (
+                                    <p className="text-xs text-text-muted mt-2 flex items-start gap-1.5">
+                                        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-warning" />
+                                        <span>
+                                            {selectedDectStyle.note}
+                                            {dectDisplay?.planningGlobalPdf && (
+                                                <>
+                                                    {' '}Rendu PDF :{' '}
+                                                    <span className="font-mono text-text-base">
+                                                        {formatDectName(previewName, previewNumber, dectPosition, dectStyle, true)}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </span>
+                                    </p>
+                                )}
                             </div>
                         </div>
 

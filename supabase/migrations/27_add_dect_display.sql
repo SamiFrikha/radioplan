@@ -34,7 +34,7 @@ ALTER TABLE public.app_settings
 ADD COLUMN IF NOT EXISTS dect_display JSONB DEFAULT '{}'::jsonb;
 
 COMMENT ON COLUMN public.app_settings.dect_display IS
-  'How and where the DECT number is shown next to a doctor name. Surface keys (absent = false): planningGlobal, planningGlobalPdf, monPlanning, dashboard. Format keys: position (before|after, default before), style (brackets|parentheses|plain|dot|dash|label, default brackets).';
+  'How and where the DECT number is shown next to a doctor name. Surface keys (absent = false): planningGlobal, planningGlobalPdf, monPlanning, dashboard. Format keys: position (before|after, default before), style (brackets|parentheses|plain|dot|dash|label|phone, default brackets).';
 
 -- Existing singleton row predates the column and would hold NULL.
 UPDATE public.app_settings SET dect_display = '{}'::jsonb WHERE dect_display IS NULL;

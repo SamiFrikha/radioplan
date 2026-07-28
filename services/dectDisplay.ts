@@ -46,13 +46,18 @@ export const DECT_POSITIONS: { key: DectPosition; label: string }[] = [
     { key: 'after', label: 'Après le nom' },
 ];
 
-export const DECT_STYLES: { key: DectStyle; label: string }[] = [
+export const DECT_STYLES: { key: DectStyle; label: string; note?: string }[] = [
     { key: 'brackets', label: 'Crochets' },
     { key: 'parentheses', label: 'Parenthèses' },
     { key: 'plain', label: 'Sans habillage' },
     { key: 'dot', label: 'Point médian' },
     { key: 'dash', label: 'Tiret' },
     { key: 'label', label: 'Préfixe « Tél. »' },
+    {
+        key: 'phone',
+        label: 'Icône téléphone',
+        note: 'Le PDF ne sait pas dessiner ce symbole : il y affiche « Tél. » à la place.',
+    },
 ];
 
 const DECT_PATTERN = /^\d{5}$/;
@@ -83,12 +88,19 @@ export const normalizeDectDisplay = (raw: unknown): DectDisplaySettings => {
     };
 };
 
-/** The number with its visual treatment, e.g. "[12345]" or "Tél. 12345". */
-const renderNumber = (dect: string, style: DectStyle): string => {
+/**
+ * The number with its visual treatment, e.g. "[12345]" or "☎ 12345".
+ *
+ * `pdfSafe` restricts output to WinAnsi, the encoding used by jsPDF's standard
+ * fonts. U+260E is outside it and would be dropped or drawn as garbage, so the
+ * phone style degrades to its text equivalent in the PDF export only.
+ */
+const renderNumber = (dect: string, style: DectStyle, pdfSafe: boolean): string => {
     switch (style) {
         case 'brackets': return `[${dect}]`;
         case 'parentheses': return `(${dect})`;
         case 'label': return `Tél. ${dect}`;
+        case 'phone': return pdfSafe ? `Tél. ${dect}` : `☎ ${dect}`;
         default: return dect;
     }
 };
@@ -105,18 +117,24 @@ const separatorFor = (style: DectStyle): string => {
 /**
  * Compose a name and a number using the given position/style. Returns the bare
  * name when the number is missing or malformed, so no empty brackets ever appear.
+ *
+ * Pass `pdfSafe` when the result is drawn by jsPDF rather than the browser.
  */
 export const formatDectName = (
     name: string,
     dect: string | null | undefined,
     position: DectPosition,
-    style: DectStyle
+    style: DectStyle,
+    pdfSafe = false
 ): string => {
     if (!isValidDect(dect)) return name;
-    const chip = renderNumber(dect as string, style);
+    const chip = renderNumber(dect as string, style, pdfSafe);
     const sep = separatorFor(style);
     return position === 'after' ? `${name}${sep}${chip}` : `${chip}${sep}${name}`;
 };
+
+/** The only surface rendered by jsPDF instead of the browser. */
+const PDF_SURFACES: DectSurface[] = ['planningGlobalPdf'];
 
 /**
  * The doctor's display name for a given surface: formatted with the number when
@@ -129,5 +147,8 @@ export const withDect = (
 ): string => {
     if (!doctor) return '';
     if (settings?.[surface] !== true) return doctor.name;
-    return formatDectName(doctor.name, doctor.dect, settings.position, settings.style);
+    return formatDectName(
+        doctor.name, doctor.dect, settings.position, settings.style,
+        PDF_SURFACES.includes(surface)
+    );
 };

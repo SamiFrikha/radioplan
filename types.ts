@@ -195,15 +195,15 @@ export type DectSurface =
 
 export type DectPosition = 'before' | 'after';
 
-// Visual treatment of the number itself. All render identically on screen and in
-// the jsPDF export — no glyph outside WinAnsi, which jsPDF's standard fonts cannot draw.
+// Visual treatment of the number itself.
 export type DectStyle =
   | 'brackets'    // [12345] Dr Dupont
   | 'parentheses' // (12345) Dr Dupont
   | 'plain'       // 12345 Dr Dupont
   | 'dot'         // 12345 · Dr Dupont
   | 'dash'        // 12345 — Dr Dupont
-  | 'label';      // Tél. 12345 Dr Dupont
+  | 'label'       // Tél. 12345 Dr Dupont
+  | 'phone';      // ☎ 12345 Dr Dupont — falls back to 'Tél.' in the PDF, see dectDisplay.ts
 
 export interface DectDisplaySettings {
   planningGlobal: boolean;
