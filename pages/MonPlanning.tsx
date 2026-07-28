@@ -8,6 +8,7 @@ import { ScheduleSlot, SlotType, Period } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { activityLogService } from '../services/activityLogService';
 import { generateScheduleForWeek } from '../services/scheduleService';
+import { withDect } from '../services/dectDisplay';
 
 const MonPlanning: React.FC = () => {
   const [agendaView, setAgendaView] = useState<'week' | 'month'>('week');
@@ -23,7 +24,7 @@ const MonPlanning: React.FC = () => {
   const {
     doctors, unavailabilities, manualOverrides, setManualOverrides,
     template, activityDefinitions, rcpTypes, effectiveHistory,
-    rcpAttendance, rcpExceptions,
+    rcpAttendance, rcpExceptions, dectDisplay,
   } = useContext(AppContext);
 
   const { profile } = useAuth();
@@ -267,13 +268,13 @@ const MonPlanning: React.FC = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-text-muted">Médecin absent</span>
                   <span className="font-semibold text-text-base">
-                    {absentDoctor?.name ?? 'Vous'}
+                    {absentDoctor ? withDect(absentDoctor, dectDisplay, 'monPlanning') : 'Vous'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-text-muted">Remplaçant</span>
                   <span className="font-semibold text-text-base">
-                    {isClosed ? 'Créneau fermé' : (replacerDoctor?.name ?? 'Dr. inconnu')}
+                    {isClosed ? 'Créneau fermé' : (replacerDoctor ? withDect(replacerDoctor, dectDisplay, 'monPlanning') : 'Dr. inconnu')}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm border-t border-border pt-3">

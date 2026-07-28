@@ -7,6 +7,7 @@ import { getDateForDayOfWeek, isFrenchHoliday, generateScheduleForWeek, detectCo
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { getDoctorHexColor } from '../components/DoctorBadge';
+import { withDect } from '../services/dectDisplay';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabaseClient';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
@@ -26,8 +27,11 @@ const Planning: React.FC = () => {
         rcpAttendance,
         rcpExceptions,
         validatedWeeks,
-        consultationHours
+        consultationHours,
+        dectDisplay
     } = useContext(AppContext);
+
+    // DECT numbers on doctor names — screen and PDF are toggled separately
 
     // --- AUTH & ACCESS CONTROL ---
     const { user, profile, isAdmin, isDoctor } = useAuth();
@@ -328,10 +332,11 @@ const Planning: React.FC = () => {
                     pdf.text(doc.name.substring(0, 2).toUpperCase(), CX, CY + 1.6, { align: 'center' });
 
                     const nameX = CX + CR + 3;
-                    let dName = doc.name;
+                    const fullName = withDect(doc, dectDisplay, 'planningGlobalPdf');
+                    let dName = fullName;
                     pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7);
                     while (pdf.getTextWidth(dName) > DOC_W - nameX + M - 2 && dName.length > 3) dName = dName.slice(0, -1);
-                    if (dName !== doc.name) dName += '…';
+                    if (dName !== fullName) dName += '…';
                     tc('#0F172A');
                     pdf.text(dName, nameX, CY + 2.5);
 
@@ -664,9 +669,10 @@ const Planning: React.FC = () => {
                         pdf.setFont('helvetica', 'bold'); pdf.setFontSize(7.5);
                         tc(hasConflict ? '#DC2626' : '#0F172A');
 
-                        let dName = doc.name;
+                        const fullName = withDect(doc, dectDisplay, 'planningGlobalPdf');
+                        let dName = fullName;
                         while (pdf.getTextWidth(dName) > maxW && dName.length > 3) dName = dName.slice(0, -1);
-                        if (dName !== doc.name) dName += '…';
+                        if (dName !== fullName) dName += '…';
 
                         pdf.text(dName, nameX, hasAct ? CY - 1.5 : CY + 2.5);
 
@@ -706,7 +712,7 @@ const Planning: React.FC = () => {
                     const blockH = absentDocs.length * congeLineH;
                     let y = CONGE_Y + (CONGE_ROW_H - blockH) / 2 + congeLineH - 1.5;
                     absentDocs.forEach(doc => {
-                        let name = doc.name;
+                        let name = withDect(doc, dectDisplay, 'planningGlobalPdf');
                         while (pdf.getTextWidth(name) > CELL_W - 4 && name.length > 3) name = name.slice(0, -1);
                         pdf.text(name, cellX + CELL_W / 2, y, { align: 'center' });
                         y += congeLineH;
@@ -932,12 +938,12 @@ const Planning: React.FC = () => {
                             >
                                 {doc.name.substring(0, 2)}
                             </div>
-                            <div className="font-bold text-[10px] md:text-sm text-text-base leading-tight break-words">{doc.name}</div>
+                            <div className="font-bold text-[10px] md:text-sm text-text-base leading-tight break-words">{withDect(doc, dectDisplay, 'planningGlobal')}</div>
                         </div>
 
                         {secondaryDocs && secondaryDocs.length > 0 && (
                             <div className="text-xs text-text-muted mt-1 pl-7">
-                                + {secondaryDocs.map(d => d?.name).join(', ')}
+                                + {secondaryDocs.map(d => withDect(d, dectDisplay, 'planningGlobal')).join(', ')}
                             </div>
                         )}
                         {slot.type === SlotType.ACTIVITY && colorMode === 'DOCTOR' && (
@@ -1344,7 +1350,7 @@ const Planning: React.FC = () => {
                                                     ) : (
                                                         <div className="flex flex-col gap-0.5">
                                                             {absentDocs.map(doc => (
-                                                                <span key={doc.id} className="text-red-600 font-medium text-[10px] leading-tight block">{doc.name}</span>
+                                                                <span key={doc.id} className="text-red-600 font-medium text-[10px] leading-tight block">{withDect(doc, dectDisplay, 'planningGlobal')}</span>
                                                             ))}
                                                         </div>
                                                     )}
@@ -1365,7 +1371,7 @@ const Planning: React.FC = () => {
                                                 >
                                                     {doc.name.substring(0, 2)}
                                                 </div>
-                                                <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">{doc.name}</div>
+                                                <div className="text-[8px] md:text-[10px] font-bold text-text-base mt-0.5 md:mt-1 leading-tight break-words text-center">{withDect(doc, dectDisplay, 'planningGlobal')}</div>
                                             </td>
                                             {days.map(day => (
                                                 <td key={`${day}-matin`} className="border-r border-b border-border relative h-11 align-top p-0 overflow-hidden">

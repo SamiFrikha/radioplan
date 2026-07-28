@@ -43,6 +43,7 @@ export const backupService = {
                     name: d.name,
                     specialty: d.specialty,
                     color: d.color,
+                    dect: d.dect || null,
                     excludedDays: d.excluded_days || [],
                     excludedHalfDays: d.excluded_half_days || [], // NEW: Granular half-day exclusions
                     excludedActivities: d.excluded_activities || [],
@@ -166,6 +167,7 @@ export const backupService = {
                 name: doc.name,
                 specialty: doc.specialty,
                 color: doc.color,
+                dect: doc.dect || null, // '' would violate the 5-digit CHECK constraint
                 excluded_days: doc.excludedDays || [],
                 excluded_half_days: doc.excludedHalfDays || [], // NEW: Granular half-day exclusions
                 excluded_activities: doc.excludedActivities || [],

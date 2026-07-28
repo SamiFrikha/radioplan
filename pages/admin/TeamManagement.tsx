@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { supabase } from '../../services/supabaseClient';
-import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability, ExcludedHalfDay } from '../../types';
+import { AppRole, Doctor, Specialty, DayOfWeek, SlotType, Period, Unavailability, ExcludedHalfDay, DectSurface, DectDisplaySettings } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { AppContext } from '../../App';
 import { activityLogService } from '../../services/activityLogService';
 import { unavailabilityService } from '../../services/unavailabilityService';
-import { Users, UserPlus, Edit2, Trash2, X, Save, Key, UserCheck, Mail, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, Stethoscope, Link2, Unlink, Tag, Plus, Ban, Calendar } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2, X, Save, Key, UserCheck, Mail, Shield, Eye, EyeOff, AlertTriangle, Loader2, RefreshCw, Stethoscope, Link2, Unlink, Tag, Plus, Ban, Calendar, Phone } from 'lucide-react';
 import { Card, CardBody, EmptyState } from '../../src/components/ui';
 import { Badge } from '../../src/components/ui/Badge';
+import { DECT_SURFACES, DECT_POSITIONS, DECT_STYLES, DEFAULT_DECT_DISPLAY, formatDectName, isValidDect, sanitizeDectInput } from '../../services/dectDisplay';
 
 interface UserData {
     id: string;
@@ -23,6 +24,7 @@ interface DoctorWithUser {
     id: string;
     name: string;
     color: string;
+    dect?: string | null; // 5-digit DECT extension
     specialty: string[];
     excludedDays: DayOfWeek[];
     excludedHalfDays?: ExcludedHalfDay[]; // NEW: Granular half-day exclusions
@@ -36,7 +38,7 @@ const NON_DOCTOR_ROLES = ['Secrétariat', 'Secretariat', 'Secretary'];
 
 const TeamManagement: React.FC = () => {
     const { hasPermission, profile } = useAuth();
-    const { doctors, removeDoctor, updateDoctor, activityDefinitions, unavailabilities, addUnavailability, syncUnavailability, removeUnavailability } = useContext(AppContext);
+    const { doctors, removeDoctor, updateDoctor, activityDefinitions, unavailabilities, addUnavailability, syncUnavailability, removeUnavailability, dectDisplay, setDectDisplay } = useContext(AppContext);
     const [users, setUsers] = useState<UserData[]>([]);
     const [roles, setRoles] = useState<AppRole[]>([]);
     const [allDoctors, setAllDoctors] = useState<DoctorWithUser[]>([]);
@@ -45,11 +47,11 @@ const TeamManagement: React.FC = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     // View toggle - persisted in sessionStorage
-    const [activeView, setActiveViewState] = useState<'users' | 'doctors' | 'specialties'>(() => {
+    const [activeView, setActiveViewState] = useState<'users' | 'doctors' | 'specialties' | 'dect'>(() => {
         const saved = sessionStorage.getItem('teamManagement_activeView');
-        return (saved === 'doctors' || saved === 'specialties') ? saved : 'users';
+        return (saved === 'doctors' || saved === 'specialties' || saved === 'dect') ? saved : 'users';
     });
-    const setActiveView = (view: 'users' | 'doctors' | 'specialties') => {
+    const setActiveView = (view: 'users' | 'doctors' | 'specialties' | 'dect') => {
         sessionStorage.setItem('teamManagement_activeView', view);
         setActiveViewState(view);
     };
@@ -91,6 +93,7 @@ const TeamManagement: React.FC = () => {
     const [doctorFormData, setDoctorFormData] = useState({
         name: '',
         color: '#3B82F6',
+        dect: '',
         selectedSpecialties: [] as string[],
         excludedDays: [] as DayOfWeek[],
         excludedHalfDays: [] as ExcludedHalfDay[], // NEW: Granular half-day exclusions
@@ -152,6 +155,7 @@ const TeamManagement: React.FC = () => {
                 setDoctorFormData({
                     name: doctor.name,
                     color: doctor.color || '#3B82F6',
+                    dect: doctor.dect || '',
                     selectedSpecialties: doctor.specialty || [],
                     excludedDays: doctor.excludedDays || [],
                     excludedHalfDays: migratedHalfDays,
@@ -190,7 +194,7 @@ const TeamManagement: React.FC = () => {
             // Fetch all doctors with their linked users and exclusions
             const { data: doctorsData, error: doctorsError } = await supabase
                 .from('doctors')
-                .select('id, name, color, specialty, excluded_days, excluded_half_days, excluded_activities, excluded_slot_types')
+                .select('id, name, color, dect, specialty, excluded_days, excluded_half_days, excluded_activities, excluded_slot_types')
                 .order('name');
 
             if (doctorsError) console.error('Error fetching doctors:', doctorsError);
@@ -210,6 +214,7 @@ const TeamManagement: React.FC = () => {
                     id: doc.id,
                     name: doc.name,
                     color: doc.color,
+                    dect: doc.dect || null,
                     specialty: doc.specialty || [],
                     excludedDays: doc.excluded_days || [],
                     excludedHalfDays: doc.excluded_half_days || [], // NEW: Granular half-day exclusions
@@ -560,6 +565,7 @@ const TeamManagement: React.FC = () => {
         setDoctorFormData({
             name: doctor.name,
             color: doctor.color || '#3B82F6',
+            dect: doctor.dect || '',
             selectedSpecialties: doctor.specialty || [],
             excludedDays: doctor.excludedDays || [],
             excludedHalfDays: migratedHalfDays,
@@ -580,12 +586,21 @@ const TeamManagement: React.FC = () => {
 
         setError('');
         setSuccess('');
+
+        // DECT is optional, but when filled it must be exactly 5 digits (matches the DB CHECK)
+        const dectValue = doctorFormData.dect.trim();
+        if (dectValue && !isValidDect(dectValue)) {
+            setError('Le numéro DECT doit comporter exactement 5 chiffres (ou être laissé vide).');
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
             const updateData = {
                 name: doctorFormData.name,
                 color: doctorFormData.color,
+                dect: dectValue || null,
                 specialty: doctorFormData.selectedSpecialties,
                 excluded_days: doctorFormData.excludedDays,
                 excluded_half_days: doctorFormData.excludedHalfDays,
@@ -611,6 +626,7 @@ const TeamManagement: React.FC = () => {
                     name: savedDoc.name,
                     specialty: savedDoc.specialty || [],
                     color: savedDoc.color,
+                    dect: savedDoc.dect || null,
                     excludedDays: savedDoc.excluded_days || [],
                     excludedHalfDays: savedDoc.excluded_half_days || [],
                     excludedActivities: savedDoc.excluded_activities || [],
@@ -629,6 +645,8 @@ const TeamManagement: React.FC = () => {
                 changes.push(`nom « ${editingDoctor.name} » → « ${doctorFormData.name} »`);
             if ((editingDoctor.color || '') !== (doctorFormData.color || ''))
                 changes.push('couleur modifiée');
+            if ((editingDoctor.dect || '') !== dectValue)
+                changes.push(`DECT « ${editingDoctor.dect || '—'} » → « ${dectValue || '—'} »`);
             if (!arrEq(editingDoctor.specialty, doctorFormData.selectedSpecialties))
                 changes.push(`spécialités → ${doctorFormData.selectedSpecialties.join(', ') || 'aucune'}`);
             if (!arrEq(editingDoctor.excludedDays, doctorFormData.excludedDays))
@@ -917,6 +935,33 @@ const TeamManagement: React.FC = () => {
         return localDoctorUnavails;
     };
 
+    // === DECT DISPLAY HANDLERS ===
+    const doctorsWithDect = allDoctors.filter(d => isValidDect(d.dect));
+    // Preview uses a real doctor when one has a number, so admins see their own data
+    const previewDoctor = doctorsWithDect[0] || null;
+    const previewName = previewDoctor?.name || 'Dr Dupont';
+    const previewNumber = previewDoctor?.dect || '12345';
+
+    const dectPosition = dectDisplay?.position ?? DEFAULT_DECT_DISPLAY.position;
+    const dectStyle = dectDisplay?.style ?? DEFAULT_DECT_DISPLAY.style;
+
+    const persistDectDisplay = async (next: DectDisplaySettings) => {
+        setError('');
+        const ok = await setDectDisplay(next);
+        if (!ok) {
+            setError('Impossible d\'enregistrer les préférences d\'affichage.');
+            return;
+        }
+        setSuccess('Préférences d\'affichage enregistrées');
+        setTimeout(() => setSuccess(''), 2000);
+    };
+
+    const handleToggleDectSurface = (key: DectSurface) =>
+        persistDectDisplay({ ...DEFAULT_DECT_DISPLAY, ...dectDisplay, [key]: !dectDisplay?.[key] });
+
+    const handleSetDectFormat = (patch: Partial<Pick<DectDisplaySettings, 'position' | 'style'>>) =>
+        persistDectDisplay({ ...DEFAULT_DECT_DISPLAY, ...dectDisplay, ...patch });
+
     if (!hasPermission('manage_users')) {
         return (
             <div className="p-6 text-center">
@@ -999,6 +1044,17 @@ const TeamManagement: React.FC = () => {
                     <Tag className="w-3.5 h-3.5 md:w-4 md:h-4" />
                     <span className="hidden sm:inline">Spécialités</span>
                     <span className="sm:hidden">Spéc.</span>
+                </button>
+                <button
+                    onClick={() => setActiveView('dect')}
+                    className={`px-2 md:px-4 py-1.5 md:py-2 rounded-btn font-medium flex items-center gap-1 md:gap-2 transition-colors text-xs md:text-sm ${activeView === 'dect'
+                        ? 'bg-primary text-white'
+                        : 'bg-muted text-text-base hover:opacity-80 border border-border'
+                        }`}
+                >
+                    <Phone className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                    <span className="hidden sm:inline">Affichage DECT</span>
+                    <span className="sm:hidden">DECT</span>
                 </button>
             </div>
 
@@ -1178,6 +1234,12 @@ const TeamManagement: React.FC = () => {
                                                         : <span className="italic">Pas de spécialité</span>
                                                     }
                                                 </div>
+                                                {doctor.dect && (
+                                                    <div className="text-[10px] text-text-muted flex items-center gap-1 mt-0.5">
+                                                        <Phone className="w-2.5 h-2.5" />
+                                                        <span className="font-mono tracking-wider">{doctor.dect}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex gap-1 flex-shrink-0 ml-2">
@@ -1246,7 +1308,14 @@ const TeamManagement: React.FC = () => {
                                                         {doctor.name.substring(0, 2)}
                                                     </div>
                                                     <div>
-                                                        <div className="text-sm font-semibold text-text-base">{doctor.name}</div>
+                                                        <div className="text-sm font-semibold text-text-base flex items-center gap-2">
+                                                            {doctor.name}
+                                                            {doctor.dect && (
+                                                                <span className="text-[11px] font-mono tracking-wider text-text-muted font-normal flex items-center gap-1">
+                                                                    <Phone className="w-3 h-3" />{doctor.dect}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <div className="text-xs text-text-muted">
                                                             {doctor.specialty && doctor.specialty.length > 0
                                                                 ? doctor.specialty.join(', ')
@@ -1414,6 +1483,144 @@ const TeamManagement: React.FC = () => {
                                         </div>
                                     );
                                 })
+                            )}
+                        </div>
+                    </Card>
+                </div>
+            )}
+
+            {/* DECT Display View */}
+            {activeView === 'dect' && (
+                <div className="space-y-6">
+                    <Card className="p-6">
+                        <h3 className="font-heading font-bold text-sm text-text-base mb-1 flex items-center gap-2">
+                            <Phone className="w-5 h-5 text-primary" /> Affichage du numéro DECT
+                        </h3>
+                        <p className="text-xs text-text-muted mb-4">
+                            Choisissez où le numéro DECT est affiché, ainsi que sa position et son style.
+                            Ce réglage s'applique à toute l'équipe. Les médecins sans numéro renseigné
+                            gardent leur nom seul.
+                        </p>
+
+                        {/* Live preview + format controls */}
+                        <div className="bg-muted border border-border rounded-lg px-4 py-3.5 mb-5">
+                            <div className="text-[11px] uppercase tracking-widest text-text-muted mb-1.5">Aperçu</div>
+                            <div className="text-base font-semibold text-text-base mb-4 break-words">
+                                {formatDectName(previewName, previewNumber, dectPosition, dectStyle)}
+                            </div>
+
+                            {/* Position */}
+                            <div className="mb-3">
+                                <div className="text-xs font-medium text-text-base mb-1.5">Position</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {DECT_POSITIONS.map(pos => (
+                                        <button
+                                            key={pos.key}
+                                            type="button"
+                                            onClick={() => handleSetDectFormat({ position: pos.key })}
+                                            className={`px-3 py-1.5 rounded-btn text-xs font-medium border transition-colors ${dectPosition === pos.key
+                                                ? 'bg-primary text-white border-primary'
+                                                : 'bg-surface text-text-muted border-border hover:border-text-muted'
+                                                }`}
+                                        >
+                                            {pos.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Style — each button previews itself */}
+                            <div>
+                                <div className="text-xs font-medium text-text-base mb-1.5">Style</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {DECT_STYLES.map(style => (
+                                        <button
+                                            key={style.key}
+                                            type="button"
+                                            onClick={() => handleSetDectFormat({ style: style.key })}
+                                            title={style.label}
+                                            className={`px-3 py-1.5 rounded-btn text-xs font-medium border transition-colors ${dectStyle === style.key
+                                                ? 'bg-primary text-white border-primary'
+                                                : 'bg-surface text-text-muted border-border hover:border-text-muted'
+                                                }`}
+                                        >
+                                            <span className="font-mono">
+                                                {formatDectName('Nom', previewNumber, dectPosition, style.key)}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            {DECT_SURFACES.map(surface => {
+                                const checked = dectDisplay?.[surface.key] === true;
+                                return (
+                                    <label
+                                        key={surface.key}
+                                        className={`flex items-start gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors ${checked
+                                            ? 'bg-primary/5 border-primary/30'
+                                            : 'bg-surface border-border hover:bg-muted'
+                                            }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={() => handleToggleDectSurface(surface.key)}
+                                            className="mt-0.5 w-4 h-4 accent-primary cursor-pointer flex-shrink-0"
+                                        />
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-medium text-text-base">{surface.label}</div>
+                                            <div className="text-xs text-text-muted">{surface.description}</div>
+                                        </div>
+                                    </label>
+                                );
+                            })}
+                        </div>
+
+                        {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
+                        {success && <p className="text-green-600 text-sm mt-3">{success}</p>}
+                    </Card>
+
+                    {/* Coverage: which doctors still need a number */}
+                    <Card>
+                        <div className="px-4 py-3 border-b border-border">
+                            <h3 className="font-heading font-semibold text-sm text-text-base">
+                                Numéros renseignés — {doctorsWithDect.length} médecin{doctorsWithDect.length !== 1 ? 's' : ''} sur {allDoctors.length}
+                            </h3>
+                        </div>
+                        <div className="divide-y divide-border">
+                            {allDoctors.length === 0 ? (
+                                <EmptyState icon={Stethoscope} title="Aucun profil médecin" description="Aucun profil médecin trouvé." />
+                            ) : (
+                                allDoctors.map(doctor => (
+                                    <div key={doctor.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div
+                                                className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-white text-[9px] font-bold shadow"
+                                                style={{ backgroundColor: doctor.color || '#3B82F6' }}
+                                            >
+                                                {doctor.name.substring(0, 2)}
+                                            </div>
+                                            <span className="text-sm text-text-base truncate">{doctor.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            {doctor.dect ? (
+                                                <span className="font-mono text-sm tracking-widest text-text-base">{doctor.dect}</span>
+                                            ) : (
+                                                <span className="text-xs text-text-muted italic">Non renseigné</span>
+                                            )}
+                                            <button
+                                                className="text-text-muted hover:text-primary p-1.5 rounded hover:bg-primary/5 transition-colors"
+                                                onClick={() => openEditDoctorModal(doctor)}
+                                                title="Renseigner le numéro DECT"
+                                            >
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
                             )}
                         </div>
                     </Card>
@@ -1836,6 +2043,32 @@ const TeamManagement: React.FC = () => {
                                     </div>
                                     <span className="text-text-muted text-sm">{doctorFormData.color}</span>
                                 </div>
+                            </div>
+
+                            {/* DECT phone */}
+                            <div>
+                                <label className="block text-sm font-medium text-text-base mb-1">
+                                    <Phone className="w-4 h-4 inline mr-1" /> Téléphone DECT
+                                    <span className="text-text-muted font-normal ml-1">(optionnel)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    maxLength={5}
+                                    value={doctorFormData.dect}
+                                    onChange={(e) => setDoctorFormData({ ...doctorFormData, dect: sanitizeDectInput(e.target.value) })}
+                                    className={`w-full border rounded-btn h-10 px-3 font-mono tracking-widest focus:outline-none ${doctorFormData.dect && !isValidDect(doctorFormData.dect)
+                                        ? 'border-danger focus:border-danger'
+                                        : 'border-border focus:border-primary'
+                                        }`}
+                                    placeholder="12345"
+                                />
+                                <p className={`text-xs mt-1 ${doctorFormData.dect && !isValidDect(doctorFormData.dect) ? 'text-danger' : 'text-text-muted'}`}>
+                                    {doctorFormData.dect && !isValidDect(doctorFormData.dect)
+                                        ? `${doctorFormData.dect.length}/5 chiffres — le numéro doit en comporter exactement 5.`
+                                        : 'Numéro interne à 5 chiffres. Laissez vide si le médecin n\'en a pas.'}
+                                </p>
                             </div>
 
                             {/* Specialty */}

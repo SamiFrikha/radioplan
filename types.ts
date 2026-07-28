@@ -45,6 +45,7 @@ export interface Doctor {
   name: string;
   specialty: string[];
   color: string;
+  dect?: string | null; // Internal DECT extension: exactly 5 digits, or null/empty if none
   // Exclusions
   excludedDays: DayOfWeek[]; // Days they don't work (e.g. 80%) - LEGACY, kept for backward compat
   excludedHalfDays?: ExcludedHalfDay[]; // NEW: Granular half-day exclusions (takes precedence if set)
@@ -182,6 +183,37 @@ export type ShiftHistory = Record<string, Record<string, number>>;
 // Persistent Manual Overrides: { slotId: doctorId }
 export type ManualOverrides = Record<string, string>;
 
+// Where and how the DECT number is shown alongside a doctor's name.
+// Global setting (app_settings.dect_display), managed by admins.
+
+// Surfaces that can independently show the number.
+export type DectSurface =
+  | 'planningGlobal'    // Planning global on screen (both "Lieu" and "Médecin" views)
+  | 'planningGlobalPdf' // Planning global PDF export (both views)
+  | 'monPlanning'       // Mon Planning (personal agenda)
+  | 'dashboard';        // Dashboard doctor lists
+
+export type DectPosition = 'before' | 'after';
+
+// Visual treatment of the number itself. All render identically on screen and in
+// the jsPDF export — no glyph outside WinAnsi, which jsPDF's standard fonts cannot draw.
+export type DectStyle =
+  | 'brackets'    // [12345] Dr Dupont
+  | 'parentheses' // (12345) Dr Dupont
+  | 'plain'       // 12345 Dr Dupont
+  | 'dot'         // 12345 · Dr Dupont
+  | 'dash'        // 12345 — Dr Dupont
+  | 'label';      // Tél. 12345 Dr Dupont
+
+export interface DectDisplaySettings {
+  planningGlobal: boolean;
+  planningGlobalPdf: boolean;
+  monPlanning: boolean;
+  dashboard: boolean;
+  position: DectPosition;
+  style: DectStyle;
+}
+
 // RCP Attendance: { slotId: { doctorId: 'PRESENT' | 'ABSENT' } }
 export type RcpStatus = 'PRESENT' | 'ABSENT';
 export type RcpAttendance = Record<string, Record<string, RcpStatus>>;
@@ -310,6 +342,8 @@ export interface AppContextType {
   setActivitiesStartDate: (date: string | null) => void; // NEW
   consultationHours: ConsultationHours; // Global consultation half-day time ranges
   setConsultationHours: (hours: ConsultationHours) => void;
+  dectDisplay: DectDisplaySettings; // Where DECT numbers are shown before doctor names
+  setDectDisplay: (settings: DectDisplaySettings) => Promise<boolean>; // Resolves false when the save was rejected
   validatedWeeks: string[]; // NEW: List of validated week keys
   validateWeek: (weekKey: string) => void; // NEW
   unvalidateWeek: (weekKey: string) => void; // NEW

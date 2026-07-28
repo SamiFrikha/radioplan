@@ -9,6 +9,7 @@ import { getMyReplacementRequests } from '../services/replacementService';
 import { DayOfWeek, Period, SlotType } from '../types';
 import { Badge } from '../src/components/ui';
 import { getDoctorHexColor } from './DoctorBadge';
+import { withDect } from '../services/dectDisplay';
 
 interface Props {
   weekOffset: number;
@@ -101,8 +102,11 @@ const PersonalAgendaWeek: React.FC<Props> = ({
 }) => {
   const {
     doctors, template, unavailabilities,
-    activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
+    activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides, dectDisplay,
   } = useContext(AppContext);
+
+  // Replacement doctor names carry the DECT number; the tiny RCP presence pills
+  // stay first-name-only — adding it there would push the name out of the cell.
 
   const { profile } = useAuth();
   const doctorId = profile?.doctor_id;
@@ -554,7 +558,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
                         || (slot.type === SlotType.CONSULTATION ? 'Consultation'
                           : slot.type === SlotType.RCP ? 'RCP' : 'Activité');
                       const statusColor = isResolved ? '#059669' : '#D97706';
-                      const statusLabel = isClosed ? '✓ Fermé' : isReplaced ? `✓ ${replacerDoctor?.name || '?'}` : '⚠ Non résolu';
+                      const statusLabel = isClosed ? '✓ Fermé' : isReplaced ? `✓ ${withDect(replacerDoctor, dectDisplay, 'monPlanning') || '?'}` : '⚠ Non résolu';
                       const handleClick = () => {
                         if (!isResolved) onConflictClick?.(slot);
                         else onResolvedConflictClick?.(slot, isReplaced ? rawReplacerId : null);
@@ -830,7 +834,7 @@ const PersonalAgendaWeek: React.FC<Props> = ({
                       const statusLabel = isClosed
                         ? '✓ Fermé'
                         : isReplaced
-                          ? `✓ ${replacerDoctor?.name || '?'}`
+                          ? `✓ ${withDect(replacerDoctor, dectDisplay, 'monPlanning') || '?'}`
                           : '⚠ Non résolu';
 
                       const handleClick = () => {

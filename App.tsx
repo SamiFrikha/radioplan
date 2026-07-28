@@ -11,7 +11,7 @@ import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import NotificationBell from './components/NotificationBell';
 import { DEFAULT_TEMPLATE, INITIAL_DOCTORS, INITIAL_ACTIVITIES } from './constants';
-import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, ActivityDefinition, RcpDefinition, AppContextType, ShiftHistory, ManualOverrides, RcpAttendance, RcpException, GlobalBackupData, ConsultationHours } from './types';
+import { ScheduleSlot, Unavailability, Conflict, Doctor, ScheduleTemplateSlot, ActivityDefinition, RcpDefinition, AppContextType, ShiftHistory, ManualOverrides, RcpAttendance, RcpException, GlobalBackupData, ConsultationHours, DectDisplaySettings } from './types';
 import { detectConflicts, generateScheduleForWeek, computeHistoryFromDate, getDateForDayOfWeek } from './services/scheduleService';
 import { useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -31,6 +31,7 @@ import { rcpService } from './services/rcpService';
 import { scheduleApiService } from './services/scheduleApiService';
 import { backupService } from './services/backupService';
 import { settingsService, DEFAULT_CONSULTATION_HOURS } from './services/settingsService';
+import { DEFAULT_DECT_DISPLAY } from './services/dectDisplay';
 
 // Handles automatic redirect when Supabase fires PASSWORD_RECOVERY event
 const RecoveryRedirect: React.FC = () => {
@@ -146,6 +147,7 @@ const App: React.FC = () => {
     const [rcpExceptions, setRcpExceptions] = useState<RcpException[]>([]);
     const [activitiesStartDate, setActivitiesStartDate] = useState<string | null>(null);
     const [consultationHours, setConsultationHoursState] = useState<ConsultationHours>(DEFAULT_CONSULTATION_HOURS);
+    const [dectDisplay, setDectDisplayState] = useState<DectDisplaySettings>(DEFAULT_DECT_DISPLAY);
     const [validatedWeeks, setValidatedWeeks] = useState<string[]>([]); // Weeks that are locked/validated
     const [shiftHistory, setShiftHistory] = useState<ShiftHistory>({});
 
@@ -278,6 +280,7 @@ const App: React.FC = () => {
                     setValidatedWeeks(settings.validatedWeeks || []);
                     setManualOverrides(settings.manualOverrides || {});
                     setConsultationHoursState(settings.consultationHours || DEFAULT_CONSULTATION_HOURS);
+                    setDectDisplayState(settings.dectDisplay || DEFAULT_DECT_DISPLAY);
                 }
 
                 dataLoadedRef.current = true; // Mark as loaded
@@ -646,6 +649,14 @@ const App: React.FC = () => {
         await settingsService.update({ consultationHours: hours });
     }
 
+    const setDectDisplay = async (settings: DectDisplaySettings): Promise<boolean> => {
+        const previous = dectDisplay;
+        setDectDisplayState(settings);
+        const ok = await settingsService.update({ dectDisplay: settings });
+        if (!ok) setDectDisplayState(previous); // Roll back so the UI never claims a save that failed
+        return ok;
+    }
+
     // Week validation functions
     const validateWeek = async (weekKey: string) => {
         if (!validatedWeeks.includes(weekKey)) {
@@ -745,6 +756,7 @@ const App: React.FC = () => {
             setManualOverrides: setManualOverridesWrapper, importConfiguration, rcpAttendance, setRcpAttendance: setRcpAttendanceWrapper,
             rcpExceptions, addRcpException, removeRcpException, activitiesStartDate, setActivitiesStartDate: updateActivitiesStartDate,
             consultationHours, setConsultationHours,
+            dectDisplay, setDectDisplay,
             validatedWeeks, validateWeek, unvalidateWeek,
             activitiesWeekOffset, setActivitiesWeekOffset,
             activitiesActiveTab, setActivitiesActiveTab,

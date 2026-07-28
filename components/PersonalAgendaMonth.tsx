@@ -7,6 +7,7 @@ import { generateScheduleForWeek, isFrenchHoliday } from '../services/scheduleSe
 import { getMyReplacementRequests } from '../services/replacementService';
 import { SlotType, Period } from '../types';
 import { getDoctorHexColor } from './DoctorBadge';
+import { withDect } from '../services/dectDisplay';
 
 // RCP status helper
 const getRcpStatus = (
@@ -202,8 +203,11 @@ interface Props {
 const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onConsultClick, onConflictClick, onResolvedConflictClick }) => {
   const {
     doctors, template, unavailabilities,
-    activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides,
+    activityDefinitions, rcpTypes, rcpAttendance, rcpExceptions, manualOverrides, dectDisplay,
   } = useContext(AppContext);
+
+  // Replacement doctor names carry the DECT number; the tiny RCP presence pills
+  // stay first-name-only — adding it there would push the name out of the cell.
 
   const { profile } = useAuth();
   const doctorId = profile?.doctor_id;
@@ -667,7 +671,7 @@ const PersonalAgendaMonth: React.FC<Props> = ({ onRcpClick, onActivityClick, onC
                           const statusLabel = isClosed
                             ? '✓ Fermé'
                             : isReplaced
-                              ? `✓ Remplacé par ${replacerDoctor?.name || '?'}`
+                              ? `✓ Remplacé par ${withDect(replacerDoctor, dectDisplay, 'monPlanning') || '?'}`
                               : '⚠ Non résolu';
                           const handleClick = () => {
                             setSelectedDate(null);

@@ -9,6 +9,7 @@ import { Users, AlertTriangle, Calendar, Activity, Clock, ChevronLeft, ChevronRi
 import { DayOfWeek, Period, SlotType, Doctor, ScheduleSlot, Conflict, RcpException } from '../types';
 import { getDateForDayOfWeek, isDateInRange, generateScheduleForWeek, detectConflicts, isFrenchHoliday, getFrenchHolidays } from '../services/scheduleService';
 import { getDoctorHexColor } from '../components/DoctorBadge';
+import { withDect } from '../services/dectDisplay';
 import { Card, CardHeader, CardTitle, CardBody, Badge, Button } from '../src/components/ui';
 
 // Format a Date as YYYY-MM-DD using LOCAL components. Using toISOString() here
@@ -47,8 +48,12 @@ const Dashboard: React.FC = () => {
         setDashboardWeekOffset,
         addRcpException,
         validatedWeeks,
-        consultationHours
+        consultationHours,
+        dectDisplay
     } = useContext(AppContext);
+
+    // DECT numbers are shown only where the full doctor name is, never in the
+    // compact grid cells that already run names through shortName().
 
     const { profile } = useAuth();
 
@@ -493,7 +498,7 @@ const Dashboard: React.FC = () => {
                                             <Badge variant="amber">A confirmer</Badge>
                                             <div className="text-[9px] text-text-muted uppercase font-bold mt-1">Référents :</div>
                                             <div className="text-xs text-text-muted italic">
-                                                {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].map(id => doctors.find(d => d.id === id)?.name).filter(Boolean).join(', ')}
+                                                {[s.assignedDoctorId, ...(s.secondaryDoctorIds || [])].map(id => { const d = doctors.find(doc => doc.id === id); return d ? withDect(d, dectDisplay, 'dashboard') : null; }).filter(Boolean).join(', ')}
                                             </div>
                                         </div>
                                     ) : s.type === SlotType.RCP ? (
@@ -512,7 +517,7 @@ const Dashboard: React.FC = () => {
                                                             >
                                                                 {d.name.substring(0, 2)}
                                                             </div>
-                                                            <span className="text-xs font-bold text-text-base">{d.name}</span>
+                                                            <span className="text-xs font-bold text-text-base">{withDect(d, dectDisplay, 'dashboard')}</span>
                                                         </div>
                                                     );
                                                 })}
@@ -528,7 +533,7 @@ const Dashboard: React.FC = () => {
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="text-sm font-bold text-text-base flex items-center truncate">
-                                                    {doc ? doc.name : 'Non assigné'}
+                                                    {doc ? withDect(doc, dectDisplay, 'dashboard') : 'Non assigné'}
                                                 </div>
                                                 <div className="text-xs text-text-muted">{s.type} {s.subType && `• ${s.subType}`}</div>
                                             </div>
@@ -961,7 +966,7 @@ const Dashboard: React.FC = () => {
                                                         {' · '}{slot?.period === Period.MORNING ? 'Matin' : 'PM'}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm font-medium text-text-base leading-snug">{doc?.name || 'Inconnu'}</p>
+                                                <p className="text-sm font-medium text-text-base leading-snug">{doc ? withDect(doc, dectDisplay, 'dashboard') : 'Inconnu'}</p>
                                                 <p className="text-xs text-text-muted mt-0.5">{conflict.description}</p>
                                                 {locationDetail && (
                                                     <span className="inline-block mt-1 text-[10px] font-medium text-text-muted bg-muted px-2 py-0.5 rounded-btn-sm">
@@ -1045,7 +1050,7 @@ const Dashboard: React.FC = () => {
                                                                     >
                                                                         {d.name.substring(0, 2)}
                                                                     </div>
-                                                                    <span className="text-[9px] text-text-base">{d.name}</span>
+                                                                    <span className="text-[9px] text-text-base">{withDect(d, dectDisplay, 'dashboard')}</span>
                                                                 </div>
                                                             );
                                                         })}
@@ -1087,7 +1092,7 @@ const Dashboard: React.FC = () => {
                                 <div className="flex flex-wrap gap-1.5">
                                     {unassignedDoctors[Period.MORNING].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.MORNING].map(d => (
-                                            <Badge key={d.id} variant="gray">{d.name}</Badge>
+                                            <Badge key={d.id} variant="gray">{withDect(d, dectDisplay, 'dashboard')}</Badge>
                                         ))
                                     }
                                 </div>
@@ -1097,7 +1102,7 @@ const Dashboard: React.FC = () => {
                                 <div className="flex flex-wrap gap-1.5">
                                     {unassignedDoctors[Period.AFTERNOON].length === 0 ? <span className="text-xs text-text-muted italic">Tous occupés</span> :
                                         unassignedDoctors[Period.AFTERNOON].map(d => (
-                                            <Badge key={d.id} variant="gray">{d.name}</Badge>
+                                            <Badge key={d.id} variant="gray">{withDect(d, dectDisplay, 'dashboard')}</Badge>
                                         ))
                                     }
                                 </div>
@@ -1133,7 +1138,7 @@ const Dashboard: React.FC = () => {
                                         <div key={abs.id} className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0">
                                             <span className="w-2 h-2 rounded-full bg-warning mt-1.5 flex-shrink-0" aria-hidden="true" />
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-medium text-text-base leading-snug">{doc?.name}</p>
+                                                <p className="text-sm font-medium text-text-base leading-snug">{withDect(doc, dectDisplay, 'dashboard')}</p>
                                                 <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
                                                     {abs.reason}
                                                     {abs.period && abs.period !== 'ALL_DAY' && (
